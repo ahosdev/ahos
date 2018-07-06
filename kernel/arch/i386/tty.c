@@ -40,6 +40,22 @@ void terminal_putentryat(unsigned char c, uint8_t color, size_t x, size_t y) {
 
 void terminal_putchar(char c) {
 	unsigned char uc = c;
+
+	if (c == '\n') {
+		if (++terminal_row == VGA_HEIGHT)
+			terminal_row = 0; // TODO: implement scrolling
+		terminal_column = 0;
+		return;
+	} else if (c == '\r') {
+		terminal_column = 0;
+		return;
+	} else if (c == '\t') {
+		terminal_putchar(' ');
+		terminal_putchar(' ');
+		terminal_putchar(' ');
+		return;
+	}
+
 	terminal_putentryat(uc, terminal_color, terminal_column, terminal_row);
 	if (++terminal_column == VGA_WIDTH) {
 		terminal_column = 0;
