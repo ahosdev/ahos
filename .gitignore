@@ -2,3 +2,5 @@
 *.o
 *.bin
 *.iso
+sysroot/*
+isodir/*
