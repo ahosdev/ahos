@@ -7,17 +7,18 @@
 
 #include "vga.h"
 
-static const size_t VGA_WIDTH = 80;
-static const size_t VGA_HEIGHT = 25;
-static uint16_t* const VGA_MEMORY = (uint16_t*) 0xB8000;
-
 static size_t terminal_row;
 static size_t terminal_column;
 static uint8_t terminal_color;
 static uint16_t* terminal_buffer;
 
+static const size_t VGA_WIDTH = 80;
+static const size_t VGA_HEIGHT = 25;
+static uint16_t* const VGA_MEMORY = (uint16_t*) 0xB8000;
+static const size_t VGA_ELT_SIZE = sizeof(terminal_buffer[0]);
+
 void terminal_initialize(void) {
-	terminal_row = 0;
+	terminal_row = VGA_HEIGHT - 1; // we start from bottom (ease scroll code)
 	terminal_column = 0;
 	terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
 	terminal_buffer = VGA_MEMORY;
@@ -38,12 +39,23 @@ void terminal_putentryat(unsigned char c, uint8_t color, size_t x, size_t y) {
 	terminal_buffer[index] = vga_entry(c, color);
 }
 
+/*
+ * Moves the terminal buffer up by one line. The top line is lost.
+ */
+
+static void scroll_up(void)
+{
+	memmove(terminal_buffer, &terminal_buffer[VGA_WIDTH + 0],
+		VGA_ELT_SIZE * (VGA_WIDTH * (VGA_HEIGHT - 1)));
+	memset(&terminal_buffer[VGA_WIDTH * (VGA_HEIGHT-1)],
+		0, VGA_WIDTH * VGA_ELT_SIZE);
+}
+
 void terminal_putchar(char c) {
 	unsigned char uc = c;
 
 	if (c == '\n') {
-		if (++terminal_row == VGA_HEIGHT)
-			terminal_row = 0; // TODO: implement scrolling
+		scroll_up();
 		terminal_column = 0;
 		return;
 	} else if (c == '\r') {
@@ -58,9 +70,8 @@ void terminal_putchar(char c) {
 
 	terminal_putentryat(uc, terminal_color, terminal_column, terminal_row);
 	if (++terminal_column == VGA_WIDTH) {
+		scroll_up();
 		terminal_column = 0;
-		if (++terminal_row == VGA_HEIGHT)
-			terminal_row = 0;
 	}
 }
 
