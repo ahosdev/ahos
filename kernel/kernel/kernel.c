@@ -1,7 +1,12 @@
 #include <stdio.h>
 
 #include <kernel/tty.h>
+#include <kernel/serial.h>
 #include <kernel/memman.h>
+
+#if defined(__linux__)
+#error "You are not using a cross-compiler"
+#endif
 
 static void print_banner(void)
 {
@@ -16,6 +21,7 @@ static void print_banner(void)
 
 static void kernel_init(void)
 {
+	serial_init();
 	terminal_initialize();
 	printf("tty initialized in VGA text mode\n");
 
