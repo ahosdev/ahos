@@ -65,13 +65,16 @@ struct idt_entry
 
 /*
  * In theory, only the 'P' flag (PRESENT) should be set to 0, otherfields
- * should be unused. Set them all to zero to be sure.
+ * should be unused. Set them all to zero to be sure... Well, it's not that
+ * clear what "undefined" gate should be used.
+ *
+ * Right now, undefined interrupt will generate a GPF.
  */
 
 #define empty_gate() \
 	(struct idt_entry) { \
 		.offset_lo = 0x0, \
-		.segment_selector = 0x0, \
+		.segment_selector = 0x00, \
 		.flags = 0x0, \
 		.offset_hi = 0x0 \
 	}
@@ -90,13 +93,60 @@ void unhandled_interrupt(void)
 	/* no return */
 }
 
+static void divide_error_handler(void)
+{
+	printf("\"Divide Error\" exception detected!\n");
+	// TODO
+	unhandled_exception();
+}
+
+static void invalid_opcode_handler(void)
+{
+	printf("\"Invalid Opcode (Undefined Opcode)\" exception detected!\n");
+	// TODO
+	unhandled_exception();
+}
+
+static void double_fault_handler(void)
+{
+	printf("\"Double Fault\" exception detected!\n");
+	// TODO
+	unhandled_exception();
+}
+
+static void general_protection_fault_handler(void)
+{
+	printf("\"General Protection Fault\" exception detected!\n");
+	// TODO
+	unhandled_exception();
+}
+
+static void page_fault_handler(void)
+{
+	printf("\"Page Fault\" exception detected!\n");
+	// TODO
+	unhandled_exception();
+}
+
+static void user_defined_interrupt_handler(void)
+{
+	printf("\"User Defined\" interruption detected!\n");
+	// FIXME: remove me (unnecessary)
+	unhandled_interrupt();
+}
+
 void isr_handler(int isr_num, int error_code)
 {
-	printf("Interrupted #%d detected (error=%d)\n", isr_num, error_code);
+	printf("Interruption #%d detected (error=%d)\n", isr_num, error_code);
 
 	switch (isr_num)
 	{
-		// TODO: implement interrupts handler
+		case 0: divide_error_handler(); break;
+		case 6: invalid_opcode_handler(); break;
+		case 8: double_fault_handler(); break;
+		case 13: general_protection_fault_handler(); break;
+		case 14: page_fault_handler(); break;
+		case 32: user_defined_interrupt_handler(); break;
 		default:
 			unhandled_interrupt();
 			break;

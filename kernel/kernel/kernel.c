@@ -39,12 +39,8 @@ static void kernel_init(void)
 #endif
 }
 
-extern void isr_wrapper(void);
-
 void kernel_main(void)
 {
 	kernel_init();
 	print_banner();
-
-	asm volatile("int $0" :: );
 }
