@@ -21,7 +21,7 @@
 	.align 4
 	isr\isr_num:
 	cli # no nested interrupts
-	push \isr_num
+	push $\isr_num
 	jmp isr_common_stub
 .endm
 
