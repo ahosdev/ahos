@@ -10,7 +10,6 @@
 	.global isr\isr_num
 	.align 4
 	isr\isr_num:
-	cli # no nested interrupts
 	push $0 # dummy error code
 	push $\isr_num
 	jmp isr_common_stub
@@ -20,7 +19,6 @@
 	.global isr\isr_num
 	.align 4
 	isr\isr_num:
-	cli # no nested interrupts
 	push $\isr_num
 	jmp isr_common_stub
 .endm
@@ -50,9 +48,6 @@ isr_common_stub:
 	add $8, %esp
 	popal
 	add $8, %esp # clean the pushed error code push isr number
-
-	# re-enable interrupts and continue execution prior interrupt
-	sti
 	iret
 
 # First 32 interrupts are fixed by intel

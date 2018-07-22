@@ -4,9 +4,13 @@
  * Interrupt Descriptor Table setup.
  *
  * Recommended readings:
- * - Intel IA-32 "System Volume 3A"
  * - https://wiki.osdev.org/IDT
  * - https://wiki.osdev.org/Interrupts
+ * - https://wiki.osdev.org/Interrupt_Service_Routines
+ * - http://www.brokenthorn.com/Resources/OSDev15.html
+ *
+ * TODO
+ * - use trap_gate() to handle nested interrupts
  */
 
 #include <kernel/types.h>
@@ -198,38 +202,38 @@ void setup_idt(void)
 		idt[i] = empty_gate();
 
 	// The first 32 entries are fixed by intel ia-32 architecture
-	idt[0]  = trap_gate(isr0); // divide error
-	idt[1]  = trap_gate(isr1); // reserved
+	idt[0]  = int_gate(isr0); // divide error
+	idt[1]  = int_gate(isr1); // reserved
 	idt[2]  = int_gate(isr2); // nmi interrupt
-	idt[3]  = trap_gate(isr3); // breakpoint
-	idt[4]  = trap_gate(isr4); // overflow
-	idt[5]  = trap_gate(isr5); // bound range exceeded
-	idt[6]  = trap_gate(isr6); // invalid/undefined opcode (UD2 !)
-	idt[7]  = trap_gate(isr7); // device not available (no math coprocessor)
-	idt[8]  = trap_gate(isr8); // double fault
-	idt[9]  = trap_gate(isr9); // coprocessor segment overrun (reserved)
-	idt[10] = trap_gate(isr10); // invalid tss
-	idt[11] = trap_gate(isr11); // segment not present
-	idt[12] = trap_gate(isr12); // stack-segment fault
-	idt[13] = trap_gate(isr13); // general protection
-	idt[14] = trap_gate(isr14); // page fault
-	idt[15] = trap_gate(isr15); // reserved
-	idt[16] = trap_gate(isr16); // x87 fpu floating-point error (math fault)
-	idt[17] = trap_gate(isr17); // alignment check
-	idt[18] = trap_gate(isr18); // machine check
-	idt[19] = trap_gate(isr19); // simd float-point exception
-	idt[20] = trap_gate(isr20); // reserved
-	idt[21] = trap_gate(isr21); // reserved
-	idt[22] = trap_gate(isr22); // reserved
-	idt[23] = trap_gate(isr23); // reserved
-	idt[24] = trap_gate(isr24); // reserved
-	idt[25] = trap_gate(isr25); // reserved
-	idt[26] = trap_gate(isr26); // reserved
-	idt[27] = trap_gate(isr27); // reserved
-	idt[28] = trap_gate(isr28); // reserved
-	idt[29] = trap_gate(isr29); // reserved
-	idt[30] = trap_gate(isr30); // reserved
-	idt[31] = trap_gate(isr31); // reserved
+	idt[3]  = int_gate(isr3); // breakpoint
+	idt[4]  = int_gate(isr4); // overflow
+	idt[5]  = int_gate(isr5); // bound range exceeded
+	idt[6]  = int_gate(isr6); // invalid/undefined opcode (UD2 !)
+	idt[7]  = int_gate(isr7); // device not available (no math coprocessor)
+	idt[8]  = int_gate(isr8); // double fault
+	idt[9]  = int_gate(isr9); // coprocessor segment overrun (reserved)
+	idt[10] = int_gate(isr10); // invalid tss
+	idt[11] = int_gate(isr11); // segment not present
+	idt[12] = int_gate(isr12); // stack-segment fault
+	idt[13] = int_gate(isr13); // general protection
+	idt[14] = int_gate(isr14); // page fault
+	idt[15] = int_gate(isr15); // reserved
+	idt[16] = int_gate(isr16); // x87 fpu floating-point error (math fault)
+	idt[17] = int_gate(isr17); // alignment check
+	idt[18] = int_gate(isr18); // machine check
+	idt[19] = int_gate(isr19); // simd float-point exception
+	idt[20] = int_gate(isr20); // reserved
+	idt[21] = int_gate(isr21); // reserved
+	idt[22] = int_gate(isr22); // reserved
+	idt[23] = int_gate(isr23); // reserved
+	idt[24] = int_gate(isr24); // reserved
+	idt[25] = int_gate(isr25); // reserved
+	idt[26] = int_gate(isr26); // reserved
+	idt[27] = int_gate(isr27); // reserved
+	idt[28] = int_gate(isr28); // reserved
+	idt[29] = int_gate(isr29); // reserved
+	idt[30] = int_gate(isr30); // reserved
+	idt[31] = int_gate(isr31); // reserved
 
 	// Next entries are user-defined
 	//idt[32] = int_gate(unhandled_interrupt); // our first custom interrupt!
