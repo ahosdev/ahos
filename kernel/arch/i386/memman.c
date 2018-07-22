@@ -43,13 +43,9 @@ static void setup_gdt(void)
 
 void memman_init(void)
 {
-	printf("memory initialization\n");
-
 	// disable interrupt + NMI
-	printf("disabling interrupts...");
 	disable_irq();
 	disable_nmi();
-	printf("done\n");
 
 	/*
 	 * About the "A20 line", first please read this:
@@ -61,16 +57,9 @@ void memman_init(void)
 	 * of bootloader (or stop using GRUB), this should be implemented.
 	 */
 	// TODO: enable the A20 line
-	printf("WARN: unknown A20 line state\n");
 
-	printf("setting up new GDT...");
 	setup_gdt();
-	printf("done\n");
 
-	printf("entering protected mode...");
 	_enter_pmode();
-	printf("done\n");
-
-	printf("memory initialization complete!\n");
 }
 

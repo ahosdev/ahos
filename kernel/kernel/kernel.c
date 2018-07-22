@@ -21,13 +21,11 @@ static void print_banner(void)
 
 static void kernel_init(void)
 {
+	memman_init();
 	serial_init();
 	terminal_initialize();
-	printf("tty initialized in VGA text mode\n");
 
-	memman_init();
-
-	// TODO: init serial driver
+	printf("kernel initialization complete\n");
 }
 
 void kernel_main(void)
