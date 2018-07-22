@@ -14,4 +14,6 @@ void disable_irq(void);
 void enable_nmi(void);
 void disable_nmi(void);
 
+void setup_idt();
+
 #endif /* KERNEL_INTERRUPT_H_ */

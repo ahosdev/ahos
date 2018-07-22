@@ -3,6 +3,7 @@
 #include <kernel/tty.h>
 #include <kernel/serial.h>
 #include <kernel/memman.h>
+#include <kernel/interrupt.h>
 
 #if defined(__linux__)
 #error "You are not using a cross-compiler"
@@ -22,14 +23,30 @@ static void print_banner(void)
 static void kernel_init(void)
 {
 	memman_init();
+
+	// initialise output early for debugging
 	serial_init();
 	terminal_initialize();
 
+	setup_idt();
+
 	printf("kernel initialization complete\n");
+
+#if 0
+	// enable interrupts now
+	enable_nmi();
+	enable_irq();
+#endif
 }
+
+extern void isr_wrapper(void);
 
 void kernel_main(void)
 {
 	kernel_init();
 	print_banner();
+
+	//volatile int a = 42 / 0;
+	asm volatile("int $32" :: );
+	asm volatile("int $32" :: );
 }
