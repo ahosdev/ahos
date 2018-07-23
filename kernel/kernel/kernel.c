@@ -29,18 +29,22 @@ static void kernel_init(void)
 	terminal_initialize();
 
 	setup_idt();
+	irq_init(IRQ0_INT, IRQ7_INT);
 
-	printf("kernel initialization complete\n");
-
-#if 0
-	// enable interrupts now
+	// we can re-enable interrupts now
 	enable_nmi();
 	enable_irq();
-#endif
+
+	printf("kernel initialization complete\n");
 }
 
 void kernel_main(void)
 {
 	kernel_init();
 	print_banner();
+
+	for (;;) // do not quit yet, otherwise irq will be disabled
+	{
+		asm volatile("hlt" :: );
+	}
 }
