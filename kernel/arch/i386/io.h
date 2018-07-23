@@ -9,6 +9,15 @@
 
 #include <kernel/types.h>
 
+inline void io_wait(void)
+{
+	// Linux thinks the port 0x80 (checkpoints) is free for use, do the same.
+	asm volatile("outb %0, $0x80"
+				: /* no output */
+				: "a"(0)
+		    		);
+}
+
 inline void outb(u16 port, u8 value)
 {
 	asm volatile("outb %0, %1" 
