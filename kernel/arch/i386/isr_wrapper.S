@@ -85,4 +85,23 @@ isr_noerr 30
 isr_noerr 31
 
 # User-defined interrupts starts here
+
+# irq0-7
 isr_noerr 32
+isr_noerr 33
+isr_noerr 34
+isr_noerr 35
+isr_noerr 36
+isr_noerr 37
+isr_noerr 38
+isr_noerr 39
+
+# irq8-15
+isr_noerr 40
+isr_noerr 41
+isr_noerr 42
+isr_noerr 43
+isr_noerr 44
+isr_noerr 45
+isr_noerr 46
+isr_noerr 47

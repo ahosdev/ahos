@@ -11,9 +11,11 @@
  *
  * TODO
  * - use trap_gate() to handle nested interrupts
+ * - find a better way to write wrapper and export them
  */
 
 #include <kernel/types.h>
+
 #include <stdio.h>
 #include <stdlib.h> // uses abort
 
@@ -191,7 +193,27 @@ extern void isr28(void);
 extern void isr29(void);
 extern void isr30(void);
 extern void isr31(void);
+// user defined interrupts
+
+// irq0-7
 extern void isr32(void);
+extern void isr33(void);
+extern void isr34(void);
+extern void isr35(void);
+extern void isr36(void);
+extern void isr37(void);
+extern void isr38(void);
+extern void isr39(void);
+
+// irq8-15
+extern void isr40(void);
+extern void isr41(void);
+extern void isr42(void);
+extern void isr43(void);
+extern void isr44(void);
+extern void isr45(void);
+extern void isr46(void);
+extern void isr47(void);
 
 void setup_idt(void)
 {
@@ -236,8 +258,26 @@ void setup_idt(void)
 	idt[31] = int_gate(isr31); // reserved
 
 	// Next entries are user-defined
-	//idt[32] = int_gate(unhandled_interrupt); // our first custom interrupt!
-	idt[32] = int_gate(isr32); // our first custom interrupt!
+
+	// IRQ0-7 (master pic)
+	idt[32] = int_gate(isr32);
+	idt[33] = int_gate(isr33);
+	idt[34] = int_gate(isr34);
+	idt[35] = int_gate(isr35);
+	idt[36] = int_gate(isr36);
+	idt[37] = int_gate(isr37);
+	idt[38] = int_gate(isr38);
+	idt[39] = int_gate(isr39);
+
+	// IRQ8-15 (slave pic)
+	idt[40] = int_gate(isr40);
+	idt[41] = int_gate(isr41);
+	idt[42] = int_gate(isr42);
+	idt[43] = int_gate(isr43);
+	idt[44] = int_gate(isr44);
+	idt[45] = int_gate(isr45);
+	idt[46] = int_gate(isr46);
+	idt[47] = int_gate(isr47);
 
 	// Load the new idt
 	idtr.limit = sizeof(idt) - 1;
