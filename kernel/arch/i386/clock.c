@@ -51,7 +51,7 @@ volatile u32 clock_tick; // keep it volatile, otherwise GCC does strange optimiz
  * The caller must disable IRQ before calling this.
  */
 
-void clock_init(u16 freq)
+void clock_init(u32 freq)
 {
 	u16 clock_divider;
 

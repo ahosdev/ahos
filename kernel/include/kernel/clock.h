@@ -9,7 +9,7 @@
 
 #define CLOCK_FREQ	100 // fire an interrupt every 10ms (100 per second)
 
-void clock_init(u16 freq);
+void clock_init(u32 freq);
 u32  clock_gettick(void);
 void clock_inctick(void);
 void clock_sleep(u32 msec);
