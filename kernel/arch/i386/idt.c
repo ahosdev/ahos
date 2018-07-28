@@ -16,6 +16,7 @@
 
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
+#include <kernel/clock.h>
 
 #include <stdio.h>
 #include <stdlib.h> // uses abort
@@ -144,9 +145,11 @@ static void user_defined_interrupt_handler(void)
 
 static void clock_handler(void)
 {
-	static int clock_count = 0;
+	static int clock_nb_interrupts = 0;
 
-	printf("Clock Interrupt (#%d) triggered\n", clock_count++);
+	//printf("Clock Interrupt (#%d) triggered\n", clock_nb_interrupts++);
+
+	clock_inctick();
 
 	irq_send_eoi(IRQ0_CLOCK - IRQ0_INT);
 }
@@ -158,7 +161,7 @@ static void keyboard_handler(void)
 
 void isr_handler(int isr_num, int error_code)
 {
-	printf("Interruption #%d detected (error=%d)\n", isr_num, error_code);
+	//printf("Interruption #%d detected (error=%d)\n", isr_num, error_code);
 
 	switch (isr_num)
 	{

@@ -6,13 +6,10 @@
  * Recommended readings:
  * - https://wiki.osdev.org/Programmable_Interval_Timer
  * - http://www.scs.stanford.edu/10wi-cs140/pintos/specs/8254.pdf
- *
- * TODO:
- * - generate clock IRQ
- * - implement sleep()
  */
 
 #include <kernel/types.h>
+#include <kernel/clock.h>
 #include "io.h"
 
 
@@ -21,7 +18,6 @@
 #define CLOCK_CHANNEL1	0x41 // r/w (unused)
 #define CLOCK_CHANNEL2 	0x42 // r/w (speaker, unused)
 #define CLOCK_CTRL 	0x43 // write only
-
 
 #define BINARY_MODE 	(0 << 0)
 #define BCD_MODE	(1 << 0)
@@ -47,13 +43,15 @@
 
 #define INTERNAL_FREQ_HZ	1193182	// in hz
 
+volatile u32 clock_tick; // keep it volatile, otherwise GCC does strange optimizations
+
 /*
  * Initialize the COUNT clock value for channel 0 (irq 0).
  *
  * The caller must disable IRQ before calling this.
  */
 
-void clock_init(u32 freq)
+void clock_init(u16 freq)
 {
 	u16 clock_divider;
 
@@ -67,7 +65,38 @@ void clock_init(u32 freq)
 
 	// compute and set clock divider
 	clock_divider = (u16)(INTERNAL_FREQ_HZ / freq);
-	printf("clock_divider = %d\n", clock_divider);
 	outb(CLOCK_CHANNEL0, (u8)clock_divider);
 	outb(CLOCK_CHANNEL0, (u8)(clock_divider >> 8));
+
+	clock_tick = 0;
+}
+
+// called by clock isr handler
+void clock_inctick(void)
+{
+	clock_tick++;
+}
+
+u32 clock_gettick(void)
+{
+	return clock_tick;
+}
+
+/*
+ * Tries to (active) sleep @msec milliseconds.
+ *
+ * This is not a precise timer because:
+ * 1) It can't sleep less than the interrupt frequency (10ms right now)
+ * 2) It can sleep more than expected (because of the interrupt frequency)
+ */
+
+void clock_sleep(u32 msec)
+{
+	u32 target_tick;
+
+	target_tick = clock_gettick() + (msec / (1000 / CLOCK_FREQ));
+
+	// active sleep
+	while (clock_gettick() < target_tick)
+		;
 }

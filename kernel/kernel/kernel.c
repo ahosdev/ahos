@@ -4,7 +4,7 @@
 #include <kernel/serial.h>
 #include <kernel/memman.h>
 #include <kernel/interrupt.h>
-#include <kernel/kernel.h>
+#include <kernel/clock.h>
 
 #if defined(__linux__)
 #error "You are not using a cross-compiler"
@@ -32,7 +32,7 @@ static void kernel_init(void)
 	setup_idt();
 	irq_init(IRQ0_INT, IRQ7_INT);
 
-	clock_init(100); // every 10ms
+	clock_init(CLOCK_FREQ);
 
 	irq_clear_mask(IRQ0_CLOCK);
 	//irq_clear_mask(IRQ1_KEYBOARD);
@@ -48,6 +48,14 @@ void kernel_main(void)
 {
 	kernel_init();
 	print_banner();
+
+	printf("tick = %d\n", clock_gettick());
+
+	printf("sleeping 3secs\n");
+	clock_sleep(3000);
+
+	printf("done!\n");
+	printf("tick = %d\n", clock_gettick());
 
 	for (;;) // do not quit yet, otherwise irq will be disabled
 	{
