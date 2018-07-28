@@ -11,7 +11,7 @@
 
 inline void io_wait(void)
 {
-	// Linux thinks the port 0x80 (checkpoints) is free for use, do the same.
+	// Port 0x80 is normally used by POST (Power-On SelfTest) code (bios).
 	asm volatile("outb %0, $0x80"
 				: /* no output */
 				: "a"(0)
