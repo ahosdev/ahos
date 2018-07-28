@@ -4,6 +4,7 @@
 #include <kernel/serial.h>
 #include <kernel/memman.h>
 #include <kernel/interrupt.h>
+#include <kernel/kernel.h>
 
 #if defined(__linux__)
 #error "You are not using a cross-compiler"
@@ -30,6 +31,11 @@ static void kernel_init(void)
 
 	setup_idt();
 	irq_init(IRQ0_INT, IRQ7_INT);
+
+	clock_init(100); // every 10ms
+
+	irq_clear_mask(IRQ0_CLOCK);
+	//irq_clear_mask(IRQ1_KEYBOARD);
 
 	// we can re-enable interrupts now
 	enable_nmi();

@@ -55,6 +55,13 @@ void irq_clear_mask(u8 irq)
 	io_wait();
 }
 
+void irq_send_eoi(u8 irq)
+{
+	if (irq > 8)
+		outb(SPIC_CMD, 0x20); // unspecified EOI
+	outb(MPIC_CMD, 0x20);
+}
+
 /*
  * Remap 8259A PIC interrupts to user-defined interrupt vector.
  */
@@ -93,8 +100,6 @@ void irq_init(u8 master_offset, u8 slave_offset)
 	outb(SPIC_DATA, 0x1); // enable 80x86 mode
 
 	// mask all interrupts
-#if 1
 	for (irq = 0; irq < 16; ++irq)
 		irq_set_mask(irq);
-#endif
 }

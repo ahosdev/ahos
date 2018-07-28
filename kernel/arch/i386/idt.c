@@ -15,6 +15,7 @@
  */
 
 #include <kernel/types.h>
+#include <kernel/interrupt.h>
 
 #include <stdio.h>
 #include <stdlib.h> // uses abort
@@ -141,6 +142,20 @@ static void user_defined_interrupt_handler(void)
 	unhandled_interrupt();
 }
 
+static void clock_handler(void)
+{
+	static int clock_count = 0;
+
+	printf("Clock Interrupt (#%d) triggered\n", clock_count++);
+
+	irq_send_eoi(IRQ0_CLOCK - IRQ0_INT);
+}
+
+static void keyboard_handler(void)
+{
+	printf("key pressed!\n");
+}
+
 void isr_handler(int isr_num, int error_code)
 {
 	printf("Interruption #%d detected (error=%d)\n", isr_num, error_code);
@@ -152,7 +167,9 @@ void isr_handler(int isr_num, int error_code)
 		case 8: double_fault_handler(); break;
 		case 13: general_protection_fault_handler(); break;
 		case 14: page_fault_handler(); break;
-		case 32: user_defined_interrupt_handler(); break;
+		case 32: clock_handler(); break;
+		case 33: keyboard_handler(); break;
+		case 34: user_defined_interrupt_handler(); break;
 		default:
 			unhandled_interrupt();
 			break;

@@ -24,6 +24,7 @@ void setup_idt();
 void irq_init(u8 master_offset, u8 slave_offset);
 void irq_set_mask(u8 irq);
 void irq_clear_mask(u8 irq);
+void irq_send_eoi(u8 irq);
 
 #define IRQ0_CLOCK 		0 // Programmable Interrupt Timer (PIT)
 #define IRQ1_KEYBOARD 		1

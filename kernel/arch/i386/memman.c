@@ -43,7 +43,7 @@ static void setup_gdt(void)
 
 void memman_init(void)
 {
-	// disable interrupt + NMI
+	// disable interrupt + NMI // FIXME: move it out of here
 	disable_irq();
 	disable_nmi();
 
