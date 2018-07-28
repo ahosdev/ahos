@@ -2,6 +2,7 @@
 #define KERNEL_TYPES_H_
 
 #include <stddef.h>
+#include <stdbool.h>
 
 typedef unsigned char u8;
 typedef signed char s8;
