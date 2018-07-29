@@ -11,5 +11,5 @@ rm -rf isodir
 rm -rf ahos.iso
 
 # clean bootloader files
-rm ${BOOTLOADDIR}/stage1.o
-rm ${BOOTLOADDIR}/stage1.bin
+rm ${BOOTLOADDIR}/stage1.o ${BOOTLOADDIR}/stage1.bin
+rm ${BOOTLOADDIR}/stage2.o ${BOOTLOADDIR}/stage2.bin
