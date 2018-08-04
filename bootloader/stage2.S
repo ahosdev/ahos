@@ -4,7 +4,7 @@
 	Stage-2 is in charge to setup everything for the kernel (pmode, gdt,
 	a20, ...) and boot it.
 
-	Stage-2 is remapped at 0x1000 (i.e. 0x100:0)
+	Stage-2 is remapped at 0x1000
 */
 
 .code16
@@ -59,4 +59,7 @@ stage2:
 	hlt
 
 	. = _start + 512 - 8
-	.ascii "END_BOOT" #mark the end of stage 2
+	.ascii "END_STG2" #mark the end of stage 2
+
+	#. = _start + 1024 - 4 # just for testing cluster chaining in stage-1
+	#.ascii "YYYY"

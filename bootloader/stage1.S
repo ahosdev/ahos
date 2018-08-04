@@ -10,6 +10,7 @@ Reading:
 - http://www.brokenthorn.com/Resources/OSDev6.html
 - http://www.independent-software.com/operating-system-development.html
 - https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system#FAT
+- https://stackoverflow.com/questions/6819957/gnu-as-movl-eax-eax/6820015#6820015 (GAS addressing)
 */
 
 
@@ -24,12 +25,14 @@ memory layout:
 0x0500 - 0x7bff: (30kb) RAM guaranteed free for use
 
 	0x1000 - 0x2fff: (max=8kb) Stage-2 code
-	0x3000 - 0x3fff: (4kb) "temporary" memory
+	0x3000 - 0x31ff: (512b) disk buffer
+	0x3200 - 0x3fff: free for use
 	0x4000 - 0x4fff: (4kb) global variables
 		0x4000-0x4001: Rootdir LBA (16-bits)
 		0x4002-0x4003: nb sectors of rootdir
 		0x4004-0x4005: data region LBA
-	0x5000 - 0x7bff: free for use!
+	0x5000 - 0x61ff: (4608b) FAT table (assuming 9 sectors)
+	0x6200 - 0x7bff: free for use
 	 ...   - 0x7bff: real-mode stack (grows downward)
 
 0x7c00  - 0x07dff: (512b) This is where our bootsector is loaded!
@@ -107,8 +110,8 @@ decl_var BPB_SERIAL_NUMBER		.long	0xa0a1a2a3
 ### DATA ###
 ############
 
-LOADING_MSG:		.asciz "Stage-1 started...\r\n"
-READ_ONE_SECT_MSG:	.asciz "Reading one sector\r\n"
+LOADING_MSG:		.asciz "Starting stage-1...\r\n"
+ENDING_MSG:		.asciz "Stage-1 complete!\r\n"
 STG2_FOUND:		.asciz "'stage2.bin' found!\r\n"
 
 # FAT-12 Internal name for "stage2.bin' using the 8.3 convention
@@ -317,60 +320,20 @@ last fields (first cluster, file size). We might even discard the file size
 and just follow the single linked list until an end cluster mark.
 */
 
-/*
-
-Rootdir:
-
-00002600  4d 4f 53 20 46 4c 4f 50  50 59 20 08 00 00 0c 3c  |MOS FLOPPY ....<|
-00002610  04 4d 04 4d 00 00 0c 3c  04 4d 00 00 00 00 00 00  |.M.M...<.M......|
-00002620  48 41 41 41 41 31 20 20  20 20 20 20 00 00 00 00  |HAAAA1      ....|
-00002630  00 00 00 00 00 00 0c 2c  04 4d 03 00 01 08 00 00  |.......,.M......|
-00002640  e5 41 41 41 41 32 20 20  20 20 20 20 00 00 00 00  |.AAAA2      ....|	<--- deleted file
-00002650  00 00 00 00 00 00 0c 2c  04 4d 00 00 00 00 00 00  |.......,.M......|
-00002660  53 54 41 47 45 32 20 20  42 49 4e 20 00 00 00 00  |STAGE2  BIN ....|
-00002670  00 00 00 00 00 00 0c 2c  04 4d 0a 00 00 02 00 00  |.......,.M......|
-
-HAAAA1: start index = 3
-STAGE2.BIN: start index = 0a = 10
-
-00000200  f0 ff ff 00 40 00 05 60  00 07 f0 ff 00 00 00 ff  |....@..`........|
-00000210  0f 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
-00000220  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
-
-File 'haaa1' -> index=
-
-f0 ff
-0 = ff0
-1 = fff
-
-00 40 00
-2 = 000
-3 = 004
-
-05 60 00
-4= 005
-5= 006
-
-07 f0 ff
-6= 007
-7 = fff
-
-00 00 00 
-8 = 000
-9 = 000
-
-ff 0f 00
-10 = fff
-11 = 000
-
-HAAAA1: 3 + 4 + 5 + 6 + 7
-AAAA2: <no sectors>
-STAGE2.BIN: 10
-*/
-
 stage2_file_found:
 	print STG2_FOUND
 
+find_data_lba:
+	# compute the data region LBA (reduced by 2 because of reserved clusters)
+	mov 0x4000, %ax		# deref memory at 0x4000 (rootdir lba)
+	add 0x4002, %ax		# deref memory at 0x4002 (nb sectors in rootdir)
+	dec %ax			# minus 2, optim: double "dec" instead of sub (2 bytes instead of 3)
+	dec %ax	
+	mov %ax, 0x4004		# save data region LBA at 0x4004
+	#cmp $31, %ax
+	#jz debug_ok
+
+find_first_cluster:
 	# retrieve the first cluster value of the 'stage2.bin' file
 	# DI: offset in the rootdir
 	# ES:0x0000 is a sector holding at most 16 entries, describes a rootdir part
@@ -379,43 +342,88 @@ stage2_file_found:
 	add %ax, %di		# offset in this rootdir part
 	add $0x1a, %di		# DI: cluster index address of the matched rootdir entry
 	mov (%di), %di		# DI: cluster index
-	#cmp $10, %di
+	#cmp $3, %di
 	#jz debug_ok
 
-	# compute the data region LBA
-	mov 0x4000, %ax		# deref memory at 0x4000 (rootdir lba)
-	add 0x4002, %ax		# deref memory at 0x4002 (nb sectors in rootdir)
-	mov %ax, 0x4004		# save data region LBA at 0x4004
-	#cmp $33, %ax
-	#jz debug_ok
+copy_fat:
+	# copy the whole FAT table into memory
+	mov $BPB_SECTORS_PER_FAT, %cx
+	mov $0x500, %bx			# copy the fat at 0x5000
+	mov %bx, %es
+	xor %bx, %bx			# reset destination offset
+	mov $BPB_RESERVED_SECTORS, %ax	# skip reserved sectors
 
-	# compute first file cluster LBA
-	add %di, %ax		# add cluster index
-	dec %ax			# minus 2, optim: double "dec" instead of sub (2 bytes instead of 3)
-	dec %ax			# AX: First file cluster LBA
-	#cmp $41, %ax
-	#jz debug_ok
+copy_fat_loop:
+	push %cx			# save sector counter
+	push %ax			# save fat LBA
+	push %bx			# save destination offset
+	call read_one_sector
+	pop %bx				# restore destination offset
+	pop %ax				# restore fat lba
+	pop %cx				# restore sector counter
+	inc %ax				# next fat sector
+	add $BPB_BYTES_PER_SECTOR, %bx	# increase destination offset
+	loop copy_fat_loop
 
-	# copy the first cluster
+copy_stage2:
+	# copy stage2 file into memory
 	mov $0x100, %bx		# copy stage 2 at 0x1000
 	mov %bx, %es
 	xor %bx, %bx
-	call read_one_sector
+	sub $BPB_BYTES_PER_SECTOR, %bx	# sub because bx is incremented before read_one_sector
+	push %bx
+	#cmp $34, %ax
+	#jz debug_ok
 
-	# and jump to stage 2 !
+copy_stage2_loop:
+	# copy one sector
+	# DI: next cluster to load
+	mov 0x4004, %ax		# load data region LBA
+	add %di, %ax		# add cluster index
+	pop %bx			# restore previous destination offset
+	add $BPB_BYTES_PER_SECTOR, %bx	# increase destination offset
+	push %bx		# save destination offset
+	call read_one_sector	# AX: the next LBA to read
+
+read_next_cluster:
+	// DI: current cluster in the FAT (the one we just copied)
+	mov %di, %cx		# copy the current cluster
+	mov %di, %dx		# copy the current cluster
+	shr %dx			# divide by two
+	add %dx, %cx		# sum again to get 3/2
+
+	mov $0x5000, %bx	# FAT base address
+	add %cx, %bx		# offset in the fat
+	mov (%bx), %dx		# read two bytes from the fat
+
+	test $0x1, %di		# test least significant byte
+	jnz odd_cluster
+
+even_cluster:
+	and $0x00ffffff, %dx	# mask out high bits
+	jmp next_cluster
+odd_cluster:
+	shr $0x4, %dx		# discard low bits
+next_cluster:
+	mov %dx, %di		# update the current cluster index
+	cmp $0xff0, %dx		# test for end of file
+	jb copy_stage2_loop
+
+	# and finally jump to stage 2 !
+	print ENDING_MSG
 	jmp 0x1000
 
-BOOTFAILURE_MSG: 	.asciz "Boot Failure. Press any key to reboot"
+BOOTFAILURE_MSG: 	.asciz "Boot Failure. Press any key to reboot...\r\n"
 bootfailure:
 	print BOOTFAILURE_MSG
 	xor %ax, %ax	# function 0
 	int $0x16	# bios function to wait for key
 	ljmp $0xffff, $0 # jump to FFFF:0000 (reboot)
 
-DEBUG_OK_MSG: 		.asciz "DEBUG OK\r\n"
-debug_ok:
-	print DEBUG_OK_MSG
-	jmp bootfailure
+#DEBUG_OK_MSG: 		.asciz "DEBUG OK\r\n"
+#debug_ok:
+#	print DEBUG_OK_MSG
+#	jmp bootfailure
 
 #################################
 ### BOOTABLE DEVICE SIGNATURE ###

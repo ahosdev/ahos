@@ -21,6 +21,7 @@ ${LD} -melf_i386 -Ttext 0x1000 --oformat=binary ${BOOTLOADDIR}/stage2.o -o ${BOO
 
 # create a floppy disk
 rm -f ${BOOTLOADDIR}/floppy.bin
+# WARNING: any modification on this line implies to modify the stage1 as well
 mkfs.msdos -C ${BOOTLOADDIR}/floppy.bin $((2880/2)) -D 0 -f 2 -F 12 -h 0 -i a0a1a2a3 -M 0xF0 -n "MOS FLOPPY " -r 224 -R 1 -s 1 -S 512 -v
 
 # mount it
@@ -29,7 +30,10 @@ sudo mount -o loop -t msdos ${BOOTLOADDIR}/floppy.bin ${BOOTLOADDIR}/mnt_floppy
 
 # push stage 2 inside it
 # Check we can read the second sector of rootdir
-#sudo touch ${BOOTLOADDIR}/mnt_floppy/haaaa1
+#python -c "print 'A'*2048" > /dev/shm/tmp-floppy-haaaa1
+#sudo cp /dev/shm/tmp-floppy-haaaa1 ${BOOTLOADDIR}/mnt_floppy/haaaa1
+#python -c "print 'B'*512" > /dev/shm/tmp-floppy-haaaa2
+#sudo cp /dev/shm/tmp-floppy-haaaa2 ${BOOTLOADDIR}/mnt_floppy/haaaa2
 #sudo touch ${BOOTLOADDIR}/mnt_floppy/haaaa2
 #sudo touch ${BOOTLOADDIR}/mnt_floppy/haaaa3
 #sudo touch ${BOOTLOADDIR}/mnt_floppy/haaaa4
@@ -46,6 +50,7 @@ sudo mount -o loop -t msdos ${BOOTLOADDIR}/floppy.bin ${BOOTLOADDIR}/mnt_floppy
 #sudo touch ${BOOTLOADDIR}/mnt_floppy/haaaah
 #sudo touch ${BOOTLOADDIR}/mnt_floppy/haaaat
 sudo cp ${BOOTLOADDIR}/stage2.bin ${BOOTLOADDIR}/mnt_floppy # this should lands in 2nd rootdir sector
+#sudo rm ${BOOTLOADDIR}/mnt_floppy/haaaa2 # fragment
 
 # umount it
 sudo umount -f ${BOOTLOADDIR}/mnt_floppy
