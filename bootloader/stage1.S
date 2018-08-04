@@ -9,6 +9,7 @@ Reading:
 - http://www.cs.cmu.edu/~410-s07/p4/p4-boot.pdf
 - http://www.brokenthorn.com/Resources/OSDev6.html
 - http://www.independent-software.com/operating-system-development.html
+- https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system#FAT
 */
 
 
@@ -23,9 +24,13 @@ memory layout:
 0x0500 - 0x7bff: (30kb) RAM guaranteed free for use
 
 	0x1000 - 0x2fff: (max=8kb) Stage-2 code
-	0x3000 - 0x3fff: (4kb) real-mode stack
-	0x4000 - 0x4fff: (4kb) "temporary" memory
+	0x3000 - 0x3fff: (4kb) "temporary" memory
+	0x4000 - 0x4fff: (4kb) global variables
+		0x4000-0x4001: Rootdir LBA (16-bits)
+		0x4002-0x4003: nb sectors of rootdir
+		0x4004-0x4005: data region LBA
 	0x5000 - 0x7bff: free for use!
+	 ...   - 0x7bff: real-mode stack (grows downward)
 
 0x7c00  - 0x07dff: (512b) This is where our bootsector is loaded!
 0x7e00  - 0x7ffff: (480.5kb) RAM guaranteed free for use
@@ -56,7 +61,7 @@ _start:
 # expression in GNU as. I don't know if there is a better way to do this with
 # GNU as syntax without switching to Intel syntax noprefix mode (I like AT&T).
 
-# TODO: can we actually do not use this and use label as memory location ?
+# XXX: can we actually do not use this and use label as memory location ?
 
 .macro decl_var name type value
 	.set \name, \value
@@ -134,8 +139,10 @@ print_out:
 
 
 # read_one_sector: convert the LBA to CHS, store the result in es:bx
+# 	ES:BX: destination
+#	AX: logical base address
 #
-# The LBA to CHS conversion formula are:
+# The LBA to CHS conversion formulas are:
 # Sector   = (LBA mod SectorsPerTracks) + 1	# sector start at 1
 # Cylinder = (LBA / SectorsPerTracks) / NumHeads
 # Head	   = (LBA / SectorsPerTracks) mod NumHeads
@@ -186,8 +193,8 @@ read_one_sector_end:
 stage1:
 	# Step-0: Reset segments (do not assume anything).
 	cli
-	mov $0x3ffe, %ax	# Stack should goes from 0x3ffe to 0x3000 (no bound checks)
-	mov %ax, %ss
+	mov $0x7bfe, %ax	# Stack grows downward from 0x7bfe (hope it does not stackclash)
+	mov %ax, %sp
 	xor %ax, %ax
 	mov %ax, %ds
 	mov %ax, %es
@@ -221,6 +228,7 @@ rootdir_size:
 	#jz stage2_file_found
 	#jmp bootfailure
 	xchg %ax, %cx			# move it to %cx
+	mov %cx, 0x4002			# save it
 
 rootdir_start_sector:
 	mov $BPB_NB_FATS, %ax
@@ -235,9 +243,10 @@ rootdir_start_sector:
 	#cmp $19, %ax
 	#jz stage2_file_found
 	#jmp bootfailure
+	mov %ax, 0x4000			# save it at 0x4000
 
-	# read one sector and store it at 0400:0000 (one sector at a time)
-	mov $0x400, %bx
+	# read one sector and store it at 0300:0000 (one sector at a time)
+	mov $0x300, %bx
 	mov %bx, %es
 
 rootdir_scan:
@@ -245,13 +254,14 @@ rootdir_scan:
 	push %cx		# preserve max num of sectors in rootdir
 
 	xor %bx, %bx
-	call read_one_sector	# read the next sector and store it at 0x4000
+	call read_one_sector	# read the next sector and store it at 0x3000
 	push % ax		# preserve current sector
 
+	# TODO: don't hardcore the number of files per sector
 	mov $0x10, %cx		# There is at most 16 files per sector (512 / 32) (sector_size / rootdir_entry_size)
 	# initialize %di to the first rootdir entry in this sector
 	xor %bx, %bx
-	mov %bx, %di		# read from (ES:DI), ES=0x400, DI=0
+	mov %bx, %di		# read from (ES:DI), ES=0x300, DI=0
 
 rootdir_scan_loop:		# scan every rootdir entry in one sector
 	push %cx		# preserve file counter per sector
@@ -260,22 +270,140 @@ rootdir_scan_loop:		# scan every rootdir entry in one sector
 	push %di		# preserve %di (start of a rootdir entry)
 	cld			# read forward
 	repe cmpsb		# Compares byte at address DS:SI with byte at address ES:DI up to %cx if matching
-	jz stage2_file_found
 	pop %di			# reset %di to the start of a rootdir entry
-	add $0x20, %di		# try next rootdir entry
+	jz stage2_file_found
+	add $0x20, %di		# try next rootdir entry (each are 32 bytes)
 	pop %cx			# restore file per sector counter
 	loop rootdir_scan_loop	# loop while %cx > 0 and decrement it
-	pop %ax
+	pop %ax			# reload current sector
 	inc %ax			# try next sector
-	pop %cx
+	pop %cx			# reload nb sector in rootdir not read
 	loop rootdir_scan	# some sector left ?
 	jmp bootfailure
 
+/*
+Root Directory entry fields descriptions:
+
+    Bytes 0-7 : DOS File name (Padded with spaces)
+    Bytes 8-10 : DOS File extension (Padded with spaces)
+    Bytes 11 : File attributes. This is a bit pattern:
+        Bit 0 : Read Only
+        Bit 1 : Hidden
+        Bit 2 : System
+        Bit 3 : Volume Label
+        Bit 4 : This is a subdirectory
+        Bit 5 : Archive
+        Bit 6 : Device (Internal use)
+        Bit 6 : Unused
+    Bytes 12 : Unused
+    Bytes 13 : Create time in ms
+    Bytes 14-15 : Created time, using the following format:
+        Bit 0-4 : Seconds (0-29)
+        Bit 5-10 : Minutes (0-59)
+        Bit 11-15 : Hours (0-23)
+    Bytes 16-17 : Created year in the following format:
+        Bit 0-4 : Year (0=1980; 127=2107
+        Bit 5-8 : Month (1=January; 12=December)
+        Bit 9-15 : Hours (0-23)
+    Bytes 18-19 : Last access date (Uses same format as above)
+    Bytes 20-21 : EA Index (Used in OS/2 and NT, dont worry about it)
+    Bytes 22-23 : Last Modified time (See byte 14-15 for format)
+    Bytes 24-25 : Last modified date (See bytes 16-17 for format)
+    Bytes 26-27 : First Cluster
+    Bytes 28-32 : File Size
+
+For bootloader, we are actually only interrested by the 8.1name and the two
+last fields (first cluster, file size). We might even discard the file size
+and just follow the single linked list until an end cluster mark.
+*/
+
+/*
+
+Rootdir:
+
+00002600  4d 4f 53 20 46 4c 4f 50  50 59 20 08 00 00 0c 3c  |MOS FLOPPY ....<|
+00002610  04 4d 04 4d 00 00 0c 3c  04 4d 00 00 00 00 00 00  |.M.M...<.M......|
+00002620  48 41 41 41 41 31 20 20  20 20 20 20 00 00 00 00  |HAAAA1      ....|
+00002630  00 00 00 00 00 00 0c 2c  04 4d 03 00 01 08 00 00  |.......,.M......|
+00002640  e5 41 41 41 41 32 20 20  20 20 20 20 00 00 00 00  |.AAAA2      ....|	<--- deleted file
+00002650  00 00 00 00 00 00 0c 2c  04 4d 00 00 00 00 00 00  |.......,.M......|
+00002660  53 54 41 47 45 32 20 20  42 49 4e 20 00 00 00 00  |STAGE2  BIN ....|
+00002670  00 00 00 00 00 00 0c 2c  04 4d 0a 00 00 02 00 00  |.......,.M......|
+
+HAAAA1: start index = 3
+STAGE2.BIN: start index = 0a = 10
+
+00000200  f0 ff ff 00 40 00 05 60  00 07 f0 ff 00 00 00 ff  |....@..`........|
+00000210  0f 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00000220  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+
+File 'haaa1' -> index=
+
+f0 ff
+0 = ff0
+1 = fff
+
+00 40 00
+2 = 000
+3 = 004
+
+05 60 00
+4= 005
+5= 006
+
+07 f0 ff
+6= 007
+7 = fff
+
+00 00 00 
+8 = 000
+9 = 000
+
+ff 0f 00
+10 = fff
+11 = 000
+
+HAAAA1: 3 + 4 + 5 + 6 + 7
+AAAA2: <no sectors>
+STAGE2.BIN: 10
+*/
+
 stage2_file_found:
 	print STG2_FOUND
-	# TODO: copy it using FAT infos.
-	# TODO: jump to it
-	jmp bootfailure
+
+	# retrieve the first cluster value of the 'stage2.bin' file
+	# DI: offset in the rootdir
+	# ES:0x0000 is a sector holding at most 16 entries, describes a rootdir part
+	mov %es, %ax		# rootdir entry addr
+	shl $0x4, %ax		# multiply by 16, BX=rootdir addr
+	add %ax, %di		# offset in this rootdir part
+	add $0x1a, %di		# DI: cluster index address of the matched rootdir entry
+	mov (%di), %di		# DI: cluster index
+	#cmp $10, %di
+	#jz debug_ok
+
+	# compute the data region LBA
+	mov 0x4000, %ax		# deref memory at 0x4000 (rootdir lba)
+	add 0x4002, %ax		# deref memory at 0x4002 (nb sectors in rootdir)
+	mov %ax, 0x4004		# save data region LBA at 0x4004
+	#cmp $33, %ax
+	#jz debug_ok
+
+	# compute first file cluster LBA
+	add %di, %ax		# add cluster index
+	dec %ax			# minus 2, optim: double "dec" instead of sub (2 bytes instead of 3)
+	dec %ax			# AX: First file cluster LBA
+	#cmp $41, %ax
+	#jz debug_ok
+
+	# copy the first cluster
+	mov $0x100, %bx		# copy stage 2 at 0x1000
+	mov %bx, %es
+	xor %bx, %bx
+	call read_one_sector
+
+	# and jump to stage 2 !
+	jmp 0x1000
 
 BOOTFAILURE_MSG: 	.asciz "Boot Failure. Press any key to reboot"
 bootfailure:
@@ -284,6 +412,10 @@ bootfailure:
 	int $0x16	# bios function to wait for key
 	ljmp $0xffff, $0 # jump to FFFF:0000 (reboot)
 
+DEBUG_OK_MSG: 		.asciz "DEBUG OK\r\n"
+debug_ok:
+	print DEBUG_OK_MSG
+	jmp bootfailure
 
 #################################
 ### BOOTABLE DEVICE SIGNATURE ###
