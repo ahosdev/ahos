@@ -42,7 +42,7 @@ INIT_FLOPPY_MSG:	.asciz "Initializing floppy disk information\r\n"
 KERNEL_FOUND_MSG:	.asciz "Kernel 'ahos.bin' found!\r\n"
 KERNEL_NOT_FOUND_MSG:	.asciz "Kernel 'ahos.bin' not found!\r\n"
 KERNEL_FILENAME:	.ascii "AHOS    BIN" # 8.3 name
-FAT_SEG:		.hword 0x500	# segment value -> 0x5000 absolute address
+FAT_ADDR:		.hword 0x5000	# absolute address, need to be loaded in the first 64KiB
 DISK_BUFFER_SEG:	.hword 0x300	# segment value -> 0x3000 absolute address
 KERNEL_ADDR:		.int 0x100000	# kernel location once loaded
 
@@ -414,7 +414,8 @@ find_first_cluster_out:
 
 
 
-# Find the next cluster from the FAT.
+# Find the next cluster from the FAT. The FAT is expected to be loaded in
+# the first 64KiB at FAT_ADDR.
 #
 # Arguments:
 #	AX: the current cluster
@@ -423,8 +424,45 @@ find_first_cluster_out:
 #	AX: the next cluster or -1 on error.
 
 find_next_cluster:
-	# TODO
+	push %bx
+	push %cx
+	push %dx
+
+	# compute the offset in FAT
+	mov %ax, %cx		# copy the current cluster
+	mov %ax, %dx		# copy the current cluster
+	shr %dx			# divide by two
+	add %dx, %cx		# sum again to get 3/2
+
+	# read FAT entry
+	mov (FAT_ADDR), %bx	# FAT base address
+	add %cx, %bx		# offset in FAT
+	mov (%bx), %dx		# read two bytes
+	test $0x1, %ax		# test least significant bit
+	jnz find_next_cluster_odd
+
+find_next_cluster_even:
+	and $0xfff, %dx		# mask out high bits
+	jmp find_next_cluster_is_last
+find_next_cluster_odd:
+	shr $0x4, %dx		# discard low bits
+find_next_cluster_is_last:
+	cmp $0xff0, %dx
+	jb find_next_cluster_found
+	# fallback to 'not found'
+
+find_next_cluster_not_found:
+	xor %eax, %eax
+	neg %eax
+	jmp find_next_cluster_out
+find_next_cluster_found:
+	mov %dx, %ax
+find_next_cluster_out:
+	pop %dx
+	pop %cx
+	pop %bx
 	ret
+
 
 
 # Loads a file from floppy disk into "high memory". Note that the "unreal"
