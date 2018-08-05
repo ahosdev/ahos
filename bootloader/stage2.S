@@ -57,9 +57,45 @@ print_str_out:
 # offset while retaining the 16-bit instructions and segment:offset addressing
 # mode. The gate A20 still needs to be enabled in order to access high memory.
 
+# This does not touch 'cs', so the code still needs to be in the first 64KiB.
+
 enable_unreal_mode:
-	# TODO
+	cli			# disable hardware interrupts
+	push %ds 		# save real mode DS
+	push %es		# save real mode ES
+
+	lgdt unreal_gdtr	# loads the unreal GDT
+
+	mov %cr0, %eax
+	or $1, %al		# set pmode bit
+	mov %eax, %cr0		# switch to pmode
+
+	mov $0x08, %bx		# select descriptor 1
+	mov %bx, %ds		# load new selector
+	mov %bx, %es		# load new selector
+
+	and $0xFE, %al		# clear pmode bit
+	mov %eax, %cr0		# back to real mode
+
+	pop %es			# get back old segment
+	pop %ds			# get back old segment
+	sti			# enable hardware interrupts
+
 	ret
+
+unreal_gdtr:
+	.hword	unreal_gdt_end - unreal_gdt - 1		# size of gdt minus 1
+	.long	unreal_gdt				# address of gdt
+
+unreal_gdt:
+	# null segment
+	.long 	0
+	.long 	0
+	# flat ring-0 "data" desc
+	.long	0x0000FFFF
+	.long 	0x00CF9200
+unreal_gdt_end:
+
 
 
 
