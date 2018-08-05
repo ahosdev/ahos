@@ -540,6 +540,7 @@ load_file_complete:
 load_file_error:
 	xor %ax, %ax
 load_file_out:
+	add $0x8, %sp
 	pop %cx
 	pop %dx
 	pop %bp
