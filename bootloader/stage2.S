@@ -44,7 +44,8 @@ KERNEL_NOT_FOUND_MSG:	.asciz "Kernel 'ahos.bin' not found!\r\n"
 KERNEL_FILENAME:	.ascii "AHOS    BIN" # 8.3 name
 FAT_ADDR:		.hword 0x5000	# absolute address, need to be loaded in the first 64KiB
 DISK_BUFFER_SEG:	.hword 0x300	# segment value -> 0x3000 absolute address
-KERNEL_ADDR:		.int 0x100000	# kernel location once loaded
+
+.set KERNEL_ADDR, 0x100000 # kernel location once loaded
 
 # Unitialized data
 ROOTDIR_NB_SECTORS:	.hword 0
@@ -549,10 +550,34 @@ load_file_out:
 	pop %es
 	ret
 
+
+
 # Seeks 'ahos.bin' file in floppy disk and load it at 0x100000 (2nd MiB).
+#
+# Arguments:
+#	None
+#
+# Returns:
+#	None
 
 load_kernel:
-	# TODO
+	push %ax
+	push %edi
+
+	lea KERNEL_FILENAME, %ax
+	mov KERNEL_ADDR, %edi
+	call load_file
+	cmp $0x0, %ax
+	jz load_kernel_not_found
+	print KERNEL_FOUND_MSG
+	jmp load_kernel_out
+
+load_kernel_not_found:
+	print KERNEL_NOT_FOUND_MSG
+
+load_kernel_out:
+	pop %edi
+	pop %ax
 	ret
 
 
