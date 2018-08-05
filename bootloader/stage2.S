@@ -118,8 +118,66 @@ unreal_gdt_end:
 # to control the 21st address line (A20) which is disabled during boot. In
 # order to access full 32-bit memory, this gate needs to be enabled.
 
+# Checks the A20 gate status.
+#
+# Returns:
+#	1 in AX if it is enabled, 0 if disabled.
+
+check_a20_state:
+	cli			# disable interrupts
+	push %ds		# save DS
+	push %bx		# save BX
+
+	push %ds		# save DS
+	mov $0xFFFF, %bx	# try to get bootsector signature
+	mov %bx, %ds		# one 1MiB higher than 0x00007dfe
+	mov $0x7e0e, %bx
+	mov (%bx), %ax		# get value one 1MiB higher
+	cmp $0xaa55, %ax	# check it is equal to 0xaa55
+	pop %ds			# restore DS (needed for printing)
+	jnz a20_enabled		# if not, a20 is enabled
+
+	xor %bx, %bx
+	mov %bx, %ds
+	mov $0x7dfe, %bx
+	mov (%bx), %ax		# get bootsector signature
+	cmp $0xaa55, %ax	# check that it is '0xaa55'
+	jnz bootfailure
+
+	# TODO: modify data and recheck (they could be equal by chance)
+	jmp bootfailure		# remove it once proper checking is implemented
+
+A20_ENABLED_MSG: 	.asciz "A20 gate is enabled\r\n"
+A20_DISABLED_MSG:	.asciz "A20 gate is disabled\r\n"
+a20_enabled:
+	print A20_ENABLED_MSG
+	mov $0x1, %ax
+	jmp check_a20_state_out
+a20_disabled:
+	print A20_DISABLED_MSG
+	xor %ax, %ax
+
+check_a20_state_out:
+	pop %bx			# restore BX
+	pop %ds			# restore DS
+	sti			# enable interrupts
+	ret
+
+# Enables the A20 gate (if necessary). QEMU (SeaBIOS) seems to enable it during
+# boot. Since, disabling it (or recompile SeaBIOS/Qemu) just to test the check
+# function is a pain, A20 gate enabling is not implemented for now.
+
 enable_gate_a20:
-	# TODO
+	call check_a20_state	# test if A20 is not already enabled
+	or %al, %al
+	jz enable_a20		# if not, enable it
+	ret			# otherwise return
+
+enable_a20:
+	# TODO: no need to implement for now (QEMU)
+	jmp bootfailure
+
+enable_gate_a20_out:
 	ret
 
 
@@ -157,7 +215,7 @@ enter_pmode:
 STG2_START_MSG:		.asciz "===[ Bootloader: Stage-2 starting ]===\r\n"
 STG2_END_MSG: 		.asciz "===[ Bootloader: Stage-2 complete ]===\r\n"
 UNREAL_MODE_MSG: 	.asciz "Entering Unreal mode\r\n"
-ENABLE_A20_MSG: 	.asciz "Enabling gate A20\r\n"
+ENABLE_A20_MSG: 	.asciz "Enabling A20 gate\r\n"
 DETECT_MEM_MSG:		.asciz "Detecting memory\r\n"
 LOAD_KERNEL_MSG:	.asciz "Loading kernel\r\n"
 ENTER_PMODE_MSG:	.asciz "Entering Protected mode\r\n"
