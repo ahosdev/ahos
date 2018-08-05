@@ -23,6 +23,21 @@ _start:
 
 
 
+############
+### DATA ###
+############
+
+STG2_START_MSG:		.asciz "===[ Bootloader: Stage-2 starting ]===\r\n"
+STG2_END_MSG:		.asciz "===[ Bootloader: Stage-2 complete ]===\r\n"
+UNREAL_MODE_MSG: 	.asciz "Entering Unreal mode\r\n"
+ENABLE_A20_MSG: 	.asciz "Enabling A20 gate\r\n"
+DETECT_MEM_MSG:		.asciz "Detecting memory\r\n"
+LOAD_KERNEL_MSG:	.asciz "Loading kernel\r\n"
+ENTER_PMODE_MSG:	.asciz "Entering Protected mode\r\n"
+BOOT_KERNEL_MSG:	.asciz "Booting kernel now!\r\n"
+
+
+
 ##############
 ### MACROS ###
 ##############
@@ -205,21 +220,6 @@ load_kernel:
 enter_pmode:
 	# TODO
 	ret
-
-
-
-############
-### DATA ###
-############
-
-STG2_START_MSG:		.asciz "===[ Bootloader: Stage-2 starting ]===\r\n"
-STG2_END_MSG: 		.asciz "===[ Bootloader: Stage-2 complete ]===\r\n"
-UNREAL_MODE_MSG: 	.asciz "Entering Unreal mode\r\n"
-ENABLE_A20_MSG: 	.asciz "Enabling A20 gate\r\n"
-DETECT_MEM_MSG:		.asciz "Detecting memory\r\n"
-LOAD_KERNEL_MSG:	.asciz "Loading kernel\r\n"
-ENTER_PMODE_MSG:	.asciz "Entering Protected mode\r\n"
-BOOT_KERNEL_MSG:	.asciz "Booting kernel now!\r\n"
 
 
 
