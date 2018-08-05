@@ -49,6 +49,13 @@ print_str_out:
 	ret
 
 
+BOOTFAILURE_MSG: 	.asciz "Boot Failure. Press any key to reboot...\r\n"
+bootfailure:
+	print BOOTFAILURE_MSG
+	xor %ax, %ax	# function 0
+	int $0x16	# bios function to wait for key
+	ljmp $0xffff, $0 # jump to FFFF:0000 (reboot)
+
 
 # The "Unreal" mode is possible because the 80286 (and newer) cpu keeps an
 # internal segment descriptor cache even in real mode. However, it is possible
