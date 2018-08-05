@@ -27,6 +27,9 @@ _start:
 ### DATA ###
 ############
 
+.include "bootloader/floppy_fat12_desc.S"
+
+# Read-only
 STG2_START_MSG:		.asciz "===[ Bootloader: Stage-2 starting ]===\r\n"
 STG2_END_MSG:		.asciz "===[ Bootloader: Stage-2 complete ]===\r\n"
 UNREAL_MODE_MSG: 	.asciz "Entering Unreal mode\r\n"
@@ -35,7 +38,19 @@ DETECT_MEM_MSG:		.asciz "Detecting memory\r\n"
 LOAD_KERNEL_MSG:	.asciz "Loading kernel\r\n"
 ENTER_PMODE_MSG:	.asciz "Entering Protected mode\r\n"
 BOOT_KERNEL_MSG:	.asciz "Booting kernel now!\r\n"
+INIT_FLOPPY_MSG:	.asciz "Initializing floppy disk information\r\n"
+KERNEL_FOUND_MSG:	.asciz "Kernel 'ahos.bin' found!\r\n"
+KERNEL_NOT_FOUND_MSG:	.asciz "Kernel 'ahos.bin' not found!\r\n"
+KERNEL_FILENAME:	.ascii "AHOS    BIN" # 8.3 name
+FAT_SEG:		.hword 0x500	# segment value -> 0x5000 absolute address
+DISK_BUFFER_ADDR:	.hword 0x3000	# absolute address
+KERNEL_ADDR:		.int 0x100000	# kernel location once loaded
 
+# Unitialized data
+ROOTDIR_NB_SECTORS:	.hword 0
+ROOTDIR_LBA:		.hword 0
+DATA_REGION_LBA:	.hword 0
+KERNEL_LBA:		.hword 0
 
 
 ##############
