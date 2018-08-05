@@ -43,7 +43,7 @@ KERNEL_FOUND_MSG:	.asciz "Kernel 'ahos.bin' found!\r\n"
 KERNEL_NOT_FOUND_MSG:	.asciz "Kernel 'ahos.bin' not found!\r\n"
 KERNEL_FILENAME:	.ascii "AHOS    BIN" # 8.3 name
 FAT_SEG:		.hword 0x500	# segment value -> 0x5000 absolute address
-DISK_BUFFER_ADDR:	.hword 0x3000	# absolute address
+DISK_BUFFER_SEG:	.hword 0x300	# segment value -> 0x3000 absolute address
 KERNEL_ADDR:		.int 0x100000	# kernel location once loaded
 
 # Unitialized data
@@ -330,6 +330,89 @@ read_sector_out:
 read_sector_error:
 	xor %ax, %ax
 	jmp read_sector_out
+
+
+
+# Find the first cluster of a file from the root directory.
+#
+# Arguments:
+#	AX: address of the 8.3 filename (padded)
+#
+# Returns:
+#	AX: -1 on error, otherwise the first cluster number
+
+find_first_cluster:
+	push %cx
+	push %bx
+	push %es
+	push %si
+	push %di
+
+	mov (DISK_BUFFER_SEG), %es	# store current sector at DISK_BUFFER_SEG:0
+	mov (ROOTDIR_NB_SECTORS), %cx	# read at most ROOTDIR_NB_SECTORS
+
+find_first_cluster_next_sector:
+	push %cx			# save sector counter
+	push %ax			# save filename address
+
+	# read the next rootdir sector (from 0 to ROOTDIR_NB_SECTORS - 1)
+	mov %cx, %ax			# number of sectors left
+	neg %ax				# read sectors forward
+	add (ROOTDIR_NB_SECTORS), %ax	# next rootdir sector
+	add (ROOTDIR_LBA), %ax		# next rootdir sector LBA
+	xor %bx, %bx			# destination starts at offset 0
+	call read_sector
+	cmp %ax, 0			# did the floppy disk read fail ?
+	jz bootfailure			# if so, we can not continue...
+
+	mov $0x10, %cx			# there is at most 16 files per sector	(512 / 32)
+	xor %bx, %bx			# reset source offset
+	mov %bx, %di			# read from (ES:DI) 0x300:0
+
+find_first_cluster_sector_scan_loop:	# scan every rootdir entry in one sector
+	pop %si				# retrieve filename address...
+	push %si			# ...and save it
+	push %cx			# save rootdir entry counter
+	push %di			# save start of current rootdir entry
+
+	cld				# read forward
+	repe cmpsb			# compares bytes from DS:SI with ES:DI up to CX bytes if matching
+	pop %di				# restore to start of current rootdir entry
+	jz find_first_cluster_found	# the file name matched
+
+	add $0x20, %di			# try next rootdir entry (each are 32 bytes)
+	pop %cx				# restore rootdir entry sector counter
+	loop find_first_cluster_sector_scan_loop # loop while there is more file in the current sector
+
+	pop %ax				# restore filename address
+	pop %cx				# restore sector counter
+	loop find_first_cluster_next_sector # loop while there is more sector to scan
+
+find_first_cluster_not_found: # we did not find the file and there is no more sector to scan
+	xor %ax, %ax
+	not %ax
+	jmp find_first_cluster_out
+
+find_first_cluster_found:		# we find a matching filename, DI=rootdir entry address
+	pop %ax				# pop rootdir entry sector counter
+	pop %ax				# pop filename address
+	pop %ax				# pop total sector counter
+	add $0x1a, %di			# cluster index address in the rootdir entry
+	push %ds			# save DS
+	mov (DISK_BUFFER_SEG), %ds	# make DS point to same segment than ES (i.e. current sector)
+	mov (%di), %di			# read the cluster value
+	xchg %di, %ax			# store the result in AX
+	pop %ds				# restore DS
+
+find_first_cluster_out:
+	pop %di
+	pop %si
+	pop %es
+	pop %bx
+	pop %cx
+	ret
+
+
 
 # Seeks 'ahos.bin' file in floppy disk and load it at 0x100000 (2nd MiB).
 
