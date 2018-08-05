@@ -186,11 +186,4 @@ stage2:
 	print BOOT_KERNEL_MSG
 	# TODO: jump into the kernel
 
-	cli
-	hlt
-
-	. = _start + 512 - 8
-	.ascii "END_STG2" #mark the end of stage 2
-
-	#. = _start + 1024 - 4 # just for testing cluster chaining in stage-1
-	#.ascii "YYYY"
+	jmp bootfailure
