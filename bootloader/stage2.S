@@ -575,6 +575,7 @@ load_kernel:
 
 load_kernel_not_found:
 	print KERNEL_NOT_FOUND_MSG
+	jmp bootfailure
 
 load_kernel_out:
 	pop %edi
