@@ -5,8 +5,8 @@
 
 	1) enter Unreal mode
 	2) enable gate A20
-	3) detect memory
-	4) copy kernel at 0x100000 (2nd MiB)
+	3) copy kernel at 0x100000 (2nd MiB)
+	4) detect memory
 	5) enter Protected mode (setup basic GDT)
 	6) run the kernel
 
@@ -413,6 +413,103 @@ find_first_cluster_out:
 	ret
 
 
+
+# Find the next cluster from the FAT.
+#
+# Arguments:
+#	AX: the current cluster
+#
+# Returns:
+#	AX: the next cluster or -1 on error.
+
+find_next_cluster:
+	# TODO
+	ret
+
+
+# Loads a file from floppy disk into "high memory". Note that the "unreal"
+# mode must be enable before calling it. The FAT is expected to be loaded
+# in memory at FAT_SEG:0000.
+#
+# Arguments:
+#	AX: address of the 8.3 filename (padded)
+#	EDI: destination buffer (32-bit register!)
+#
+# Returns:
+#	AX: 1 on success, 0 otherwise.
+#
+
+.set DST_OFFSET,	0
+.set CURRENT_CLUSTER,	4
+
+load_file:
+	push %es
+	push %ds
+	push %si
+	push %edi
+	push %sp
+	push %bp
+	push %dx
+	push %cx
+	sub $0x8, %sp			# make room for two dwords
+	mov %sp, %bp
+
+	mov %edi, DST_OFFSET(%bp)	# set destination offset stack value
+
+	call find_first_cluster		# find the first cluster in the file
+	cmp $0xffff, %ax		# did we found it ?
+	jz load_file_error		# nope, returns error
+	mov %ax, CURRENT_CLUSTER(%bp)	# set current cluster stack value
+
+load_file_loop:
+	# copy current sector into disk buffer
+	mov CURRENT_CLUSTER(%bp), %ax	# load current cluster
+	add (DATA_REGION_LBA), %ax	# current file sector LBA
+	mov (DISK_BUFFER_SEG), %dx
+	mov %dx, %es			# next cluster will land in disk buffer
+	xor %bx, %bx			# reset destination offset
+	call read_sector		# read the current file sector into the disk buffer
+	cmp $0x0, %ax			# did it failed ?
+	jz load_file_error
+
+	# copy the disk buffer into high memory
+	push %ds			# save DS
+	mov (DISK_BUFFER_SEG), %dx
+	mov %dx, %ds			# DS=disk buffer
+	xor %si, %si			# read from the start of disk buffer
+	mov %si, %es			# ES=0
+	mov DST_OFFSET(%bp), %edi	# write to 0:DST_OFFSET (32-bits!)
+	mov $BPB_BYTES_PER_SECTOR, %cx	# copy sector size byte (i.e. 512)
+	rep movsb			# copy CX bytes from file into high memory
+	pop %ds				# restore DS
+
+	# get the next cluster number
+	mov CURRENT_CLUSTER(%bp), %ax
+	call find_next_cluster
+	cmp $0xffff, %ax
+	jz load_file_complete
+
+	mov %ax, CURRENT_CLUSTER(%bp)	# save the next cluster
+	mov DST_OFFSET(%bp), %dx	# retrieve the current destination offset
+	add $BPB_BYTES_PER_SECTOR, %dx	# increase the destination offset
+	mov %dx, DST_OFFSET(%bp)
+	jmp load_file_loop		# load the next cluster
+
+load_file_complete:
+	mov $0x1, %ax
+	jmp load_file_out
+load_file_error:
+	xor %ax, %ax
+load_file_out:
+	pop %cx
+	pop %dx
+	pop %bp
+	pop %sp
+	pop %edi
+	pop %si
+	pop %ds
+	pop %es
+	ret
 
 # Seeks 'ahos.bin' file in floppy disk and load it at 0x100000 (2nd MiB).
 
