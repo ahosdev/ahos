@@ -51,6 +51,7 @@ sudo mount -o loop -t msdos ${BOOTLOADDIR}/floppy.bin ${BOOTLOADDIR}/mnt_floppy
 #sudo touch ${BOOTLOADDIR}/mnt_floppy/haaaat
 sudo cp ${BOOTLOADDIR}/stage2.bin ${BOOTLOADDIR}/mnt_floppy # this should lands in 2nd rootdir sector
 #sudo rm ${BOOTLOADDIR}/mnt_floppy/haaaa2 # fragment
+sudo cp ${DESTDIR}/ahos.bin ${BOOTLOADDIR}/mnt_floppy
 
 # umount it
 sudo umount -f ${BOOTLOADDIR}/mnt_floppy
