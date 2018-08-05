@@ -400,7 +400,7 @@ read_next_cluster:
 	jnz odd_cluster
 
 even_cluster:
-	and $0x00ffffff, %dx	# mask out high bits
+	and $0xfff, %dx		# mask out high bits
 	jmp next_cluster
 odd_cluster:
 	shr $0x4, %dx		# discard low bits
