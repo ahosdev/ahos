@@ -8,9 +8,13 @@
 	3) copy kernel at 0x100000 (2nd MiB)
 	4) detect memory
 	5) enter Protected mode (setup basic GDT)
-	6) run the kernel
+	6) jump to stage-3
 
 	Stage-2 is remapped at 0x1000
+
+	TODO:
+	- optimize kernel file loading (read multiple sectors)
+	- increase cluster size
 */
 
 .code16
@@ -90,11 +94,6 @@ bootfailure:
 	int $0x16	# bios function to wait for key
 	ljmp $0xffff, $0 # jump to FFFF:0000 (reboot)
 
-
-DEBUGOK_MSG:		.asciz "DEBUG OK\r\n"
-debugok:
-	print DEBUGOK_MSG
-	call bootfailure
 
 
 # The "Unreal" mode is possible because the 80286 (and newer) cpu keeps an
@@ -610,7 +609,7 @@ enter_pmode:
 
 .code32	# ...welcome in 32 bit mode !
 
-	# clear the preferect queue (cpu might have 16-bit opcodes in queue)
+	# clear the preferetch queue (cpu might have 16-bit opcodes in queue)
 	nop
 	nop
 	nop
@@ -681,7 +680,7 @@ stage2:
 	print ENTER_PMODE_MSG
 	call enter_pmode
 
-	# do not continue past this point something went wrong
+	# do not continue past this, point something went wrong
 	cli
 	hlt
 
@@ -693,9 +692,4 @@ stage2:
 .code32
 
 stage3:
-	# TODO
-
-	cli
-infinity:
-	hlt
-	jmp infinity
+	.include "bootloader/stage3.S"
