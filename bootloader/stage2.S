@@ -35,12 +35,13 @@ STG2_END_MSG:		.asciz "===[ Bootloader: Stage-2 complete ]===\r\n"
 UNREAL_MODE_MSG: 	.asciz "Entering Unreal mode\r\n"
 ENABLE_A20_MSG: 	.asciz "Enabling A20 gate\r\n"
 DETECT_MEM_MSG:		.asciz "Detecting memory\r\n"
-LOAD_KERNEL_MSG:	.asciz "Loading kernel\r\n"
+LOAD_KERNEL_MSG:	.asciz "Loading kernel, please wait...\r\n"
+KERNEL_LOADED_MSG:	.asciz "Kernel loaded!\r\n"
 ENTER_PMODE_MSG:	.asciz "Entering Protected mode\r\n"
 BOOT_KERNEL_MSG:	.asciz "Booting kernel now!\r\n"
 INIT_FLOPPY_MSG:	.asciz "Initializing floppy disk information\r\n"
-KERNEL_FOUND_MSG:	.asciz "Kernel 'ahos.bin' found!\r\n"
-KERNEL_NOT_FOUND_MSG:	.asciz "Kernel 'ahos.bin' not found!\r\n"
+KERNEL_FOUND_MSG:	.asciz "File `ahos.bin' found!\r\n"
+KERNEL_NOT_FOUND_MSG:	.asciz "File `ahos.bin' not found!\r\n"
 KERNEL_FILENAME:	.ascii "AHOS    BIN" # 8.3 name
 FAT_ADDR:		.hword 0x5000	# absolute address, need to be loaded in the first 64KiB
 DISK_BUFFER_SEG:	.hword 0x300	# segment value -> 0x3000 absolute address
@@ -377,6 +378,7 @@ find_first_cluster_sector_scan_loop:	# scan every rootdir entry in one sector
 	push %di			# save start of current rootdir entry
 
 	cld				# read forward
+	mov $0x0b, %cx			# read at most 11 bytes
 	repe cmpsb			# compares bytes from DS:SI with ES:DI up to CX bytes if matching
 	pop %di				# restore to start of current rootdir entry
 	jz find_first_cluster_found	# the file name matched
@@ -453,8 +455,7 @@ find_next_cluster_is_last:
 	# fallback to 'not found'
 
 find_next_cluster_not_found:
-	xor %eax, %eax
-	neg %eax
+	mov $0xffff, %ax
 	jmp find_next_cluster_out
 find_next_cluster_found:
 	mov %dx, %ax
@@ -497,7 +498,8 @@ load_file:
 
 	call find_first_cluster		# find the first cluster in the file
 	cmp $0xffff, %ax		# did we found it ?
-	jz load_file_error		# nope, returns error
+	jz load_file_not_found		# nope, returns error
+	print KERNEL_FOUND_MSG
 	mov %ax, CURRENT_CLUSTER(%bp)	# set current cluster stack value
 
 load_file_loop:
@@ -514,13 +516,14 @@ load_file_loop:
 	# copy the disk buffer into high memory
 	push %ds			# save DS
 	mov (DISK_BUFFER_SEG), %dx
-	mov %dx, %ds			# DS=disk buffer
-	xor %si, %si			# read from the start of disk buffer
-	mov %si, %es			# ES=0
-	mov DST_OFFSET(%bp), %edi	# write to 0:DST_OFFSET (32-bits!)
-	mov $BPB_BYTES_PER_SECTOR, %cx	# copy sector size byte (i.e. 512)
-	rep movsb			# copy CX bytes from file into high memory
-	pop %ds				# restore DS
+	mov %dx, %ds				# DS=disk buffer
+	xor %si, %si				# read from the start of disk buffer
+	mov %si, %es				# ES=0
+	mov DST_OFFSET(%bp), %edi		# write to 0:DST_OFFSET (32-bits!)
+	cld					# copy forward
+	mov $BPB_BYTES_PER_SECTOR, %cx		# copy a full sector
+	rep movsb %ds:(%esi), %es:(%edi)	# copy CX bytes from file into high memory
+	pop %ds					# restore DS
 
 	# get the next cluster number
 	mov CURRENT_CLUSTER(%bp), %ax
@@ -537,6 +540,8 @@ load_file_loop:
 load_file_complete:
 	mov $0x1, %ax
 	jmp load_file_out
+load_file_not_found:
+	print KERNEL_NOT_FOUND_MSG
 load_file_error:
 	xor %ax, %ax
 load_file_out:
@@ -566,15 +571,15 @@ load_kernel:
 	push %edi
 
 	lea KERNEL_FILENAME, %ax
-	mov KERNEL_ADDR, %edi
+	mov $1, %edi			# we need this tricks because...
+	shl $20, %edi			# ...GAS trunc 32-bits value
 	call load_file
 	cmp $0x0, %ax
 	jz load_kernel_not_found
-	print KERNEL_FOUND_MSG
+	print KERNEL_LOADED_MSG
 	jmp load_kernel_out
 
 load_kernel_not_found:
-	print KERNEL_NOT_FOUND_MSG
 	jmp bootfailure
 
 load_kernel_out:
