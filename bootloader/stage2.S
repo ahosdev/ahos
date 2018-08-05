@@ -43,8 +43,10 @@ BOOT_KERNEL_MSG:	.asciz "Booting kernel now!\r\n"
 ##############
 
 .macro print str
+	pusha
 	leaw \str, %si
 	call print_str
+	popa
 .endm
 
 
