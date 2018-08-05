@@ -57,6 +57,12 @@ bootfailure:
 	ljmp $0xffff, $0 # jump to FFFF:0000 (reboot)
 
 
+DEBUGOK_MSG:		.asciz "DEBUG OK\r\n"
+debugok:
+	print DEBUGOK_MSG
+	call bootfailure
+
+
 # The "Unreal" mode is possible because the 80286 (and newer) cpu keeps an
 # internal segment descriptor cache even in real mode. However, it is possible
 # to tweak it by entering the protected mode, setup a gdt that breaks the 64KiB
