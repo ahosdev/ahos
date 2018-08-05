@@ -263,6 +263,74 @@ compute_dataregion_lba:
 	popa
 	ret
 
+
+
+# Reads a sector from floppy disk. On error, it retries up to three times
+# before giving up.
+#
+# Arguments:
+# 	AX: Logical Block Address sector to read
+#	ES:BX: destination buffer
+#
+# Returns:
+#	AX: 1 on success, 0 otherwise.
+
+read_sector:
+	push %bx
+	push %cx
+	push %dx
+
+	mov $0x3, %cx	# set maximum number of tries
+	push %cx	# save try counter
+
+read_sector_retry:
+	pop %cx
+	or %cx, %cx
+	jz read_sector_error
+	dec %cx
+	push %cx
+
+reset_floppy_disk:
+	push %ax	# save LBA
+	mov $0x0, %ah 	# reset floppy disk
+	mov $0x0, %dl	# drive 0 is floppy drive
+	int $0x13	# disk-access interrupt
+	pop %ax		# restore LBA
+	jc read_sector_retry
+
+convert_lba_to_chs:
+	push %ax	# save LBA
+	push %bx	# save destination offset (ES:BX)
+	xor %dx, %dx
+	mov $BPB_SECTORS_PER_TRACK, %bx
+	div %bx				# dx= LBA mod SectorsPerTracks
+	inc %dl				# sectors start at 1
+	xchg %dl, %cl			# cl=start reading from sector (keep it)
+	# ax: holds (LBA / SectorsPerTracks)
+	xor %dx, %dx
+	mov $BPB_HEADS_PER_CYLINDER, %bx
+	div %bx
+	xchg %al, %ch			# ch=cylinder (keep it)
+	xchg %dl, %dh			# dh=head (keep it)
+
+	movb $BPB_DRIVE_NUMBER, %dl	# dh=drive number (keep it)
+	mov $0x0201, %ax		# function=2, read 1 sector
+	pop %bx				# restore destination offset
+	int $0x13			# disk-access interrupt
+	pop %ax				# restore LBA
+	jc read_sector_retry		# reading failure
+	mov $1, %ax			# reading success
+	pop %cx				# pop the retry counter
+
+read_sector_out:
+	pop %dx
+	pop %cx
+	pop %bx
+	ret
+read_sector_error:
+	xor %ax, %ax
+	jmp read_sector_out
+
 # Seeks 'ahos.bin' file in floppy disk and load it at 0x100000 (2nd MiB).
 
 load_kernel:
