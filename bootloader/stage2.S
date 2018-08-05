@@ -223,7 +223,47 @@ detect_memory:
 
 
 
-# Seeks 'ahos.bin' file in floppy disk and load it at 0x100000.
+# Initializes floppy disk information. It computes:
+# - ROOTDIR_NB_SECTORS
+# - ROOTIDR_LBA
+# - DATA_REGION_LBA
+#
+# Arguments:
+# 	None
+#
+# Returns:
+#	None
+#
+
+init_floppy_info:
+	pusha
+
+compute_rootdir_nb_sectors:
+	mov $0x20, %ax			# each rootdir entry is 32 bytes
+	imul $BPB_ROOT_ENTRIES, %ax	# ax: total numbers of bytes in the rootdir
+	xor %dx, %dx
+	mov $BPB_BYTES_PER_SECTOR, %bx	# can't use imm. values with 'div', we are loading an addr.
+	div %bx				# ax: total number of sectors in rootdir
+	xor %dx, %dx
+	mov %ax, ROOTDIR_NB_SECTORS	# save it
+
+compute_rootdir_lba:
+	mov $BPB_NB_FATS, %ax
+	imul $BPB_SECTORS_PER_FAT, %ax
+	add $BPB_RESERVED_SECTORS, %ax	# %ax holds the rootdir start sector
+	mov %ax, ROOTDIR_LBA		# save it
+
+compute_dataregion_lba:
+	# compute the data region LBA (reduced by 2 because of reserved clusters)
+	add ROOTDIR_NB_SECTORS, %ax	# AX holds the rootdir lba
+	dec %ax
+	dec %ax
+	mov %ax, DATA_REGION_LBA	# save it
+
+	popa
+	ret
+
+# Seeks 'ahos.bin' file in floppy disk and load it at 0x100000 (2nd MiB).
 
 load_kernel:
 	# TODO
@@ -253,11 +293,14 @@ stage2:
 	print ENABLE_A20_MSG
 	call enable_gate_a20
 
-	print DETECT_MEM_MSG
-	call detect_memory
+	print INIT_FLOPPY_MSG
+	call init_floppy_info
 
 	print LOAD_KERNEL_MSG
 	call load_kernel
+
+	print DETECT_MEM_MSG
+	call detect_memory
 
 	print ENTER_PMODE_MSG
 	call enter_pmode
