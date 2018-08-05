@@ -591,16 +591,74 @@ load_kernel_out:
 
 # Enters Protected Mode and setup a basic flat memory GDT. The kernel will needs
 # to re-setup it later on.
+#
+# Arguments:
+# 	None
+#
+# Returns:
+#	None
 
 enter_pmode:
-	# TODO
-	ret
+	cli		# disable interrupts
+
+	lgdt pmode_gdtr	# load the new gdt
+
+	# enter protected mode
+	mov %cr0, %eax	# load CR0
+	or %al, 1	# set PE flag
+	mov %eax, %cr0	# entering...
+
+.code32	# ...welcome in 32 bit mode !
+
+	# clear the preferect queue (cpu might have 16-bit opcodes in queue)
+	nop
+	nop
+	nop
+	jmp clear_prefetch_queue
+	nop
+	nop
+	nop
+clear_prefetch_queue:
+
+	# reset code segment
+	ljmp $0x8, $reset_cs
+
+reset_cs:
+	# reset other segments
+	mov $0x10, %eax	# data selector
+	mov %eax, %ds
+	mov %eax, %fs
+	mov %eax, %gs
+	mov %eax, %es
+	mov %eax, %ss
+	mov $0x7bfc, %esp # same stack as before
+
+	# DON'T ENABLE INTERRUPTS UNTIL IDT IS SETUP (TRIPLE-FAULT OTHERWISE)
+
+	jmp stage3 # no ret
+
+pmode_gdtr:
+	.hword 	pmode_gdt_end - pmode_gdt - 1	# size of gdt minus 1
+	.long	pmode_gdt
+pmode_gdt:
+	# null segment
+	.long 	0
+	.long 	0
+	# flat ring-0 "code" desc
+	.long	0x0000FFFF
+	.long 	0x00CF9A00
+	# flat ring-0 "data" desc
+	.long	0x0000FFFF
+	.long 	0x00CF9200
+pmode_gdt_end:
 
 
 
 ###############
 ### STAGE-2 ###
 ###############
+
+.code16
 
 stage2:
 	print STG2_START_MSG
@@ -623,9 +681,21 @@ stage2:
 	print ENTER_PMODE_MSG
 	call enter_pmode
 
-	print STG2_END_MSG
+	# do not continue past this point something went wrong
+	cli
+	hlt
 
-	print BOOT_KERNEL_MSG
-	# TODO: jump into the kernel
 
-	jmp bootfailure
+###############
+### STAGE 3 ###
+###############
+
+.code32
+
+stage3:
+	# TODO
+
+	cli
+infinity:
+	hlt
+	jmp infinity

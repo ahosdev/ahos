@@ -24,6 +24,7 @@ memory layout:
 0x0400 - 0x04ff: (256b)	BIOS data area (BDA)
 0x0500 - 0x7bff: (30kb) RAM guaranteed free for use
 
+	0x0500 - 0x0fff: free for use
 	0x1000 - 0x2fff: (max=8kb) Stage-2 code
 	0x3000 - 0x31ff: (512b) disk buffer
 	0x3200 - 0x3fff: free for use
