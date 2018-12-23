@@ -145,10 +145,6 @@ static void user_defined_interrupt_handler(void)
 
 static void clock_handler(void)
 {
-	static int clock_nb_interrupts = 0;
-
-	//printf("Clock Interrupt (#%d) triggered\n", clock_nb_interrupts++);
-
 	clock_inctick();
 
 	irq_send_eoi(IRQ0_CLOCK - IRQ0_INT);
@@ -161,7 +157,7 @@ static void keyboard_handler(void)
 
 void isr_handler(int isr_num, int error_code)
 {
-	//printf("Interruption #%d detected (error=%d)\n", isr_num, error_code);
+	error_code = error_code; // fixe compilation warning (unused)
 
 	switch (isr_num)
 	{
