@@ -14,7 +14,7 @@ inline void io_wait(void)
 	// Port 0x80 is normally used by POST (Power-On SelfTest) code (bios).
 	asm volatile("outb %0, $0x80"
 				: /* no output */
-				: "a"(0)
+				: "a"((char)0)
 		    		);
 }
 
