@@ -10,6 +10,7 @@
 static size_t terminal_row;
 static size_t terminal_column;
 static uint8_t terminal_color;
+static uint8_t terminal_default_color;
 static uint16_t* terminal_buffer;
 
 static const size_t VGA_WIDTH = 80;
@@ -18,9 +19,11 @@ static uint16_t* const VGA_MEMORY = (uint16_t*) 0xB8000;
 static const size_t VGA_ELT_SIZE = sizeof(terminal_buffer[0]);
 
 void terminal_initialize(void) {
-	terminal_row = VGA_HEIGHT - 1; // we start from bottom (ease scroll code)
+	terminal_row = 0;
 	terminal_column = 0;
-	terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+	terminal_default_color =
+		vga_entry_color(VGA_COLOR_BLACK, VGA_COLOR_LIGHT_GREY);
+	terminal_color = terminal_default_color;
 	terminal_buffer = VGA_MEMORY;
 	for (size_t y = 0; y < VGA_HEIGHT; y++) {
 		for (size_t x = 0; x < VGA_WIDTH; x++) {
@@ -45,10 +48,16 @@ void terminal_putentryat(unsigned char c, uint8_t color, size_t x, size_t y) {
 
 static void scroll_up(void)
 {
-	memmove(terminal_buffer, &terminal_buffer[VGA_WIDTH + 0],
-		VGA_ELT_SIZE * (VGA_WIDTH * (VGA_HEIGHT - 1)));
-	memset(&terminal_buffer[VGA_WIDTH * (VGA_HEIGHT-1)],
-		0, VGA_WIDTH * VGA_ELT_SIZE);
+	terminal_column = 0;
+	if (++terminal_row == VGA_HEIGHT) {
+		memmove(terminal_buffer, &terminal_buffer[VGA_WIDTH + 0],
+			VGA_ELT_SIZE * (VGA_WIDTH * (VGA_HEIGHT - 1)));
+		for (size_t x = 0; x < VGA_WIDTH; ++x) {
+			const size_t index = (VGA_HEIGHT - 1) * VGA_WIDTH + x;
+			terminal_buffer[index] = vga_entry(' ', terminal_default_color);
+		}
+		terminal_row = VGA_HEIGHT - 1;
+	}
 }
 
 void terminal_putchar(char c) {
@@ -56,22 +65,18 @@ void terminal_putchar(char c) {
 
 	if (c == '\n') {
 		scroll_up();
-		terminal_column = 0;
-		return;
 	} else if (c == '\r') {
 		terminal_column = 0;
-		return;
 	} else if (c == '\t') {
 		terminal_putchar(' ');
 		terminal_putchar(' ');
 		terminal_putchar(' ');
-		return;
-	}
-
-	terminal_putentryat(uc, terminal_color, terminal_column, terminal_row);
-	if (++terminal_column == VGA_WIDTH) {
-		scroll_up();
-		terminal_column = 0;
+	} else {
+		terminal_putentryat(uc, terminal_color, terminal_column,
+							terminal_row);
+		if (++terminal_column == VGA_WIDTH) {
+			scroll_up();
+		}
 	}
 }
 
