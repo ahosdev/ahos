@@ -19,9 +19,9 @@
 #define SPIC_DATA 	0x00A1	// means A0=1
 
 
-void irq_set_mask(u8 irq)
+void irq_set_mask(uint8_t irq)
 {
-	u16 port;
+	uint16_t port;
 
 	if (irq < 8)
 	{
@@ -37,9 +37,9 @@ void irq_set_mask(u8 irq)
 	io_wait();
 }
 
-void irq_clear_mask(u8 irq)
+void irq_clear_mask(uint8_t irq)
 {
-	u16 port;
+	uint16_t port;
 
 	if (irq < 8)
 	{
@@ -55,7 +55,7 @@ void irq_clear_mask(u8 irq)
 	io_wait();
 }
 
-void irq_send_eoi(u8 irq)
+void irq_send_eoi(uint8_t irq)
 {
 	if (irq > 8)
 		outb(SPIC_CMD, 0x20); // unspecified EOI
@@ -66,9 +66,9 @@ void irq_send_eoi(u8 irq)
  * Remap 8259A PIC interrupts to user-defined interrupt vector.
  */
 
-void irq_init(u8 master_offset, u8 slave_offset)
+void irq_init(uint8_t master_offset, uint8_t slave_offset)
 {
-	u8 irq;
+	uint8_t irq;
 
 	if (master_offset < 32 || slave_offset < 32)
 	{

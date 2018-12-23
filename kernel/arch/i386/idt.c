@@ -25,16 +25,16 @@ extern void isr_wrapper(void); // implemented in isr_wrapper.S
 
 struct idtr_reg
 {
-	u16 limit;
-	u32 base;
+	uint16_t limit;
+	uint32_t base;
 }__attribute__((packed));
 
 struct idt_entry
 {
-	u16 offset_lo;
-	u16 segment_selector;
-	u16 flags;
-	u16 offset_hi;
+	uint16_t offset_lo;
+	uint16_t segment_selector;
+	uint16_t flags;
+	uint16_t offset_hi;
 }__attribute__((packed));
 
 /*
@@ -46,18 +46,18 @@ struct idt_entry
 
 #define int_gate(isr_ptr) \
 	(struct idt_entry) {\
-		.offset_lo = ((u32)isr_ptr & 0xffff), \
+		.offset_lo = ((uint32_t)isr_ptr & 0xffff), \
 		.segment_selector = 0x08, /* ring-0 code segment */ \
 		.flags = 0b1000111000000000, \
-		.offset_hi = ((u32)isr_ptr >> 16) & 0xffff \
+		.offset_hi = ((uint32_t)isr_ptr >> 16) & 0xffff \
 	}
 
 #define trap_gate(isr_ptr) \
 	(struct idt_entry) {\
-		.offset_lo = ((u32)isr_ptr & 0xffff), \
+		.offset_lo = ((uint32_t)isr_ptr & 0xffff), \
 		.segment_selector = 0x08, /* ring-0 code segment */ \
 		.flags = 0b1000111100000000, \
-		.offset_hi = ((u32)isr_ptr >> 16) & 0xffff \
+		.offset_hi = ((uint32_t)isr_ptr >> 16) & 0xffff \
 	}
 
 #if 0
@@ -297,7 +297,7 @@ void setup_idt(void)
 
 	// Load the new idt
 	idtr.limit = sizeof(idt) - 1;
-	idtr.base = (u32) idt;
+	idtr.base = (uint32_t) idt;
 
 	asm volatile("lidt %0"
 			: /* no output */

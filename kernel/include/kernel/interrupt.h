@@ -21,10 +21,10 @@ void setup_idt();
 #define IRQ0_INT 0x20 // irq0 interrupts is mapped to interrupt 32 (0x20)
 #define IRQ7_INT 0x28 // irq8 interrupts is mapped to interrupt 40 (0x28)
 
-void irq_init(u8 master_offset, u8 slave_offset);
-void irq_set_mask(u8 irq);
-void irq_clear_mask(u8 irq);
-void irq_send_eoi(u8 irq);
+void irq_init(uint8_t master_offset, uint8_t slave_offset);
+void irq_set_mask(uint8_t irq);
+void irq_clear_mask(uint8_t irq);
+void irq_send_eoi(uint8_t irq);
 
 #define IRQ0_CLOCK 		0 // Programmable Interrupt Timer (PIT)
 #define IRQ1_KEYBOARD 		1

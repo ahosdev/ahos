@@ -43,7 +43,7 @@
 
 #define INTERNAL_FREQ_HZ	1193182	// in hz
 
-volatile u32 clock_tick; // keep it volatile, otherwise GCC does strange optimizations
+volatile uint32_t clock_tick; // keep it volatile, otherwise GCC does strange optimizations
 
 /*
  * Initialize the COUNT clock value for channel 0 (irq 0).
@@ -51,9 +51,9 @@ volatile u32 clock_tick; // keep it volatile, otherwise GCC does strange optimiz
  * The caller must disable IRQ before calling this.
  */
 
-void clock_init(u32 freq)
+void clock_init(uint32_t freq)
 {
-	u16 clock_divider;
+	uint16_t clock_divider;
 
 	if (freq > INTERNAL_FREQ_HZ)
 		freq = INTERNAL_FREQ_HZ;
@@ -64,9 +64,9 @@ void clock_init(u32 freq)
 	outb(CLOCK_CTRL, BINARY_MODE|OP_MODE2|ACCESS_MODE_LOHI|SELECT_CHAN0);
 
 	// compute and set clock divider
-	clock_divider = (u16)(INTERNAL_FREQ_HZ / freq);
-	outb(CLOCK_CHANNEL0, (u8)clock_divider);
-	outb(CLOCK_CHANNEL0, (u8)(clock_divider >> 8));
+	clock_divider = (uint16_t)(INTERNAL_FREQ_HZ / freq);
+	outb(CLOCK_CHANNEL0, (uint8_t)clock_divider);
+	outb(CLOCK_CHANNEL0, (uint8_t)(clock_divider >> 8));
 
 	clock_tick = 0;
 }
@@ -77,7 +77,7 @@ void clock_inctick(void)
 	clock_tick++;
 }
 
-u32 clock_gettick(void)
+uint32_t clock_gettick(void)
 {
 	return clock_tick;
 }
@@ -90,9 +90,9 @@ u32 clock_gettick(void)
  * 2) It can sleep more than expected (because of the interrupt frequency)
  */
 
-void clock_sleep(u32 msec)
+void clock_sleep(uint32_t msec)
 {
-	u32 target_tick;
+	uint32_t target_tick;
 
 	target_tick = clock_gettick() + (msec / (1000 / CLOCK_FREQ));
 

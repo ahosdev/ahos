@@ -14,7 +14,7 @@
 extern void _enter_pmode(); // implemented in [arch/i386/boot.S]
 
 // computed using "tools/gdt_descriptor.c"
-static u64 gdt[] = {
+static uint64_t gdt[] = {
 	0x0000000000000000, // null segment
 	0x00CF9A000000FFFF, // kernel code segment
 	0x00CF92000000FFFF, // kernel data segment
@@ -24,8 +24,8 @@ static u64 gdt[] = {
 
 struct gdtr_reg
 {
-	u16 limit;
-	u32 base;
+	uint16_t limit;
+	uint32_t base;
 } __attribute__ ((packed));
 
 static void setup_gdt(void)
@@ -33,7 +33,7 @@ static void setup_gdt(void)
 	struct gdtr_reg gdtr;
 
 	gdtr.limit = sizeof(gdt) - 1;
-	gdtr.base = (u32) gdt;
+	gdtr.base = (uint32_t) gdt;
 
 	asm volatile("lgdt %0"
 			: /* no output */

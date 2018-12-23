@@ -163,10 +163,10 @@
  * Assumes that UART interruptions are disabled.
  */
 
-static void serial_set_baud_rate(u32 rate)
+static void serial_set_baud_rate(uint32_t rate)
 {
-	u16 divisor_latch_value = 0;
-	u8 lcr = 0;
+	uint16_t divisor_latch_value = 0;
+	uint8_t lcr = 0;
 
 	// prevent division-by-zero and zero divisor latch bytes
 	if ((rate == 0) || (rate > 115200))
@@ -202,7 +202,7 @@ static void serial_disable_irqs(void)
 
 static void serial_enable_irqs(void)
 {
-	u8 ier = 0;
+	uint8_t ier = 0;
 
 	ier |= IER_RECEIVED_DATA_AVAILABLE_INT_MASK;
 	ier |= IER_TRANSMITTER_HOLDING_REGISTER_EMPTY_INT_MASK; // necessary ?
@@ -210,9 +210,9 @@ static void serial_enable_irqs(void)
 	outb(COM1 + IER, ier);
 }
 
-static void serial_set_protocol(u8 protocol)
+static void serial_set_protocol(uint8_t protocol)
 {
-	u8 lcr = 0;
+	uint8_t lcr = 0;
 
 	// keep dlab + break enable untouched
 	lcr = inb(COM1 + LCR);
@@ -223,7 +223,7 @@ static void serial_set_protocol(u8 protocol)
 
 static void serial_enable_fifo(void)
 {
-	u8 fcr = 0;
+	uint8_t fcr = 0;
 
 	fcr |= FCR_ENABLE_FIFOS_MASK;
 	// clear fifo bits will be automatically reset to 0 by the controller afterwards.
