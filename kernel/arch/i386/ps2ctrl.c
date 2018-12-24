@@ -651,6 +651,7 @@ int ps2ctrl_init(void)
 		printf("[ps2ctrl] enabling devices succeed\n");
 	}
 
+	#if 0
 	// XXX: defer it to device's responsability ?
 	if (!reset_devices(single_channel)) {
 		printf("[ps2ctrl] ERROR: failed to reset devices\n");
@@ -658,6 +659,7 @@ int ps2ctrl_init(void)
 	} else {
 		printf("[ps2ctrl] resetting devices succeed\n");
 	}
+	#endif
 
 	ps2ctrl_initialized = true;
 	ps2ctrl_single_channel = single_channel;
