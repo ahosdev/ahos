@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 
+#include "atomic.h"
 #include "io.h"
 
 // ============================================================================
@@ -52,7 +53,7 @@
 
 // ----------------------------------------------------------------------------
 
-volatile uint32_t clock_tick; // keep it volatile, otherwise GCC does strange optimizations
+atomic_t clock_tick;
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -81,16 +82,16 @@ void clock_init(uint32_t freq)
 	outb(CLOCK_CHANNEL0, (uint8_t)clock_divider);
 	outb(CLOCK_CHANNEL0, (uint8_t)(clock_divider >> 8));
 
-	clock_tick = 0;
+	atomic_write(&clock_tick, 0);
 
 	irq_clear_mask(IRQ0_CLOCK);
 }
 
 // ----------------------------------------------------------------------------
 
-uint32_t clock_gettick(void)
+int32_t clock_gettick(void)
 {
-	return clock_tick; // FIXME: use mutex ?
+	return atomic_read(&clock_tick);
 }
 
 // ----------------------------------------------------------------------------
@@ -103,9 +104,9 @@ uint32_t clock_gettick(void)
  * 2) It can sleep more than expected (because of the interrupt frequency)
  */
 
-void clock_sleep(uint32_t msec)
+void clock_sleep(int32_t msec)
 {
-	uint32_t target_tick;
+	int32_t target_tick;
 
 	if (msec < (1000 / CLOCK_FREQ)) {
 		printf("[clock] WARNING: trying to sleep less than clock frequency\n");
@@ -126,7 +127,7 @@ void clock_sleep(uint32_t msec)
 
 void clock_irq_handler(void)
 {
-	clock_tick++; // FIXME: uses mutex ?
+	atomic_inc(&clock_tick);
 
 	irq_send_eoi(IRQ0_CLOCK);
 }

@@ -16,8 +16,8 @@
 // ----------------------------------------------------------------------------
 
 void clock_init(uint32_t freq);
-uint32_t clock_gettick(void);
-void clock_sleep(uint32_t msec);
+int32_t clock_gettick(void);
+void clock_sleep(int32_t msec);
 void clock_irq_handler(void);
 
 // ============================================================================
