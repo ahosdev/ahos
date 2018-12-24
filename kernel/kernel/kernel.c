@@ -5,6 +5,7 @@
 #include <kernel/memman.h>
 #include <kernel/interrupt.h>
 #include <kernel/clock.h>
+#include <kernel/ps2ctrl.h>
 
 #if defined(__linux__)
 #error "You are not using a cross-compiler"
@@ -33,6 +34,7 @@ static void kernel_init(void)
 	irq_init(IRQ0_INT, IRQ7_INT);
 
 	clock_init(CLOCK_FREQ);
+	ps2ctrl_init();
 
 	irq_clear_mask(IRQ0_CLOCK);
 	//irq_clear_mask(IRQ1_KEYBOARD);
