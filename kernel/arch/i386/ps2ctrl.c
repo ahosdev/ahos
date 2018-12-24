@@ -87,6 +87,10 @@
 #define CTRL_OUTPUT_PORT_FIRST_PS2_PORT_CLOCK	(1 << 6)
 #define CTRL_OUTPUT_PORT_FIRST_PS2_PORT_DATA	(1 << 7)
 
+// ----------------------------------------------------------------------------
+
+static bool ps2ctrl_initialized = false;
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -111,37 +115,117 @@ static bool ps2ctrl_exists(void)
 
 static void disable_devices(void)
 {
-	// TODO: disable first device (0xAD)
-	// TODO: disable second device (0xA7)
+	outb(CMD_PORT, CMD_DISABLE_FIRST_PS2_PORT);
+
+	// we don't know yet if the device is a single or dual channel
+	// disabling the second channel will be ignored in the first case
+	outb(CMD_PORT, CMD_DISABLE_SECOND_PS2_PORT);
 }
 
 // ----------------------------------------------------------------------------
 
 static void flush_controller_output_buffer(void)
 {
-	// TODO: check status register and/or read from data port
+	uint8_t ctrl_output_buffer_state;
+
+	ctrl_output_buffer_state = inb(STATUS_PORT);
+
+	if ((ctrl_output_buffer_state & SR_OUTPUT_BUFFER_STATUS) == 0) {
+		printf("[ps2ctrl] controller output buffer is empty, skipping...\n");
+		return;
+	}
+
+	printf("[ps2ctrl] controller output buffer is full, flushing...\n");
+	inb(DATA_PORT); // ignoring the data (garbage)
 }
 
 // ----------------------------------------------------------------------------
 
-static void set_controller_configuration_byte(void)
+static void dump_configuration_byte(uint8_t conf_byte)
 {
-	// TODO
+	printf("[ps2ctrl] dumping configuration byte:\n");
+	printf("- first PS/2 port interrupt: %s\n",
+		(conf_byte & CTRL_CONF_FIRST_PS2_PORT_INTERRUPT) ? "enabled" : "disabled");
+	printf("- first PS/2 port clock: %s\n",
+		(conf_byte & CTRL_CONF_FIRST_PS2_PORT_CLOCK) ? "disabled" : "enabled");
+	printf("- first PS/2 port translation: %s\n",
+		(conf_byte & CTRL_CONF_FIRST_PS2_PORT_TRANSLATION) ? "enabled" : "disabled");
+	printf("- second PS/2 port interrupt: %s\n",
+		(conf_byte & CTRL_CONF_SECOND_PS2_PORT_INTERRUPT) ? "enabled" : "disabled");
+	printf("- second PS/2 port clock: %s\n",
+		(conf_byte & CTRL_CONF_SECOND_PS2_PORT_CLOCK) ? "disabled" : "enabled");
+	printf("- system flag: %s\n",
+		(conf_byte & CTRL_CONF_SYSTEM_FLAG) ? "system passed POST" : "ERROR");
+	printf("- zero0: %d\n", !!(conf_byte & CTRL_CONF_ZERO1));
+	printf("- zero1: %d\n", !!(conf_byte & CTRL_CONF_ZERO2));
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Read the current configuration byte, clear IRQs (both) and translation bits,
+ * then write configuration back.
+ *
+ * Returns the modified configuration byte.
+ */
+
+static uint8_t set_controller_configuration_byte(void)
+{
+	uint8_t conf_byte;
+	uint8_t status = 0;
+
+	// send a request to read configuration byte
+	outb(CMD_PORT, CMD_READ_BYTE_0);
+
+	// wait until a response is ready
+	do {
+		status = inb(STATUS_PORT);
+		// TODO: implement timeout / max retry error handling
+	} while ((status & SR_OUTPUT_BUFFER_STATUS) == 0);
+
+	// read the configuration byte
+	conf_byte = inb(DATA_PORT);
+	dump_configuration_byte(conf_byte);
+
+	// modify the configuration byte
+	conf_byte &= ~(CTRL_CONF_FIRST_PS2_PORT_INTERRUPT);
+	conf_byte &= ~(CTRL_CONF_SECOND_PS2_PORT_INTERRUPT);
+	conf_byte &= ~(CTRL_CONF_FIRST_PS2_PORT_TRANSLATION);
+	dump_configuration_byte(conf_byte);
+
+	// write configuration byte back
+	outb(CMD_PORT, CMD_WRITE_BYTE_0);
+	// FIXME: wait input buffer is ready
+	outb(DATA_PORT, conf_byte);
+
+	return conf_byte;
 }
 
 // ----------------------------------------------------------------------------
 
 static bool check_controller_selt_test(void)
 {
-	// TODO
+	uint8_t result;
+	outb(CMD_PORT, CMD_TEST_PS2_CONTROLLER);
 
-	return true;
+	// TODO: wait for response with status register
+
+	result = inb(DATA_PORT);
+
+	if (result != 0x55 && result != 0xFC) {
+		printf("[ps2ctrl] ERROR: unexpected value (0x%x)\n", result);
+		return false;
+	}
+
+	return (result == 0x55);
 }
 
 // ----------------------------------------------------------------------------
 
 static bool has_two_channels(void)
 {
+	printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
+
 	// TODO
 
 	return false;
@@ -180,10 +264,20 @@ static bool reset_devices(void)
 
 /*
  * Initializes the PS/2 8042 Controller. It assumes interrupts are disabled.
+ *
+ * Returns zero on success, -1 otherwise.
  */
 
 int ps2ctrl_init(void)
 {
+	uint8_t configuration_byte;
+	bool single_channel = true;
+
+	if (ps2ctrl_initialized) {
+		printf("[ps2ctrl] ERROR: PS/2 controller is already initialized\n");
+		return -1;
+	}
+
 	printf("[ps2ctrl] starting initialization...\n");
 
 	if (!disable_usb_legacy_support()) {
@@ -205,8 +299,11 @@ int ps2ctrl_init(void)
 	flush_controller_output_buffer();
 	printf("[ps2ctrl] controller's output buffer is flushed\n");
 
-	set_controller_configuration_byte();
-	printf("[ps2ctrl] controller's configuration byte set\n");
+	configuration_byte = set_controller_configuration_byte();
+	printf("[ps2ctrl] controller's configuration byte set: 0x%x\n", configuration_byte);
+
+	single_channel = (configuration_byte & CTRL_CONF_SECOND_PS2_PORT_CLOCK);
+	printf("[ps2ctrl] controller is %s channel(s)\n", single_channel ? "single" : "dual");
 
 	if (!check_controller_selt_test()) {
 		printf("[ps2ctrl] ERROR: failed to perform controller self test\n");
@@ -214,7 +311,10 @@ int ps2ctrl_init(void)
 		printf("[ps2ctrl] controller self test succeed\n");
 	}
 
-	if (has_two_channels()) {
+	// reset configuration byte as self-test can reset the controller
+	configuration_byte = set_controller_configuration_byte();
+
+	if (!single_channel && has_two_channels()) {
 		printf("[ps2ctrl] controller has two channels\n");
 	} else {
 		printf("[ps2ctrl] controller has one channel\n");
@@ -237,6 +337,8 @@ int ps2ctrl_init(void)
 	} else {
 		printf("[ps2ctrl] resetting devices succeed\n");
 	}
+
+	ps2ctrl_initialized = true;
 
 	printf("[ps2ctrl] initialization complete\n");
 
