@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 
-extern void _enter_pmode(); // implemented in [arch/i386/boot.S]
+extern void asm_reset_segment_selectors(); // implemented in [arch/i386/boot.S]
 
 // computed using "tools/gdt_descriptor.c"
 static uint64_t gdt[] = {
@@ -39,6 +39,8 @@ static void setup_gdt(void)
 			: /* no output */
 			: "m"(gdtr)
 			: "memory");
+
+	asm_reset_segment_selectors();
 }
 
 void memman_init(void)
@@ -59,7 +61,5 @@ void memman_init(void)
 	// TODO: enable the A20 line
 
 	setup_gdt();
-
-	_enter_pmode();
 }
 

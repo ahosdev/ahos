@@ -38,14 +38,9 @@ _start:
 	jmp 1b
 .size _start, . - _start
 
-.global _enter_pmode
-.type _enter_pmode, @function
-_enter_pmode:
-	# set the PE flag
-	mov %cr0, %eax
-	or %al, 1
-	mov %eax, %cr0
-
+.global asm_reset_segment_selectors
+.type asm_reset_segment_selectors, @function
+asm_reset_segment_selectors:
 	# reset cs segment selector
 	ljmp $0x8, $reset_cs	# 0x8 is 'cs' because each gdt entry is 64-bits
 				# long, and 'cs' is the 2nd entry (8*8=64)
@@ -58,4 +53,4 @@ reset_cs:
 	mov %eax, %gs
 	mov %eax, %ss
 	ret
-.size _enter_pmode, . - _enter_pmode
+.size asm_reset_segment_selectors, . - asm_reset_segment_selectors
