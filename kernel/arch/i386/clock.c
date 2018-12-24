@@ -82,6 +82,8 @@ void clock_init(uint32_t freq)
 	outb(CLOCK_CHANNEL0, (uint8_t)(clock_divider >> 8));
 
 	clock_tick = 0;
+
+	irq_clear_mask(IRQ0_CLOCK);
 }
 
 // ----------------------------------------------------------------------------

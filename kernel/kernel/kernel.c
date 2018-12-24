@@ -50,7 +50,6 @@ static void kernel_init(void)
 	ps2ctrl_init();
 
 	// XXX: devices should be responsible to enable their own IRQ?
-	irq_clear_mask(IRQ0_CLOCK);
 	//irq_clear_mask(IRQ1_KEYBOARD);
 
 	// we can re-enable interrupts now
