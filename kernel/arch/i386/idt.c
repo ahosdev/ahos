@@ -17,6 +17,7 @@
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
 #include <kernel/clock.h>
+#include <kernel/ps2ctrl.h>
 
 #include <stdio.h>
 #include <stdlib.h> // uses abort
@@ -143,11 +144,6 @@ static void user_defined_interrupt_handler(void)
 	unhandled_interrupt();
 }
 
-static void keyboard_handler(void)
-{
-	printf("key pressed!\n");
-}
-
 void isr_handler(int isr_num, int error_code)
 {
 	error_code = error_code; // fixe compilation warning (unused)
@@ -159,9 +155,10 @@ void isr_handler(int isr_num, int error_code)
 		case 8: double_fault_handler(); break;
 		case 13: general_protection_fault_handler(); break;
 		case 14: page_fault_handler(); break;
-		case 33: keyboard_handler(); break;
 		case 32: clock_irq_handler(); break;
+		case 33: ps2ctrl_irq1_handler(); break;
 		case 34: user_defined_interrupt_handler(); break;
+		case 44: ps2ctrl_irq12_handler(); break;
 		default:
 			unhandled_interrupt();
 			break;

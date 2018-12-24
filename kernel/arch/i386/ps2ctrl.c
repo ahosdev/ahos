@@ -21,9 +21,11 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <kernel/ps2ctrl.h>
 #include <kernel/types.h>
+#include <kernel/interrupt.h>
 
 #include "io.h"
 
@@ -667,6 +669,48 @@ int ps2ctrl_init(void)
 	printf("[ps2ctrl] initialization complete\n");
 
 	return 0;
+}
+
+// ----------------------------------------------------------------------------
+
+void ps2ctrl_irq1_handler(void)
+{
+	uint8_t data = 0;
+
+	if (!ps2ctrl_initialized) {
+		printf("[ps2ctrl] ERROR: PS/2 controller not initialized!\n");
+		abort();
+	}
+
+	// no need to check 'output' status in Status Register (we come from IRQ)
+	data = inb(DATA_PORT);
+	printf("[ps2ctrl] IRQ1 handler: receveid data 0x%x\n", data);
+
+	// FIXME: handle it
+
+	irq_send_eoi(IRQ1_KEYBOARD);
+}
+
+// ----------------------------------------------------------------------------
+
+void ps2ctrl_irq12_handler(void)
+{
+	if (!ps2ctrl_initialized) {
+		printf("[ps2ctrl] ERROR: PS/2 controller not initialized!\n");
+		abort();
+	}
+
+	if (!ps2ctrl_single_channel) {
+		printf("[ps2ctrl] ERROR: PS/2 controller has a single channel!\n");
+		abort();
+	}
+
+	// FIXME: handle it
+
+	printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
+	abort();
+
+	irq_send_eoi(IRQ12_PS2_MOUSE);
 }
 
 // ============================================================================
