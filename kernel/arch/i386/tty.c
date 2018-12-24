@@ -57,6 +57,35 @@ static void scroll_up(void)
 	}
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * This function has been moved out of termain_putchar() in order to only update
+ * the cursor after a whole writing, instead of every char (while writing a
+ * string).
+ */
+
+static void __terminal_putchar(char c)
+{
+	unsigned char uc = c;
+
+	if (c == '\n') {
+		scroll_up();
+	} else if (c == '\r') {
+		terminal_column = 0;
+	} else if (c == '\t') {
+		__terminal_putchar(' ');
+		__terminal_putchar(' ');
+		__terminal_putchar(' ');
+	} else {
+		terminal_putentryat(uc, terminal_color, terminal_column,
+							terminal_row);
+		if (++terminal_column == VGA_WIDTH) {
+			scroll_up();
+		}
+	}
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -77,29 +106,16 @@ void terminal_initialize(void)
 			terminal_buffer[index] = vga_entry(' ', terminal_color);
 		}
 	}
+
+	vga_update_cursor(terminal_column, terminal_row);
 }
 
 // ----------------------------------------------------------------------------
 
 void terminal_putchar(char c)
 {
-	unsigned char uc = c;
-
-	if (c == '\n') {
-		scroll_up();
-	} else if (c == '\r') {
-		terminal_column = 0;
-	} else if (c == '\t') {
-		terminal_putchar(' ');
-		terminal_putchar(' ');
-		terminal_putchar(' ');
-	} else {
-		terminal_putentryat(uc, terminal_color, terminal_column,
-							terminal_row);
-		if (++terminal_column == VGA_WIDTH) {
-			scroll_up();
-		}
-	}
+	__terminal_putchar(c);
+	vga_update_cursor(terminal_column, terminal_row);
 }
 
 // ----------------------------------------------------------------------------
@@ -107,7 +123,8 @@ void terminal_putchar(char c)
 void terminal_write(const char* data, size_t size)
 {
 	for (size_t i = 0; i < size; i++)
-		terminal_putchar(data[i]);
+		__terminal_putchar(data[i]);
+	vga_update_cursor(terminal_column, terminal_row);
 }
 
 // ----------------------------------------------------------------------------
