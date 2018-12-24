@@ -110,8 +110,7 @@ void clock_sleep(int32_t msec)
 	int32_t target_tick;
 
 	if (msec < (1000 / CLOCK_FREQ)) {
-		printf("[clock] ERROR: trying to sleep less than clock frequency\n");
-		abort();
+		printf("[clock] WARNING: trying to sleep less than clock frequency\n");
 	}
 
 	target_tick = clock_gettick() + (msec / (1000 / CLOCK_FREQ));
