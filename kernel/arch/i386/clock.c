@@ -10,6 +10,9 @@
 
 #include <kernel/types.h>
 #include <kernel/clock.h>
+#include <kernel/interrupt.h>
+
+#include <stdio.h>
 
 #include "io.h"
 
@@ -120,6 +123,19 @@ void clock_sleep(uint32_t msec)
 	// active sleep
 	while (clock_gettick() < target_tick)
 		;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Clock interrupt request handler.
+ */
+
+void clock_irq_handler(void)
+{
+	clock_inctick();
+
+	irq_send_eoi(IRQ0_CLOCK - IRQ0_INT);
 }
 
 // ============================================================================
