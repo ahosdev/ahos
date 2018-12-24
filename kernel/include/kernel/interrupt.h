@@ -9,22 +9,9 @@
 
 #include <kernel/types.h>
 
-void enable_irq(void);
-void disable_irq(void);
-
-// NMI: Non Maskable Interrupts
-void enable_nmi(void);
-void disable_nmi(void);
-
-void setup_idt();
-
-#define IRQ0_INT 0x20 // irq0 interrupts is mapped to interrupt 32 (0x20)
-#define IRQ7_INT 0x28 // irq8 interrupts is mapped to interrupt 40 (0x28)
-
-void irq_init(uint8_t master_offset, uint8_t slave_offset);
-void irq_set_mask(uint8_t irq);
-void irq_clear_mask(uint8_t irq);
-void irq_send_eoi(uint8_t irq);
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
 
 #define IRQ0_CLOCK 		0 // Programmable Interrupt Timer (PIT)
 #define IRQ1_KEYBOARD 		1
@@ -43,5 +30,32 @@ void irq_send_eoi(uint8_t irq);
 #define IRQ13_FPU_COPROC 	13
 #define IRQ14_PRIMARY_ATA 	14
 #define IRQ15_SECONDARY_ATA 	15
+
+// ----------------------------------------------------------------------------
+
+#define IRQ0_INT 0x20 // irq0 interrupts is mapped to interrupt 32 (0x20)
+#define IRQ7_INT 0x28 // irq8 interrupts is mapped to interrupt 40 (0x28)
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
+void setup_idt();
+
+void enable_irq(void);
+void disable_irq(void);
+
+// NMI: Non Maskable Interrupts
+void enable_nmi(void);
+void disable_nmi(void);
+
+void irq_init(uint8_t master_offset, uint8_t slave_offset);
+void irq_set_mask(uint8_t irq);
+void irq_clear_mask(uint8_t irq);
+void irq_send_eoi(uint8_t irq);
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
 
 #endif /* KERNEL_INTERRUPT_H_ */
