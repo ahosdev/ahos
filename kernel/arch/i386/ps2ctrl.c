@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <kernel/ps2ctrl.h>
 #include <kernel/types.h>
@@ -532,14 +533,33 @@ disable_first_interface:
 
 // ----------------------------------------------------------------------------
 
-__attribute__ ((unused)) // FIXME: implement me
+/*
+ * Send a single byte to first device.
+ *
+ * Returns true on success, false otherwise.
+ */
+
 static bool send_byte_to_first_port(uint8_t data)
 {
-	data = data;
+	struct timeout timeo;
+	uint8_t status;
 
-	// TODO
+	timeout_init(&timeo, 200);
+	timeout_start(&timeo);
 
-	return false;
+	do {
+		status = inb(STATUS_PORT);
+	} while ((status & SR_INPUT_BUFFER_STATUS) && !timeout_expired(&timeo));
+
+	if (status & SR_INPUT_BUFFER_STATUS) {
+		// we timed out
+		printf("[ps2ctrl] ERROR: failed to send byte to first port\n");
+		return false;
+	}
+
+	outb(DATA_PORT, data);
+	printf("[ps2ctrl] sending byte to first port succeed\n");
+	return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -549,9 +569,45 @@ static bool send_byte_to_second_port(uint8_t data)
 {
 	data = data;
 
-	// TODO
+	printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
+	abort();
+
+	// TODO: implement me
 
 	return false;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Receive a byte from first device by polling (i.e. sync).
+ *
+ * Returns true if a byte has been received and set @data, or false otherwise.
+ *
+ * On timeout, @data is untouched.
+ */
+
+static bool recv_byte_from_first_port_sync(uint8_t *data)
+{
+	struct timeout timeo;
+	uint8_t status;
+
+	timeout_init(&timeo, 200);
+	timeout_start(&timeo);
+
+	do {
+		status = inb(STATUS_PORT);
+	} while (((status & SR_OUTPUT_BUFFER_STATUS) == 0) && !timeout_expired(&timeo));
+	// FIXME
+
+	if ((status & SR_OUTPUT_BUFFER_STATUS) == 0) {
+		// we timed out
+		return false;
+	}
+
+	*data = inb(DATA_PORT);
+	printf("[ps2ctrl] receiving byte from first device succeed (0x%x)\n", *data);
+	return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -717,6 +773,11 @@ int ps2ctrl_init(void)
 
 bool ps2ctrl_identify_devices(void)
 {
+	uint8_t identify_bytes[2];
+	uint8_t identify_nbytes;
+	uint8_t data;
+	struct timeout timeo;
+
 	printf("[ps2ctrl] identifying devices...\n");
 
 	if (!ps2ctrl_initialized) {
@@ -724,14 +785,52 @@ bool ps2ctrl_identify_devices(void)
 		return false;
 	}
 
-	// TODO: identify first port device
-	// - send "disable scanning" to device
-	// - wait for device ACK
-	// - send "identify" to device
-	// - wait for device ACK
-	// - wait for device 0 to 2 bytes (or timeout)
+	// send "disable scanning" to first device
+	if (!send_byte_to_first_port(0xF5)) {
+		printf("[ps2ctrl] ERROR: failed to send 'disable scanning' command to first device\n");
+		return false;
+	}
 
-	irq_clear_mask(IRQ1_KEYBOARD);
+	// wait for device to send "ACK" back
+	if (!recv_byte_from_first_port_sync(&data) || (data != 0xFA)) {
+		printf("[ps2ctrl] ERROR: failed to received ACK from first device\n");
+		return false;
+	}
+	// FIXME: re-send 'disable scanning' command if device sent "resend" (0xFE)
+
+	// send "identify to device
+	if (!send_byte_to_first_port(0xF2)) {
+		printf("[ps2ctrl] ERROR: failed to send 'identify' command to first device\n");
+		return false;
+	}
+
+	// wait for device to send "ACK" back
+	if (!recv_byte_from_first_port_sync(&data) || (data != 0xFA)) {
+		printf("[ps2ctrl] ERROR: failed to received ACK from first device\n");
+		return false;
+	}
+	// FIXME: re-send 'identify' command if device sent "resend" (0xFE)
+
+	// wait for device to send 0, 1 or 2 bytes with timeout
+	memset(&identify_bytes, 0, sizeof(identify_bytes));
+	identify_nbytes = 0;
+	timeout_init(&timeo, 1000);
+	timeout_start(&timeo);
+
+	do {
+		if (recv_byte_from_first_port_sync(&identify_bytes[identify_nbytes])) {
+			// we received a byte
+			identify_nbytes++;
+		}
+	} while ((identify_nbytes < 2) && !timeout_expired(&timeo));
+
+	printf("[ps2ctrl] received %u identification bytes from first device\n",
+		identify_nbytes);
+
+	// TODO: identify keyboard from identification bytes
+	// TODO: re-enable scanning (0xF4)
+
+	//irq_clear_mask(IRQ1_KEYBOARD);
 
 	// TODO: identify second port device (if any)
 	if (!ps2ctrl_single_channel) {
