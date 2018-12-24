@@ -13,11 +13,11 @@
 static void print_banner(void)
 {
 	printf("\n\n");
-	printf("+====================+\n");
-	printf("|                    |\n");
-	printf("| Welcome to Ah!OS ! |\n");
-	printf("|                    |\n");
-	printf("+====================+\n");
+	printf("\t+====================+\n");
+	printf("\t|                    |\n");
+	printf("\t| Welcome to Ah!OS ! |\n");
+	printf("\t|                    |\n");
+	printf("\t+====================+\n");
 	printf("\n\n");
 }
 
