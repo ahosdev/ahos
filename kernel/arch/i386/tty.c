@@ -60,9 +60,8 @@ static void scroll_up(void)
 // ----------------------------------------------------------------------------
 
 /*
- * This function has been moved out of termain_putchar() in order to only update
- * the cursor after a whole writing, instead of every char (while writing a
- * string).
+ * This function has been moved out of terminal_putchar() in order to only update
+ * the cursor once writing is complete instead of every char.
  */
 
 static void __terminal_putchar(char c)
