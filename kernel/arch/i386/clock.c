@@ -126,7 +126,7 @@ void clock_irq_handler(void)
 {
 	clock_tick++; // FIXME: uses mutex ?
 
-	irq_send_eoi(IRQ0_CLOCK - IRQ0_INT);
+	irq_send_eoi(IRQ0_CLOCK);
 }
 
 // ============================================================================
