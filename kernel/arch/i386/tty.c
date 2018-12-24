@@ -13,8 +13,6 @@ static uint8_t terminal_color;
 static uint8_t terminal_default_color;
 static uint16_t* terminal_buffer;
 
-static const size_t VGA_WIDTH = 80;
-static const size_t VGA_HEIGHT = 25;
 static uint16_t* const VGA_MEMORY = (uint16_t*) 0xB8000;
 static const size_t VGA_ELT_SIZE = sizeof(terminal_buffer[0]);
 
