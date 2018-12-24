@@ -263,7 +263,11 @@ static bool reset_devices(void)
 // ============================================================================
 
 /*
- * Initializes the PS/2 8042 Controller. It assumes interrupts are disabled.
+ * Initializes the PS/2 8042 Controller. It assumes that:
+ * - interrupts are disabled
+ * - IRQ1 (keyboard) is masked
+ * - IRQ12 (mouse) is masked
+ * - controller is in an unknown state
  *
  * Returns zero on success, -1 otherwise.
  */
@@ -282,6 +286,7 @@ int ps2ctrl_init(void)
 
 	if (!disable_usb_legacy_support()) {
 		printf("[ps2ctrl] ERROR: failed to disable USB legacy support\n");
+		return -1;
 	} else {
 		printf("[ps2ctrl] USB legacy support disabled (fake)\n");
 	}
@@ -307,6 +312,7 @@ int ps2ctrl_init(void)
 
 	if (!check_controller_selt_test()) {
 		printf("[ps2ctrl] ERROR: failed to perform controller self test\n");
+		return -1;
 	} else {
 		printf("[ps2ctrl] controller self test succeed\n");
 	}
@@ -322,18 +328,21 @@ int ps2ctrl_init(void)
 
 	if (!check_interface_test()) {
 		printf("[ps2ctrl] ERROR: interface test failed\n");
+		return -1;
 	} else {
 		printf("[ps2ctrl] interface test succeed\n");
 	}
 
 	if (!enable_devices()) {
 		printf("[ps2ctrl] ERROR: failed to enable devices\n");
+		return -1;
 	} else {
 		printf("[ps2ctrl] enabling devices succeed\n");
 	}
 
 	if (!reset_devices()) {
 		printf("[ps2ctrl] ERROR: failed to reset devices\n");
+		return -1;
 	} else {
 		printf("[ps2ctrl] resetting devices succeed\n");
 	}
