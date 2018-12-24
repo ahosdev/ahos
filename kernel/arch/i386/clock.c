@@ -86,18 +86,9 @@ void clock_init(uint32_t freq)
 
 // ----------------------------------------------------------------------------
 
-// called by clock isr handler
-
-void clock_inctick(void)
-{
-	clock_tick++;
-}
-
-// ----------------------------------------------------------------------------
-
 uint32_t clock_gettick(void)
 {
-	return clock_tick;
+	return clock_tick; // FIXME: use mutex ?
 }
 
 // ----------------------------------------------------------------------------
@@ -133,7 +124,7 @@ void clock_sleep(uint32_t msec)
 
 void clock_irq_handler(void)
 {
-	clock_inctick();
+	clock_tick++; // FIXME: uses mutex ?
 
 	irq_send_eoi(IRQ0_CLOCK - IRQ0_INT);
 }
