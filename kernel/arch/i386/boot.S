@@ -1,9 +1,19 @@
+/*
+boot.S
+
+Low level entry point + utility functions.
+*/
+
 # Declare constants for the multiboot header.
 .set ALIGN,    1<<0             # align loaded modules on page boundaries
 .set MEMINFO,  1<<1             # provide memory map
 .set FLAGS,    ALIGN | MEMINFO  # this is the Multiboot 'flag' field
 .set MAGIC,    0x1BADB002       # 'magic number' lets bootloader find the header
 .set CHECKSUM, -(MAGIC + FLAGS) # checksum of above, to prove we are multiboot
+
+# =============================================================================
+# -----------------------------------------------------------------------------
+# =============================================================================
 
 # Declare a header as in the Multiboot Standard.
 .section .multiboot
@@ -12,12 +22,18 @@
 .long FLAGS
 .long CHECKSUM
 
+# -----------------------------------------------------------------------------
+
 # Reserve a stack for the initial thread.
 .section .bss
 .align 16
 stack_bottom:
 .skip 16384 # 16 KiB
 stack_top:
+
+# =============================================================================
+# -----------------------------------------------------------------------------
+# =============================================================================
 
 # The kernel entry point.
 .section .text
@@ -38,6 +54,10 @@ _start:
 	jmp 1b
 .size _start, . - _start
 
+# =============================================================================
+# -----------------------------------------------------------------------------
+# =============================================================================
+
 .global asm_reset_segment_selectors
 .type asm_reset_segment_selectors, @function
 asm_reset_segment_selectors:
@@ -54,3 +74,7 @@ reset_cs:
 	mov %eax, %ss
 	ret
 .size asm_reset_segment_selectors, . - asm_reset_segment_selectors
+
+# =============================================================================
+# -----------------------------------------------------------------------------
+# =============================================================================

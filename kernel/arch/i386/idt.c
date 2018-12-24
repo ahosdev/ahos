@@ -22,7 +22,13 @@
 #include <stdio.h>
 #include <stdlib.h> // uses abort
 
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
 extern void isr_wrapper(void); // implemented in isr_wrapper.S
+
+// ----------------------------------------------------------------------------
 
 struct idtr_reg
 {
@@ -37,6 +43,10 @@ struct idt_entry
 	uint16_t flags;
 	uint16_t offset_hi;
 }__attribute__((packed));
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
 
 /*
  * Trap and Interrupt gates are similar, and their descriptors are structurally
@@ -71,7 +81,6 @@ struct idt_entry
 	}
 #endif
 
-
 /*
  * In theory, only the 'P' flag (PRESENT) should be set to 0, otherfields
  * should be unused. Set them all to zero to be sure... Well, it's not that
@@ -88,12 +97,18 @@ struct idt_entry
 		.offset_hi = 0x0 \
 	}
 
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
 void unhandled_exception(void)
 {
 	printf("ERROR: unhandled exception!\n");
 	abort();
 	/* no return */
 }
+
+// ----------------------------------------------------------------------------
 
 void unhandled_interrupt(void)
 {
@@ -102,12 +117,16 @@ void unhandled_interrupt(void)
 	/* no return */
 }
 
+// ----------------------------------------------------------------------------
+
 static void divide_error_handler(void)
 {
 	printf("\"Divide Error\" exception detected!\n");
 	// TODO
 	unhandled_exception();
 }
+
+// ----------------------------------------------------------------------------
 
 static void invalid_opcode_handler(void)
 {
@@ -116,12 +135,16 @@ static void invalid_opcode_handler(void)
 	unhandled_exception();
 }
 
+// ----------------------------------------------------------------------------
+
 static void double_fault_handler(void)
 {
 	printf("\"Double Fault\" exception detected!\n");
 	// TODO
 	unhandled_exception();
 }
+
+// ----------------------------------------------------------------------------
 
 static void general_protection_fault_handler(void)
 {
@@ -130,6 +153,8 @@ static void general_protection_fault_handler(void)
 	unhandled_exception();
 }
 
+// ----------------------------------------------------------------------------
+
 static void page_fault_handler(void)
 {
 	printf("\"Page Fault\" exception detected!\n");
@@ -137,12 +162,18 @@ static void page_fault_handler(void)
 	unhandled_exception();
 }
 
+// ----------------------------------------------------------------------------
+
 static void user_defined_interrupt_handler(void)
 {
 	printf("\"User Defined\" interruption detected!\n");
 	// FIXME: remove me (unnecessary)
 	unhandled_interrupt();
 }
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
 
 void isr_handler(int isr_num, int error_code)
 {
@@ -164,6 +195,10 @@ void isr_handler(int isr_num, int error_code)
 			break;
 	}
 }
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
 
 struct idt_entry idt[256];
 
@@ -220,6 +255,10 @@ extern void isr44(void);
 extern void isr45(void);
 extern void isr46(void);
 extern void isr47(void);
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
 
 void setup_idt(void)
 {
@@ -294,3 +333,7 @@ void setup_idt(void)
 			: "m"(idtr)
 			: "memory");
 }
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
