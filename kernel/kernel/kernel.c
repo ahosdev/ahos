@@ -1,3 +1,9 @@
+/*
+ * kernel.c
+ *
+ * Kernel Entry Point.
+ */
+
 #include <stdio.h>
 
 #include <kernel/tty.h>
@@ -6,10 +12,15 @@
 #include <kernel/interrupt.h>
 #include <kernel/clock.h>
 #include <kernel/ps2ctrl.h>
+#include <kernel/timeout.h>
 
 #if defined(__linux__)
 #error "You are not using a cross-compiler"
 #endif
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
 
 static void print_banner(void)
 {
@@ -21,6 +32,8 @@ static void print_banner(void)
 	printf("\t+====================+\n");
 	printf("\n\n");
 }
+
+// ----------------------------------------------------------------------------
 
 static void kernel_init(void)
 {
@@ -36,31 +49,50 @@ static void kernel_init(void)
 	clock_init(CLOCK_FREQ);
 	ps2ctrl_init();
 
+	// XXX: devices should be responsible to enable their own IRQ?
 	irq_clear_mask(IRQ0_CLOCK);
 	//irq_clear_mask(IRQ1_KEYBOARD);
 
 	// we can re-enable interrupts now
+	printf("enabling interrupts now\n");
 	enable_nmi();
 	enable_irq();
 
 	printf("kernel initialization complete\n");
 }
 
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
 void kernel_main(void)
 {
+	struct timeout timeo;
+
 	kernel_init();
 	print_banner();
 
 	printf("tick = %d\n", clock_gettick());
 
-	printf("sleeping 3secs\n");
-	clock_sleep(3000);
+	clock_sleep(3);
 
-	printf("done!\n");
-	printf("tick = %d\n", clock_gettick());
+	timeout_init(&timeo, 2000);
+	printf("starting timeout now\n");
+
+	timeout_start(&timeo);
+	do {
+		printf("waiting timeout to expire...\n");
+		clock_sleep(400); // sleep 400ms
+	} while (!timeout_expired(&timeo));
+
+	printf("timeout expired\n");
 
 	for (;;) // do not quit yet, otherwise irq will be disabled
 	{
 		asm volatile("hlt" :: );
 	}
 }
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
