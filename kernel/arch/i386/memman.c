@@ -49,17 +49,6 @@ void memman_init(void)
 	disable_irq();
 	disable_nmi();
 
-	/*
-	 * About the "A20 line", first please read this:
-	 *
-	 * 	https://wiki.osdev.org/A20_Line
-	 *
-	 * For now, we *ASSUME* that we are booted from GRUB which *SHOULD*
-	 * enable the A20 address line for us. To support different kinds
-	 * of bootloader (or stop using GRUB), this should be implemented.
-	 */
-	// TODO: enable the A20 line
-
 	setup_gdt();
 }
 
