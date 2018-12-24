@@ -2,11 +2,15 @@
  * timeout.c
  *
  * Basic timeout facility which uses the clock (PIT). Interrupts need to be
- * enable in order to use them.
+ * enable in order to use them, otherwise the clock ticks doesn't get
+ * incremented.
  */
 
 #include <kernel/timeout.h>
 #include <kernel/clock.h>
+
+#include <stdio.h>
+#include <stdlib.h>
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -23,7 +27,12 @@ void timeout_init(struct timeout *timeo, uint32_t length)
 		abort();
 	}
 
-	timeo->length = length;
+	if (length == 0) {
+		printf("[timeout] WARNING: defining a zero length timeout\n");
+	}
+
+	timeo->length = (length * CLOCK_FREQ) / 1000;
+	timeo->target = (uint32_t) -1;
 }
 
 // ----------------------------------------------------------------------------
@@ -39,7 +48,7 @@ void timeout_start(struct timeout *timeo)
 		abort();
 	}
 
-	timeo->start = clock_gettick();
+	timeo->target = clock_gettick() + timeo->length;
 }
 
 // ----------------------------------------------------------------------------
@@ -50,19 +59,14 @@ void timeout_start(struct timeout *timeo)
 
 bool timeout_expired(struct timeout *timeo)
 {
-	uint32_t ms_diff = 0;
-
 	if (timeo == NULL) {
 		printf("[timeout] invalid argument");
 		abort();
 	}
 
-	ms_diff = (clock_gettick() - timeo->start) * (1000 / CLOCK_FREQ);
-
-	return (ms_diff >= timeo->length);
+	return (clock_gettick() >= timeo->target);
 }
 
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
-

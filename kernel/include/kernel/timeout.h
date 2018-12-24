@@ -2,7 +2,8 @@
  * timeout.h
  *
  * Basic timeout facility which uses the clock (PIT). Interrupts need to be
- * enable in order to use them.
+ * enable in order to use them, otherwise the clock ticks doesn't get
+ * incremented.
  */
 
 #ifndef KERNEL_TIMEOUT_H_
@@ -15,8 +16,8 @@
 // ============================================================================
 
 struct timeout {
-	uint32_t start;
-	uint32_t length;
+	uint32_t length; // in tick
+	uint32_t target; // in tick
 };
 
 // ----------------------------------------------------------------------------
