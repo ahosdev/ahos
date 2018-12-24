@@ -96,7 +96,7 @@ enum ctrl_command {
 // ----------------------------------------------------------------------------
 
 static bool ps2ctrl_initialized = false;
-// TODO: make 'single_channel' global variable
+static bool ps2ctrl_single_channel = true;
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -660,6 +660,7 @@ int ps2ctrl_init(void)
 	}
 
 	ps2ctrl_initialized = true;
+	ps2ctrl_single_channel = single_channel;
 
 	printf("[ps2ctrl] initialization complete\n");
 
