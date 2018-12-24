@@ -6,6 +6,7 @@
  */
 
 #include <kernel/timeout.h>
+#include <kernel/clock.h>
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -17,10 +18,12 @@
 
 void timeout_init(struct timeout *timeo, uint32_t length)
 {
-	timeo = timeo;
-	length = length;
+	if (timeo == NULL) {
+		printf("[timeout] invalid argument");
+		abort();
+	}
 
-	// TODO
+	timeo->length = length;
 }
 
 // ----------------------------------------------------------------------------
@@ -31,9 +34,12 @@ void timeout_init(struct timeout *timeo, uint32_t length)
 
 void timeout_start(struct timeout *timeo)
 {
-	timeo = timeo;
+	if (timeo == NULL) {
+		printf("[timeout] invalid argument");
+		abort();
+	}
 
-	// TODO
+	timeo->start = clock_gettick();
 }
 
 // ----------------------------------------------------------------------------
@@ -44,11 +50,16 @@ void timeout_start(struct timeout *timeo)
 
 bool timeout_expired(struct timeout *timeo)
 {
-	timeo = timeo;
+	uint32_t ms_diff = 0;
 
-	// TODO
+	if (timeo == NULL) {
+		printf("[timeout] invalid argument");
+		abort();
+	}
 
-	return false;
+	ms_diff = (clock_gettick() - timeo->start) * (1000 / CLOCK_FREQ);
+
+	return (ms_diff >= timeo->length);
 }
 
 // ============================================================================
