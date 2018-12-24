@@ -91,11 +91,152 @@
 // ----------------------------------------------------------------------------
 // ============================================================================
 
+static bool disable_usb_legacy_support(void)
+{
+	// TODO: initialize USB controllers and disable USB legacy support
+
+	return true; // we assume it is done for now
+}
+
+// ----------------------------------------------------------------------------
+
+static bool ps2ctrl_exists(void)
+{
+	// TODO: check with ACPI
+
+	return true; // we assume it exists for now
+}
+
+// ----------------------------------------------------------------------------
+
+static void disable_devices(void)
+{
+	// TODO: disable first device (0xAD)
+	// TODO: disable second device (0xA7)
+}
+
+// ----------------------------------------------------------------------------
+
+static void flush_controller_output_buffer(void)
+{
+	// TODO: check status register and/or read from data port
+}
+
+// ----------------------------------------------------------------------------
+
+static void set_controller_configuration_byte(void)
+{
+	// TODO
+}
+
+// ----------------------------------------------------------------------------
+
+static bool check_controller_selt_test(void)
+{
+	// TODO
+
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+static bool has_two_channels(void)
+{
+	// TODO
+
+	return false;
+}
+
+// ----------------------------------------------------------------------------
+
+static bool check_interface_test(void)
+{
+	// TODO
+
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+static bool enable_devices(void)
+{
+	// TODO
+
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+static bool reset_devices(void)
+{
+	// TODO
+
+	return true;
+}
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
+/*
+ * Initializes the PS/2 8042 Controller. It assumes interrupts are disabled.
+ */
+
 int ps2ctrl_init(void)
 {
 	printf("[ps2ctrl] starting initialization...\n");
 
-	// FIXME
+	if (!disable_usb_legacy_support()) {
+		printf("[ps2ctrl] ERROR: failed to disable USB legacy support\n");
+	} else {
+		printf("[ps2ctrl] USB legacy support disabled (fake)\n");
+	}
+
+	if (!ps2ctrl_exists()) {
+		printf("[ps2ctrl] ERROR: PS/2 Controller does not exist\n");
+		return -1;
+	} else {
+		printf("[ps2ctrl] PS/2 Controller exist (fake)\n");
+	}
+
+	disable_devices();
+	printf("[ps2ctrl] devices are disabled\n");
+
+	flush_controller_output_buffer();
+	printf("[ps2ctrl] controller's output buffer is flushed\n");
+
+	set_controller_configuration_byte();
+	printf("[ps2ctrl] controller's configuration byte set\n");
+
+	if (!check_controller_selt_test()) {
+		printf("[ps2ctrl] ERROR: failed to perform controller self test\n");
+	} else {
+		printf("[ps2ctrl] controller self test succeed\n");
+	}
+
+	if (has_two_channels()) {
+		printf("[ps2ctrl] controller has two channels\n");
+	} else {
+		printf("[ps2ctrl] controller has one channel\n");
+	}
+
+	if (!check_interface_test()) {
+		printf("[ps2ctrl] ERROR: interface test failed\n");
+	} else {
+		printf("[ps2ctrl] interface test succeed\n");
+	}
+
+	if (!enable_devices()) {
+		printf("[ps2ctrl] ERROR: failed to enable devices\n");
+	} else {
+		printf("[ps2ctrl] enabling devices succeed\n");
+	}
+
+	if (!reset_devices()) {
+		printf("[ps2ctrl] ERROR: failed to reset devices\n");
+	} else {
+		printf("[ps2ctrl] resetting devices succeed\n");
+	}
 
 	printf("[ps2ctrl] initialization complete\n");
 
