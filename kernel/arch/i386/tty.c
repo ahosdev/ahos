@@ -107,6 +107,7 @@ void terminal_initialize(void)
 		}
 	}
 
+	vga_enable_cursor(VGA_CURSOR_BOX);
 	vga_update_cursor(terminal_column, terminal_row);
 }
 
