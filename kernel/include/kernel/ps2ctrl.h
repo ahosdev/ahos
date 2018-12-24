@@ -7,11 +7,14 @@
 #ifndef KERNEL_PS2CTRL_H_
 #define KERNEL_PS2CTRL_H_
 
+#include <kernel/types.h>
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
 
 int ps2ctrl_init(void);
+bool ps2ctrl_identify_devices(void);
 void ps2ctrl_irq1_handler(void); // first port
 void ps2ctrl_irq12_handler(void); // second port
 

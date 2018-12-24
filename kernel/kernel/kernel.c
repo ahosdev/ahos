@@ -57,6 +57,10 @@ static void kernel_init(void)
 	enable_nmi();
 	enable_irq();
 
+	if (!ps2ctrl_identify_devices()) {
+		printf("ERROR: failed to identify PS/2 devices!\n");
+	}
+
 	printf("kernel initialization complete\n");
 }
 

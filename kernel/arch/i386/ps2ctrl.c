@@ -673,6 +673,42 @@ int ps2ctrl_init(void)
 
 // ----------------------------------------------------------------------------
 
+/*
+ * Identify devices plugged to the PS/2 controller.
+ *
+ * It should be invoked after interrupts has been enabled but IRQ1/IRQ12 are
+ * still masked out.
+ */
+
+bool ps2ctrl_identify_devices(void)
+{
+	printf("[ps2ctrl] identifying devices...\n");
+
+	if (!ps2ctrl_initialized) {
+		printf("[ps2ctrl] ERROR: PS/2 controller isn't initialized\n");
+		return false;
+	}
+
+	// TODO: identify first port device
+	// - send "disable scanning" to device
+	// - wait for device ACK
+	// - send "identify" to device
+	// - wait for device ACK
+	// - wait for device 0 to 2 bytes (or timeout)
+
+	irq_clear_mask(IRQ1_KEYBOARD);
+
+	// TODO: identify second port device (if any)
+	if (!ps2ctrl_single_channel) {
+		printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n"); // only handle 1 port for now
+	}
+
+	printf("[ps2ctrl] devices identification complete\n");
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
 void ps2ctrl_irq1_handler(void)
 {
 	uint8_t data = 0;
