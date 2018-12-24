@@ -20,19 +20,19 @@
  * Initializes a timeout with a duration of @length (milliseconds).
  */
 
-void timeout_init(struct timeout *timeo, uint32_t length)
+void timeout_init(struct timeout *timeo, int32_t length)
 {
 	if (timeo == NULL) {
 		printf("[timeout] invalid argument");
 		abort();
 	}
 
-	if (length == 0) {
-		printf("[timeout] WARNING: defining a zero length timeout\n");
+	if (length <= 0) {
+		printf("[timeout] WARNING: defining a zero or negative length timeout\n");
 	}
 
 	timeo->length = (length * CLOCK_FREQ) / 1000;
-	timeo->target = (uint32_t) -1;
+	timeo->target = -1;
 }
 
 // ----------------------------------------------------------------------------

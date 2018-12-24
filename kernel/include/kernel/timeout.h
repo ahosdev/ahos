@@ -16,13 +16,13 @@
 // ============================================================================
 
 struct timeout {
-	uint32_t length; // in tick
-	uint32_t target; // in tick
+	int32_t length; // in tick
+	int32_t target; // in tick
 };
 
 // ----------------------------------------------------------------------------
 
-void timeout_init(struct timeout *timeo, uint32_t length);
+void timeout_init(struct timeout *timeo, int32_t length);
 void timeout_start(struct timeout *timeo);
 bool timeout_expired(struct timeout *timeo);
 
