@@ -15,8 +15,6 @@
  * - https://wiki.osdev.org/PS/2_Keyboard
  *
  * TODO:
- * - handle time-out error (status register)
- * - handle parity error (status register)
  * - implement cpu reset
  */
 
@@ -26,6 +24,7 @@
 #include <kernel/ps2ctrl.h>
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
+#include <kernel/timeout.h>
 
 #include "io.h"
 
@@ -106,32 +105,58 @@ static bool ps2ctrl_single_channel = true;
 
 /*
  * Wait until the controller's input buffer is EMPTY.
+ *
+ * Returns true on success, false on time out.
  */
 
-static void wait_ctrl_input_buffer_ready(void)
+static bool wait_ctrl_input_buffer_ready(void)
 {
 	uint8_t status = 0;
+	struct timeout timeo;
+
+	timeout_init(&timeo, 200);
+	timeout_start(&timeo);
 
 	do {
 		status = inb(STATUS_PORT);
 		// TODO: implement timeout
-	} while (status & SR_INPUT_BUFFER_STATUS);
+	} while ((status & SR_INPUT_BUFFER_STATUS) && !timeout_expired(&timeo));
+
+	if (status & SR_INPUT_BUFFER_STATUS) {
+		printf("[ps2ctrl] WARNING: waiting control input buffer ready timed out\n");
+		return false;
+	}
+
+	return true;
 }
 
 // ----------------------------------------------------------------------------
 
 /*
  * Wait until the controller's output buffer is FULL.
+ *
+ * Returns true on success, false on time out.
  */
 
-static void wait_ctrl_output_buffer_ready(void)
+static bool wait_ctrl_output_buffer_ready(void)
 {
 	uint8_t status = 0;
+	struct timeout timeo;
+
+	timeout_init(&timeo, 200);
+	timeout_start(&timeo);
 
 	do {
 		status = inb(STATUS_PORT);
 		// TODO: implement timeout
-	} while ((status & SR_OUTPUT_BUFFER_STATUS) == 0);
+	} while (((status & SR_OUTPUT_BUFFER_STATUS) == 0) && !timeout_expired(&timeo));
+
+	if ((status & SR_OUTPUT_BUFFER_STATUS) == 0) {
+		printf("[ps2ctrl] WARNING: waiting control output buffer ready timed out\n");
+		return false;
+	}
+
+	return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -150,18 +175,28 @@ static bool __send_ctrl_cmd(enum ctrl_command cmd, uint8_t *data, uint8_t *respo
 		return false;
 	}
 
-	wait_ctrl_input_buffer_ready();
+	if (!wait_ctrl_input_buffer_ready()) {
+		printf("[ps2ctrl] ERROR: failed to wait control input buffer ready\n");
+		return false;
+	}
+
 	outb(CMD_PORT, (uint8_t) cmd);
 
 	if (data) {
-		wait_ctrl_input_buffer_ready();
+		if (!wait_ctrl_input_buffer_ready()) {
+			printf("[ps2ctrl] ERROR: failed to wait control input buffer ready\n");
+			return false;
+		}
 		outb(DATA_PORT, *data);
 	} else if (response) {
-		wait_ctrl_output_buffer_ready();
+		if (!wait_ctrl_output_buffer_ready()) {
+			printf("[ps2ctrl] ERROR: failed to wait control output buffer ready\n");
+			return false;
+		}
 		*response = inb(DATA_PORT);
 	}
 
-	return true; // FIXME: never failed until timeout is implemented
+	return true;
 }
 
 // ----------------------------------------------------------------------------
