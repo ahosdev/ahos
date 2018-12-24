@@ -495,6 +495,45 @@ disable_first_interface:
 
 // ----------------------------------------------------------------------------
 
+__attribute__ ((unused)) // FIXME: implement me
+static bool send_byte_to_first_port(uint8_t data)
+{
+	data = data;
+
+	// TODO
+
+	return false;
+}
+
+// ----------------------------------------------------------------------------
+
+__attribute__ ((unused)) // FIXME: implement me
+static bool send_byte_to_second_port(uint8_t data)
+{
+	data = data;
+
+	// TODO
+
+	return false;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * This one is actually "trickier" than it looks! The reason being, that we need
+ * to send AND receive data from devices. In order to do so, there is two ways:
+ * polling and IRQs.
+ *
+ * However, during initialization, IRQ1/IRQ12 are masked out. So we can send data,
+ * but then we don't know how to get the response. If we do some polling, there is
+ * no way to distinct if data comes from first or second port. While this is
+ * easier to do with IRQ.
+ *
+ * Maybe, defers it until IRQs are enabled or to devices responsability?
+ *
+ * XXX: Let's start coding the keyboard driver, we will see!
+ */
+
 static bool reset_devices(bool single_channel)
 {
 	single_channel = single_channel;
@@ -612,6 +651,7 @@ int ps2ctrl_init(void)
 		printf("[ps2ctrl] enabling devices succeed\n");
 	}
 
+	// XXX: defer it to device's responsability ?
 	if (!reset_devices(single_channel)) {
 		printf("[ps2ctrl] ERROR: failed to reset devices\n");
 		return -1;
