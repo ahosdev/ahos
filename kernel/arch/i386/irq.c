@@ -6,7 +6,9 @@
 
 #include <kernel/types.h>
 #include <kernel/io.h>
+#include <kernel/interrupt.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 
 // ============================================================================
@@ -67,6 +69,11 @@ void irq_clear_mask(uint8_t irq)
 
 void irq_send_eoi(uint8_t irq)
 {
+	if (irq > IRQ_MAX_VALUE) {
+		printf("[irq] WARNING: IRQ value out-of-range\n");
+		return;
+	}
+
 	if (irq > 8)
 		outb(SPIC_CMD, 0x20); // unspecified EOI
 	outb(MPIC_CMD, 0x20);

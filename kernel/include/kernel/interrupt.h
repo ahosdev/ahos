@@ -31,6 +31,8 @@
 #define IRQ14_PRIMARY_ATA 	14
 #define IRQ15_SECONDARY_ATA 	15
 
+#define IRQ_MAX_VALUE 15
+
 // ----------------------------------------------------------------------------
 
 #define IRQ0_INT 0x20 // irq0 interrupts is mapped to interrupt 32 (0x20)
