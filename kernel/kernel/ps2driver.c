@@ -25,11 +25,12 @@
  * Returns true on success, false otherwise.
  */
 
-bool ps2driver_init(struct ps2driver *driver, char *name)
+bool ps2driver_init(struct ps2driver *driver, char *name,
+					enum ps2_device_type type)
 {
 	size_t name_len = 0;
 
-	if (driver == NULL || name == NULL) {
+	if (driver == NULL || name == NULL || type == PS2_DEVICE_UNKNOWN) {
 		error("invalid parameter");
 		return false;
 	}
@@ -42,6 +43,7 @@ bool ps2driver_init(struct ps2driver *driver, char *name)
 
 	memset(driver, 0, sizeof(*driver));
 	memcpy(driver->name, name, name_len);
+	driver->type = type;
 
 	return true;
 }

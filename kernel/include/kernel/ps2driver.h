@@ -31,15 +31,17 @@ enum ps2_device_type {
 // ----------------------------------------------------------------------------
 
 struct ps2driver {
-	char	name[PS2_DRIVER_NAME_LEN]; // driver name
+	char name[PS2_DRIVER_NAME_LEN]; // driver name
+	enum ps2_device_type type;
 	uint8_t recv_queue[PS2_DRIVER_MAX_RECV]; // circular
-	size_t	recv_queue_size; // nb elements in the queue
-	size_t	recv_queue_next; // index of the first element in the queue
+	size_t recv_queue_size; // nb elements in the queue
+	size_t recv_queue_next; // index of the first element in the queue
 };
 
 // ----------------------------------------------------------------------------
 
-bool ps2driver_init(struct ps2driver *driver, char *name);
+bool ps2driver_init(struct ps2driver *driver, char *name,
+					enum ps2_device_type type);
 bool ps2driver_recv(struct ps2driver *driver, uint8_t data);
 
 // ============================================================================

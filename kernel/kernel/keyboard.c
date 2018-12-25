@@ -80,7 +80,7 @@ bool keyboard_init(void)
 
 	info("initializing...");
 
-	if (ps2driver_init(driver, "KEYBOARD") == false) {
+	if (!ps2driver_init(driver, "KEYBOARD_MF2", PS2_DEVICE_KEYBOARD_MF2)) {
 		goto fail;
 	}
 
