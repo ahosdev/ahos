@@ -18,7 +18,6 @@
  * - handle second device (once we have one)
  */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -27,6 +26,7 @@
 #include <kernel/interrupt.h>
 #include <kernel/timeout.h>
 #include <kernel/ps2driver.h>
+#include <kernel/log.h>
 
 #include "io.h"
 
@@ -152,7 +152,7 @@ static bool wait_ctrl_input_buffer_ready(void)
 	} while ((status & SR_INPUT_BUFFER_STATUS) && !timeout_expired(&timeo));
 
 	if (status & SR_INPUT_BUFFER_STATUS) {
-		printf("[ps2ctrl] WARNING: waiting control input buffer ready timed out\n");
+		warn("waiting control input buffer ready timed out");
 		return false;
 	}
 
@@ -181,7 +181,7 @@ static bool wait_ctrl_output_buffer_ready(void)
 	} while (((status & SR_OUTPUT_BUFFER_STATUS) == 0) && !timeout_expired(&timeo));
 
 	if ((status & SR_OUTPUT_BUFFER_STATUS) == 0) {
-		printf("[ps2ctrl] WARNING: waiting control output buffer ready timed out\n");
+		warn("waiting control output buffer ready timed out");
 		return false;
 	}
 
@@ -199,13 +199,12 @@ static bool wait_ctrl_output_buffer_ready(void)
 static bool __send_ctrl_cmd(enum ctrl_command cmd, uint8_t *data, uint8_t *response)
 {
 	if (data && response) {
-		printf("[ps2ctrl] ERROR: there is no known command that send data "
-			   "and expect a response\n");
+		error("there is no known command that send data and expect a response");
 		return false;
 	}
 
 	if (!wait_ctrl_input_buffer_ready()) {
-		printf("[ps2ctrl] ERROR: failed to wait control input buffer ready\n");
+		error("failed to wait control input buffer ready");
 		return false;
 	}
 
@@ -213,13 +212,13 @@ static bool __send_ctrl_cmd(enum ctrl_command cmd, uint8_t *data, uint8_t *respo
 
 	if (data) {
 		if (!wait_ctrl_input_buffer_ready()) {
-			printf("[ps2ctrl] ERROR: failed to wait control input buffer ready\n");
+			error("failed to wait control input buffer ready");
 			return false;
 		}
 		outb(DATA_PORT, *data);
 	} else if (response) {
 		if (!wait_ctrl_output_buffer_ready()) {
-			printf("[ps2ctrl] ERROR: failed to wait control output buffer ready\n");
+			error("failed to wait control output buffer ready");
 			return false;
 		}
 		*response = inb(DATA_PORT);
@@ -269,7 +268,7 @@ static inline bool send_ctrl_cmd_with_response(enum ctrl_command cmd, uint8_t *r
 __attribute__ ((unused)) // debugging function: skip compilation warning
 static void dump_status_register(uint8_t status)
 {
-	printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
+	error("NOT IMPLEMENTED");
 
 	// TODO: implement me
 }
@@ -280,21 +279,21 @@ static void dump_status_register(uint8_t status)
 __attribute__ ((unused)) // debugging function: skip compilation warning
 static void dump_configuration_byte(uint8_t conf_byte)
 {
-	printf("[ps2ctrl] dumping configuration byte:\n");
-	printf("- first PS/2 port interrupt: %s\n",
+	dbg("dumping configuration byte:");
+	dbg("- first PS/2 port interrupt: %s",
 		(conf_byte & CTRL_CONF_FIRST_PS2_PORT_INTERRUPT) ? "enabled" : "disabled");
-	printf("- first PS/2 port clock: %s\n",
+	dbg("- first PS/2 port clock: %s",
 		(conf_byte & CTRL_CONF_FIRST_PS2_PORT_CLOCK) ? "disabled" : "enabled");
-	printf("- first PS/2 port translation: %s\n",
+	dbg("- first PS/2 port translation: %s",
 		(conf_byte & CTRL_CONF_FIRST_PS2_PORT_TRANSLATION) ? "enabled" : "disabled");
-	printf("- second PS/2 port interrupt: %s\n",
+	dbg("- second PS/2 port interrupt: %s",
 		(conf_byte & CTRL_CONF_SECOND_PS2_PORT_INTERRUPT) ? "enabled" : "disabled");
-	printf("- second PS/2 port clock: %s\n",
+	dbg("- second PS/2 port clock: %s",
 		(conf_byte & CTRL_CONF_SECOND_PS2_PORT_CLOCK) ? "disabled" : "enabled");
-	printf("- system flag: %s\n",
+	dbg("- system flag: %s",
 		(conf_byte & CTRL_CONF_SYSTEM_FLAG) ? "system passed POST" : "ERROR");
-	printf("- zero0: %d\n", !!(conf_byte & CTRL_CONF_ZERO1));
-	printf("- zero1: %d\n", !!(conf_byte & CTRL_CONF_ZERO2));
+	dbg("- zero0: %d", !!(conf_byte & CTRL_CONF_ZERO1));
+	dbg("- zero1: %d", !!(conf_byte & CTRL_CONF_ZERO2));
 }
 
 // ============================================================================
@@ -322,14 +321,14 @@ static bool ps2ctrl_exists(void)
 static bool disable_devices(void)
 {
 	if (!send_ctrl_cmd(DISABLE_FIRST_PS2_PORT)) {
-		printf("[ps2ctrl] ERROR: failed to disable first channel\n");
+		error("failed to disable first channel");
 		return false;
 	}
 
 	// we don't know yet if the device is a single or dual channel
 	// disabling the second channel will be ignored in the first case
 	if (!send_ctrl_cmd(DISABLE_SECOND_PS2_PORT)) {
-		printf("[ps2ctrl] ERROR: failed to disable second channel\n");
+		error("failed to disable second channel");
 		return false;
 	}
 
@@ -345,11 +344,11 @@ static void flush_controller_output_buffer(void)
 	ctrl_output_buffer_state = inb(STATUS_PORT);
 
 	if ((ctrl_output_buffer_state & SR_OUTPUT_BUFFER_STATUS) == 0) {
-		printf("[ps2ctrl] controller output buffer is empty, skipping...\n");
+		info("controller output buffer is empty, skipping...");
 		return;
 	}
 
-	printf("[ps2ctrl] controller output buffer is full, flushing...\n");
+	info("controller output buffer is full, flushing...");
 	inb(DATA_PORT); // ignoring the data (garbage)
 }
 
@@ -368,7 +367,7 @@ static uint8_t set_controller_configuration_byte(void)
 
 	// read configuration byte
 	if (!send_ctrl_cmd_with_response(READ_BYTE_0, &conf_byte)) {
-		printf("[ps2ctrl] ERROR: failed to read configuration byte\n");
+		error("failed to read configuration byte");
 		return -1; // FIXME: is '-1' always a bad configuration ?
 	}
 	//dump_configuration_byte(conf_byte);
@@ -381,7 +380,7 @@ static uint8_t set_controller_configuration_byte(void)
 
 	// write configuration byte back
 	if (!send_ctrl_cmd_with_data(WRITE_BYTE_0, conf_byte)) {
-		printf("[ps2ctrl] ERROR: failed to write back configuration byte\n");
+		error("failed to write back configuration byte");
 		return -1; // FIXME: is '-1' always a bad configuration ?
 	}
 
@@ -395,12 +394,12 @@ static bool check_controller_selt_test(void)
 	uint8_t result;
 
 	if (!send_ctrl_cmd_with_response(TEST_PS2_CONTROLLER, &result)) {
-		printf("[ps2ctrl] ERROR: failed to send/receive test PS2 controller command/response\n");
+		error("failed to send/receive test PS2 controller command/response");
 	}
 
 	// 0x55=test passed, 0xFC=test failed
 	if (result != 0x55 && result != 0xFC) {
-		printf("[ps2ctrl] ERROR: unexpected value (0x%x)\n", result);
+		error("unexpected value (0x%x)", result);
 		return false;
 	}
 
@@ -421,13 +420,13 @@ static int has_two_channels(void)
 	uint8_t conf_byte;
 
 	if (!send_ctrl_cmd(ENABLE_SECOND_PS2_PORT)) {
-		printf("[ps2ctrl] ERROR: failed to send enable second PS/2 port command\n");
+		error("failed to send enable second PS/2 port command");
 		return -1;
 	}
 
 	// read controller configuration byte
 	if (!send_ctrl_cmd_with_response(READ_BYTE_0, &conf_byte)) {
-		printf("[ps2ctrl] ERROR: failed to read configuration byte\n");
+		error("failed to read configuration byte");
 		return -1;
 	}
 
@@ -436,11 +435,11 @@ static int has_two_channels(void)
 		return 0;
 	}
 
-	printf("[ps2ctrl] dual channels controller detected\n");
+	info("dual channels controller detected");
 
 	// re-disable the second channel for now
 	if (!send_ctrl_cmd(DISABLE_SECOND_PS2_PORT)) {
-		printf("[ps2ctrl] ERROR: failed to send disabled second PS/2 port command\n");
+		error("failed to send disabled second PS/2 port command");
 		return -1;
 	}
 
@@ -464,18 +463,17 @@ static bool check_single_interface_test(bool first_interface)
 	};
 
 	if (!send_ctrl_cmd_with_response(cmd, &result)) {
-		printf("[ps2ctrl] ERROR: failed to send 'test %s port' cmd\n", name);
+		error("failed to send 'test %s port' cmd", name);
 		return false;
 	} else if (result > 0x04) {
-		printf("[ps2ctrl] ERROR: unknown test response (0x%x)\n", result);
+		error("unknown test response (0x%x)", result);
 		return false;
 	} else if (result == 0x00) {
-		printf("[ps2ctrl] testing %s interface succeed\n", name);
+		info("testing %s interface succeed", name);
 		return true;
 	}
 
-	printf("[ps2ctrl] testing %s interface failed, reason: %s\n",
-		name, reasons[result]);
+	warn("testing %s interface failed, reason: %s", name, reasons[result]);
 	return false;
 }
 
@@ -495,7 +493,7 @@ static bool check_interface_test(bool single_channel)
 	}
 
 	if (single_channel) {
-		printf("[ps2ctrl] skipping second interface test\n");
+		info("skipping second interface test");
 		return true;
 	}
 
@@ -509,17 +507,17 @@ static bool enable_devices(bool single_channel, bool enable_irq)
 	uint8_t conf_byte = 0;
 
 	if (!send_ctrl_cmd(ENABLE_FIRST_PS2_PORT)) {
-		printf("[ps2ctrl] ERROR: failed to enable first interface\n");
+		error("failed to enable first interface");
 		return false;
 	}
-	printf("[ps2ctrl] first interface enabled\n");
+	info("first interface enabled");
 
 	if (!single_channel) {
 		if (!send_ctrl_cmd(ENABLE_SECOND_PS2_PORT)) {
-			printf("[ps2ctrl] ERROR: failed to enable second interface\n");
+			error("failed to enable second interface");
 			goto disable_first_interface;
 		}
-		printf("[ps2ctrl] second interface enabled\n");
+		info("second interface enabled");
 	}
 
 	if (!enable_irq) {
@@ -528,7 +526,7 @@ static bool enable_devices(bool single_channel, bool enable_irq)
 	}
 
 	if (!send_ctrl_cmd_with_response(READ_BYTE_0, &conf_byte)) {
-		printf("[ps2ctrl] ERROR: failed to read configuration byte\n");
+		error("failed to read configuration byte");
 		goto disable_second_interface;
 	}
 
@@ -539,7 +537,7 @@ static bool enable_devices(bool single_channel, bool enable_irq)
 	}
 
 	if (!send_ctrl_cmd_with_data(WRITE_BYTE_0, conf_byte)) {
-		printf("[ps2ctrl] ERROR: failed to write configuration byte\n");
+		error("failed to write configuration byte");
 		goto disable_second_interface;
 	}
 
@@ -548,12 +546,12 @@ static bool enable_devices(bool single_channel, bool enable_irq)
 
 disable_second_interface:
 	if (!single_channel && !send_ctrl_cmd(DISABLE_SECOND_PS2_PORT)) {
-		printf("[ps2ctrl] WARNING: failed to disable second interface\n");
+		warn("failed to disable second interface");
 	}
 
 disable_first_interface:
 	if (!send_ctrl_cmd(DISABLE_FIRST_PS2_PORT)) {
-		printf("[ps2ctrl] WARNING: failed to disable first interface\n");
+		warn("failed to disable first interface");
 	}
 
 	return false;
@@ -581,12 +579,12 @@ static bool send_byte_to_first_port(uint8_t data)
 
 	if (status & SR_INPUT_BUFFER_STATUS) {
 		// we timed out
-		printf("[ps2ctrl] ERROR: failed to send byte to first port\n");
+		error("failed to send byte to first port");
 		return false;
 	}
 
 	outb(DATA_PORT, data);
-	printf("[ps2ctrl] sending byte to first port succeed\n");
+	info("sending byte to first port succeed");
 	return true;
 }
 
@@ -597,7 +595,7 @@ static bool send_byte_to_second_port(uint8_t data)
 {
 	data = data;
 
-	printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
+	error("NOT IMPLEMENTED");
 	abort();
 
 	// TODO: implement me
@@ -634,7 +632,7 @@ static bool recv_byte_from_first_port_sync(uint8_t *data)
 	}
 
 	*data = inb(DATA_PORT);
-	printf("[ps2ctrl] receiving byte from first device succeed (0x%x)\n", *data);
+	info("receiving byte from first device succeed (0x%x)", *data);
 	return true;
 }
 
@@ -656,30 +654,30 @@ static bool reset_devices(bool single_channel)
 
 retry:
 	if (max_try-- < 0) {
-		printf("[ps2ctrl] ERROR: failed to reset device (max try reached)\n");
+		error("failed to reset device (max try reached)");
 		return false;
 	}
 
 	// send 'reset' command
 	if (!send_byte_to_first_port(0xFF)) {
-		printf("[ps2ctrl] ERROR: failed to send 'reset' command to first device\n");
+		error("failed to send 'reset' command to first device");
 		goto retry;
 	}
 
 	// receive ACK, failure or no response
 	if (!recv_byte_from_first_port_sync(&response)) {
 		// no response
-		printf("[ps2ctrl] ERROR: did not receive response for 'reset' command\n");
+		warn("did not receive response for 'reset' command");
 		goto retry;
 	} else if (response == 0xFC) {
-		printf("[ps2ctrl] ERROR: received failure in response to 'reset' command\n");
+		error("received failure in response to 'reset' command");
 		goto retry;
 	} else if (response != 0xFA) {
-		printf("[ps2ctrl] ERROR: unknown response received\n");
+		error("unknown response received");
 	} else {
 		// command ACK'ed. Now, selt-test has started. Receive the result.
 		if (!recv_byte_from_first_port_sync(&response)) {
-			printf("[ps2ctrl] device self-test failed\n");
+			error("device self-test failed");
 			goto retry;
 		}
 
@@ -689,7 +687,7 @@ retry:
 			case 0xFD: /* fallthrough */
 			case 0xFE: goto retry;
 			default: {
-				printf("[ps2ctrl] WARNING: unknown response (0x%x)\n", response);
+				warn("unknown response (0x%x)", response);
 				goto retry;
 			}
 		}
@@ -697,7 +695,7 @@ retry:
 
 next_device:
 	if (!single_channel) {
-		printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
+		error("NOT IMPLEMENTED");
 		abort();
 	}
 
@@ -709,7 +707,7 @@ next_device:
 static enum ps2_device_type device_type_from_id_bytes(uint8_t *bytes, uint8_t nbytes)
 {
 	if ((bytes == NULL) || (nbytes > 2)) {
-		printf("[ps2ctrl] invalid argument\n");
+		error("invalid argument");
 		abort();
 	}
 
@@ -752,28 +750,27 @@ static struct ps2_device* load_driver(enum ps2_device_type type, uint8_t port)
 		type != PS2_DEVICE_KEYBOARD_MF2_WITH_TRANSLATION &&
 		type != PS2_DEVICE_KEYBOARD_AT_WITH_TRANSLATION)
 	{
-		printf("[ps2ctrl] ERROR: unsupported device\n");
+		error("unsupported device");
 		return NULL;
 	}
 
 	// validate port number
 	if (port != 0 && port != 1) {
-		printf("[ps2ctrl] ERROR: invalid port number\n");
+		error("invalid port number");
 		return NULL;
 	}
 
 	// check if a driver is already loaded
 	if (ps2_devices[port]) {
 		dev = ps2_devices[port];
-		printf("[ps2ctrl] WARNING: driver <%s> is already present for that port...\n",
+		warn("driver <%s> is already present for that port, unloading it",
 			dev->name);
-		printf("[ps2ctrl] WARNING: ...unloading it!\n");
 		dev->disable();
 		dev->release();
 	}
 
 	// FIXME: find the proper driver
-	printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
+	error("NOT IMPLEMENTED");
 	dev = NULL;
 
 	return dev;
@@ -802,106 +799,105 @@ int ps2ctrl_init(void)
 	int ret = 0;
 
 	if (ps2ctrl_initialized) {
-		printf("[ps2ctrl] ERROR: PS/2 controller is already initialized\n");
+		error("PS/2 controller is already initialized");
 		return -1;
 	}
 
-	printf("[ps2ctrl] starting initialization...\n");
+	info("starting initialization...");
 
 	// clear the driver list
 	memset(drivers, 0, sizeof(drivers));
 	memset(registered_drivers, 0, sizeof(registered_drivers));
 
 	if (!disable_usb_legacy_support()) {
-		printf("[ps2ctrl] ERROR: failed to disable USB legacy support\n");
+		error("failed to disable USB legacy support");
 		return -1;
 	} else {
-		printf("[ps2ctrl] USB legacy support disabled (fake)\n");
+		info("USB legacy support disabled (fake)");
 	}
 
 	if (!ps2ctrl_exists()) {
-		printf("[ps2ctrl] ERROR: PS/2 Controller does not exist\n");
+		error("PS/2 Controller does not exist");
 		return -1;
 	} else {
-		printf("[ps2ctrl] PS/2 Controller exist (fake)\n");
+		info("PS/2 Controller exist (fake)");
 	}
 
 	if (!disable_devices()) {
-		printf("[ps2ctrl] ERROR: failed to disable devices\n");
+		error("failed to disable devices");
 		return -1;
 	} else {
-		printf("[ps2ctrl] devices are disabled\n");
+		info("devices are disabled");
 	}
 
 	flush_controller_output_buffer();
-	printf("[ps2ctrl] controller's output buffer is flushed\n");
+	info("controller's output buffer is flushed");
 
 	if ((configuration_byte = set_controller_configuration_byte()) == (uint8_t)-1) {
-		printf("[ps2ctrl] ERROR: failed to set controller configuration byte\n");
+		error("failed to set controller configuration byte");
 		return -1;
 	} else {
-		printf("[ps2ctrl] controller's configuration byte set: 0x%x\n",
-			configuration_byte);
+		info("controller's configuration byte set: 0x%x", configuration_byte);
 	}
 
 	// first channel number check
 	single_channel = (configuration_byte & CTRL_CONF_SECOND_PS2_PORT_CLOCK);
-	printf("[ps2ctrl] controller handles %s channel(s) (FIRST TEST)\n",
+	info("controller handles %s channel(s) (FIRST TEST)",
 		single_channel ? "single" : "dual");
 
 	if (!check_controller_selt_test()) {
-		printf("[ps2ctrl] ERROR: failed to perform controller self test\n");
+		error("failed to perform controller self test");
 		return -1;
 	} else {
-		printf("[ps2ctrl] controller self test succeed\n");
+		info("controller self test succeed");
 	}
 
 	// reset configuration byte as self-test can reset the controller
 	if ((configuration_byte = set_controller_configuration_byte()) == (uint8_t)-1) {
-		printf("[ps2ctrl] ERROR: failed to set controller configuration byte\n");
+		error("failed to set controller configuration byte");
 		return -1;
 	} else {
-		printf("[ps2ctrl] controller's configuration byte set: 0x%x\n", configuration_byte);
+		info("controller's configuration byte set: 0x%x", configuration_byte);
 	}
 
 	if (!single_channel) {
 		if ((ret = has_two_channels()) < 0) {
-			printf("[ps2ctrl] ERROR: failed to test dual-channel controller\n");
+			error("failed to test dual-channel controller");
 			return -1;
 		} else if (ret == 0) {
-			printf("[ps2ctrl] PS/2 Controller has only one channel\n");
+			info("PS/2 Controller has only one channel");
 			single_channel = true;
 		} else {
-			printf("[ps2ctrl] PS/2 Controller has two channels\n");
+			info("PS/2 Controller has two channels");
 			// single_channel is already set to false
 		}
 	}
 
 	if (!check_interface_test(single_channel)) {
-		printf("[ps2ctrl] ERROR: interface(s) test failed\n");
+		error("interface(s) test failed");
 		return -1;
 	} else {
-		printf("[ps2ctrl] interface(s) test succeed\n");
+		info("interface(s) test succeed");
 	}
 
 	if (!enable_devices(single_channel, true)) {
-		printf("[ps2ctrl] ERROR: failed to enable devices\n");
+		error("failed to enable devices");
 		return -1;
 	} else {
-		printf("[ps2ctrl] enabling devices succeed\n");
+		info("enabling devices succeed");
 	}
 
-	if (!reset_devices(single_channel)) {
-		printf("[ps2ctrl] ERROR: failed to reset devices\n");
+	if (!reset_devices(single_channel)) { // XXX: do it during identification ?
+		error("failed to reset devices");
 		return -1;
 	} else {
-		printf("[ps2ctrl] resetting devices succeed\n");
+		info("resetting devices succeed");
 	}
 
 	ps2ctrl_initialized = true;
 	ps2ctrl_single_channel = single_channel;
 
-	printf("[ps2ctrl] initialization complete\n");
+	success("initialization complete");
 
 	return 0;
 }
@@ -924,35 +920,35 @@ bool ps2ctrl_identify_devices(void)
 	enum ps2_device_type device_type;
 	struct ps2_device *dev = NULL;
 
-	printf("[ps2ctrl] identifying devices...\n");
+	info("identifying devices...");
 
 	if (!ps2ctrl_initialized) {
-		printf("[ps2ctrl] ERROR: PS/2 controller isn't initialized\n");
+		error("PS/2 controller isn't initialized");
 		return false;
 	}
 
 	// send "disable scanning" to first device
 	if (!send_byte_to_first_port(0xF5)) {
-		printf("[ps2ctrl] ERROR: failed to send 'disable scanning' command to first device\n");
+		error("failed to send 'disable scanning' command to first device");
 		return false;
 	}
 
 	// wait for device to send "ACK" back
 	if (!recv_byte_from_first_port_sync(&data) || (data != 0xFA)) {
-		printf("[ps2ctrl] ERROR: failed to received ACK from first device\n");
+		error("failed to received ACK from first device");
 		return false;
 	}
 	// FIXME: re-send 'disable scanning' command if device sent "resend" (0xFE)
 
 	// send "identify to device
 	if (!send_byte_to_first_port(0xF2)) {
-		printf("[ps2ctrl] ERROR: failed to send 'identify' command to first device\n");
+		error("failed to send 'identify' command to first device");
 		return false;
 	}
 
 	// wait for device to send "ACK" back
 	if (!recv_byte_from_first_port_sync(&data) || (data != 0xFA)) {
-		printf("[ps2ctrl] ERROR: failed to received ACK from first device\n");
+		error("failed to received ACK from first device");
 		return false;
 	}
 	// FIXME: re-send 'identify' command if device sent "resend" (0xFE)
@@ -970,22 +966,21 @@ bool ps2ctrl_identify_devices(void)
 		}
 	} while ((identify_nbytes < 2) && !timeout_expired(&timeo));
 
-	printf("[ps2ctrl] received %u identification bytes from first device\n",
-		identify_nbytes);
+	info("received %u identification bytes from first device", identify_nbytes);
 
 	// identify keyboard from identification bytes
 	device_type = device_type_from_id_bytes(identify_bytes, identify_nbytes);
 	if (device_type == PS2_DEVICE_UNKNOWN) {
-		printf("[ps2ctrl] ERROR: failed to identify device type from identification code\n");
+		error("failed to identify device type from identification code");
 		return false;
 	}
 
 	//  now it's time to load the proper driver from the device type
 	if ((dev = load_driver(device_type, 0)) == NULL) {
-		printf("[ps2ctrl] ERROR: failed to load a driver\n");
+		error("failed to load a driver");
 		return false;
 	}
-	printf("[ps2ctrl] driver successfully loaded\n");
+	success("driver successfully loaded");
 
 	// TODO: re-enable scanning (0xF4)
 
@@ -993,10 +988,10 @@ bool ps2ctrl_identify_devices(void)
 
 	// TODO: identify second port device (if any)
 	if (!ps2ctrl_single_channel) {
-		printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n"); // only handle 1 port for now
+		error("NOT IMPLEMENTED"); // only handle 1 port for now
 	}
 
-	printf("[ps2ctrl] devices identification complete\n");
+	success("devices identification complete");
 	return true;
 }
 
@@ -1007,13 +1002,13 @@ void ps2ctrl_irq1_handler(void)
 	uint8_t data = 0;
 
 	if (!ps2ctrl_initialized) {
-		printf("[ps2ctrl] ERROR: PS/2 controller not initialized!\n");
+		error("PS/2 controller not initialized!");
 		abort();
 	}
 
 	// no need to check 'output' status in Status Register (we come from IRQ)
 	data = inb(DATA_PORT);
-	printf("[ps2ctrl] IRQ1 handler: receveid data 0x%x\n", data);
+	info("IRQ1 handler: receveid data 0x%x", data);
 
 	// FIXME: handle it
 
@@ -1025,18 +1020,18 @@ void ps2ctrl_irq1_handler(void)
 void ps2ctrl_irq12_handler(void)
 {
 	if (!ps2ctrl_initialized) {
-		printf("[ps2ctrl] ERROR: PS/2 controller not initialized!\n");
+		error("PS/2 controller not initialized!");
 		abort();
 	}
 
 	if (!ps2ctrl_single_channel) {
-		printf("[ps2ctrl] ERROR: PS/2 controller has a single channel!\n");
+		error("PS/2 controller has a single channel!");
 		abort();
 	}
 
 	// FIXME: handle it
 
-	printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
+	error("ERROR: NOT IMPLEMENTED");
 	abort();
 
 	irq_send_eoi(IRQ12_PS2_MOUSE);
@@ -1053,11 +1048,11 @@ void ps2ctrl_irq12_handler(void)
 
 bool ps2ctrl_cpu_reset(void)
 {
-	printf("[ps2ctrl] resetting cpu\n");
+	info("resetting cpu");
 
 	if (!wait_ctrl_input_buffer_ready()) {
-		printf("[ps2ctrl] ERROR: cannot cpu reset: input buffer is full\n");
-		return false;
+		error("cannot cpu reset: input buffer is full");
+		return false; // XXX: try it anyway ?
 	}
 
 	outb(CMD_PORT, 0xFE);
@@ -1077,27 +1072,27 @@ bool ps2ctrl_send(uint8_t port, uint8_t byte)
 	size_t max_try = 3;
 
 	if (port > 1) {
-		printf("[ps2ctrl] ERROR: invalid port number\n");
+		error("invalid port number");
 		return false;
 	}
 
-	printf("[ps2ctrl] sending byte (0x%x) to port %u\n", byte, port);
+	info("sending byte (0x%x) to port %u", byte, port);
 
 retry:
 	if (max_try-- == 0) {
-		printf("[ps2ctrl] max try reached, sending byte failed\n");
+		warn("max try reached, sending byte failed");
 		return false;
 	}
 
 	if (port == 0) {
 		if (send_byte_to_first_port(byte) == false) {
-			printf("[ps2ctrl] sending byte to first port failed, retrying...\n");
+			warn("sending byte to first port failed, retrying...");
 			goto retry;
 		}
 	} else {
 		// assuming port == 1
 		if (send_byte_to_second_port(byte) == false) {
-			printf("[ps2ctrl] sending byte to second port failed, retrying...\n");
+			warn("sending byte to second port failed, retrying...");
 			goto retry;
 		}
 	}
@@ -1116,31 +1111,31 @@ bool ps2ctrl_recv(uint8_t port, uint8_t *result)
 	size_t max_try = 3;
 
 	if (port > 1) {
-		printf("[ps2ctrl] ERROR: invalid port number\n");
+		error("invalid port number");
 		return false;
 	}
 
 	if (result == NULL) {
-		printf("[ps2ctrl] ERROR: invalid argument (NULL pointer)\n");
+		error("invalid argument (NULL pointer)");
 		return false;
 	}
 
-	printf("[ps2ctrl] receiving byte from port %u\n", port);
+	info("receiving byte from port %u", port);
 
 retry:
 	if (max_try-- == 0) {
-		printf("[ps2ctrl] max try reached, receiving byte failed\n");
+		warn("max try reached, receiving byte failed");
 		return false;
 	}
 
 	if (port == 0) {
 		if (recv_byte_from_first_port_sync(result) == false) {
-			printf("[ps2ctrl] receiving byte from first port failed, retrying...\n");
+			warn("receiving byte from first port failed, retrying...");
 			goto retry;
 		}
 	} else {
 		// assuming port == 1
-		printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
+		error("NOT IMPLEMENTED");
 		abort();
 	}
 
@@ -1160,12 +1155,12 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 	size_t slot = 0;
 
 	if (driver == NULL) {
-		printf("[ps2ctrl] invalid argument\n");
+		error("invalid argument");
 		return false;
 	}
 
 	if (ps2ctrl_initialized == false) {
-		printf("[ps2ctrl] PS/2 controller is not ready yet\n");
+		error(" PS/2 controller is not ready yet");
 		return false;
 	}
 
@@ -1175,7 +1170,7 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 			continue;
 		} else if (!memcmp(driver->name, drivers[slot].name, sizeof(drivers[slot].name))) {
 			// FIXME: use strcmp() instead of memcmp()
-			printf("[ps2ctrl] a driver with that name is already registred\n");
+			warn("a driver with that name is already registred");
 			return false;
 		}
 	}
@@ -1188,7 +1183,7 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 	}
 
 	if (slot == PS2CTRL_MAX_DRIVERS) {
-		printf("[ps2ctrl] no drivers slot available\n");
+		error("no drivers slot available");
 		return false;
 	}
 
@@ -1196,7 +1191,7 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 	memcpy(&drivers[slot], driver, sizeof(drivers[slot]));
 	registered_drivers[slot] = true;
 
-	printf("[ps2ctrl] driver <%s> registered at slot %u\n", driver->name, slot);
+	success("driver <%s> registered at slot %u", driver->name, slot);
 
 	return true;
 }

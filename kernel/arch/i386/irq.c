@@ -7,6 +7,7 @@
 #include <kernel/types.h>
 #include <kernel/io.h>
 #include <kernel/interrupt.h>
+#include <kernel/log.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,7 +71,7 @@ void irq_clear_mask(uint8_t irq)
 void irq_send_eoi(uint8_t irq)
 {
 	if (irq > IRQ_MAX_VALUE) {
-		printf("[irq] WARNING: IRQ value out-of-range\n");
+		warn("IRQ value out-of-range");
 		return;
 	}
 

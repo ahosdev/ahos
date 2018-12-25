@@ -18,8 +18,8 @@
 #include <kernel/interrupt.h>
 #include <kernel/clock.h>
 #include <kernel/ps2ctrl.h>
+#include <kernel/log.h>
 
-#include <stdio.h>
 #include <stdlib.h> // uses abort
 
 // ============================================================================
@@ -103,7 +103,7 @@ struct idt_entry
 
 void unhandled_exception(void)
 {
-	printf("ERROR: unhandled exception!\n");
+	error("unhandled exception!");
 	abort();
 	/* no return */
 }
@@ -112,7 +112,7 @@ void unhandled_exception(void)
 
 void unhandled_interrupt(void)
 {
-	printf("ERROR: unhandled interrupt!\n");
+	error("unhandled interrupt!");
 	abort();
 	/* no return */
 }
@@ -121,7 +121,7 @@ void unhandled_interrupt(void)
 
 static void divide_error_handler(void)
 {
-	printf("\"Divide Error\" exception detected!\n");
+	info("\"Divide Error\" exception detected!");
 	// TODO
 	unhandled_exception();
 }
@@ -130,7 +130,7 @@ static void divide_error_handler(void)
 
 static void invalid_opcode_handler(void)
 {
-	printf("\"Invalid Opcode (Undefined Opcode)\" exception detected!\n");
+	info("\"Invalid Opcode (Undefined Opcode)\" exception detected!");
 	// TODO
 	unhandled_exception();
 }
@@ -139,7 +139,7 @@ static void invalid_opcode_handler(void)
 
 static void double_fault_handler(void)
 {
-	printf("\"Double Fault\" exception detected!\n");
+	info("\"Double Fault\" exception detected!");
 	// TODO
 	unhandled_exception();
 }
@@ -148,7 +148,7 @@ static void double_fault_handler(void)
 
 static void general_protection_fault_handler(void)
 {
-	printf("\"General Protection Fault\" exception detected!\n");
+	info("\"General Protection Fault\" exception detected!");
 	// TODO
 	unhandled_exception();
 }
@@ -157,7 +157,7 @@ static void general_protection_fault_handler(void)
 
 static void page_fault_handler(void)
 {
-	printf("\"Page Fault\" exception detected!\n");
+	info("\"Page Fault\" exception detected!");
 	// TODO
 	unhandled_exception();
 }
@@ -166,7 +166,7 @@ static void page_fault_handler(void)
 
 static void user_defined_interrupt_handler(void)
 {
-	printf("\"User Defined\" interruption detected!\n");
+	info("\"User Defined\" interruption detected!");
 	// FIXME: remove me (unnecessary)
 	unhandled_interrupt();
 }

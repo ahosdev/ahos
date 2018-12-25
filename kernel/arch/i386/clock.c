@@ -11,8 +11,8 @@
 #include <kernel/types.h>
 #include <kernel/clock.h>
 #include <kernel/interrupt.h>
+#include <kernel/log.h>
 
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "atomic.h"
@@ -110,12 +110,12 @@ void clock_sleep(int32_t msec)
 	int32_t target_tick;
 
 	if (msec < (1000 / CLOCK_FREQ)) {
-		printf("[clock] WARNING: trying to sleep less than clock frequency\n");
+		warn("trying to sleep less than clock frequency");
 	}
 
 	target_tick = clock_gettick() + (msec / (1000 / CLOCK_FREQ));
 	if (target_tick < 0) {
-		printf("[clock] ERROR: tick INT overflow detected!!!\n");
+		error("tick INT overflow detected!!!");
 		abort();
 	}
 
@@ -135,7 +135,7 @@ void clock_irq_handler(void)
 	atomic_inc(&clock_tick);
 
 	if (atomic_read(&clock_tick) < 0) {
-		printf("[clock] ERROR: clock tick overflow detected!!!\n");
+		error("clock tick overflow detected!!!");
 		abort();
 	}
 
