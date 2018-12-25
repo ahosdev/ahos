@@ -86,7 +86,7 @@ void terminal_initialize(void)
 	terminal_row = 0;
 	terminal_column = 0;
 	terminal_default_color =
-		vga_entry_color(VGA_COLOR_BLACK, VGA_COLOR_LIGHT_GREY);
+		vga_entry_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK);
 	terminal_setcolor(terminal_default_color);
 	terminal_buffer = VGA_MEMORY;
 
