@@ -33,6 +33,20 @@
 // ----------------------------------------------------------------------------
 // ============================================================================
 
+enum ps2_device_type {
+	PS2_DEVICE_KEYBOARD_AT_WITH_TRANSLATION,
+	PS2_DEVICE_KEYBOARD_MF2,
+	PS2_DEVICE_KEYBOARD_MF2_WITH_TRANSLATION,
+	PS2_DEVICE_MOUSE_STD,
+	PS2_DEVICE_MOUSE_WITH_SCROLL_WHEEL,
+	PS2_DEVICE_MOUSE_5BUTTON,
+	PS2_DEVICE_UNKNOWN,
+};
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
 // I/O port mapping
 #define DATA_PORT	0x0060 // read/write
 #define STATUS_PORT	0x0064 // read only
@@ -636,6 +650,37 @@ static bool reset_devices(bool single_channel)
 	return false;
 }
 
+// ----------------------------------------------------------------------------
+
+static enum ps2_device_type device_type_from_id_bytes(uint8_t *bytes, uint8_t nbytes)
+{
+	if ((bytes == NULL) || (nbytes > 2)) {
+		printf("[ps2ctrl] invalid argument\n");
+		abort();
+	}
+
+	if (nbytes == 0) {
+		return PS2_DEVICE_KEYBOARD_AT_WITH_TRANSLATION;
+	} else if (nbytes == 1) {
+		switch (bytes[0]) {
+			case 0x00: return PS2_DEVICE_MOUSE_STD;
+			case 0x03: return PS2_DEVICE_MOUSE_WITH_SCROLL_WHEEL;
+			case 0x04: return PS2_DEVICE_MOUSE_5BUTTON;
+		}
+	} else if (nbytes == 2) {
+		if (bytes[0] != 0xAB) {
+			return PS2_DEVICE_UNKNOWN;
+		}
+		switch (bytes[1]) {
+			case 0x41: /* fallthrough */
+			case 0xC1: return PS2_DEVICE_KEYBOARD_MF2_WITH_TRANSLATION;
+			case 0x83: return PS2_DEVICE_KEYBOARD_MF2;
+		}
+	}
+
+	return PS2_DEVICE_UNKNOWN;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -777,6 +822,7 @@ bool ps2ctrl_identify_devices(void)
 	uint8_t identify_nbytes;
 	uint8_t data;
 	struct timeout timeo;
+	enum ps2_device_type device_type;
 
 	printf("[ps2ctrl] identifying devices...\n");
 
@@ -827,7 +873,15 @@ bool ps2ctrl_identify_devices(void)
 	printf("[ps2ctrl] received %u identification bytes from first device\n",
 		identify_nbytes);
 
-	// TODO: identify keyboard from identification bytes
+	// identify keyboard from identification bytes
+	device_type = device_type_from_id_bytes(identify_bytes, identify_nbytes);
+	if (device_type == PS2_DEVICE_UNKNOWN) {
+		printf("[ps2ctrl] ERROR: failed to identify device type from identification code\n");
+		return false;
+	}
+
+	// TODO: now it's time to load the proper driver from the device type
+
 	// TODO: re-enable scanning (0xF4)
 
 	//irq_clear_mask(IRQ1_KEYBOARD);
