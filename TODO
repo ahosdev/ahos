@@ -1,0 +1,38 @@
+# TODO
+
+# =============================================================================
+# -----------------------------------------------------------------------------
+# =============================================================================
+
+- bootloader (stage-3):
+	- parsing and loading kernel ELF binary
+	- filling multiboot header using BIOS interruptions (unreal mode)
+
+- memory:
+	- setup paging / virtual memory
+	- basic physical allocator
+
+- serial:
+	- handle asynchronous printing
+	- optimize output
+
+- ps2ctrl:
+	- handle dual channel completly
+
+- keyboard:
+	- test & validate LED status command
+	- implement command state machine
+
+- kernel:
+	- parse multiboot information
+	- implement a basic synchronisation primitives (mutex/semaphore/spinlock?)
+	- tasks / process
+	- system call
+	- userland
+
+- compilation
+	- userland toolchain (hosted)
+
+# =============================================================================
+# -----------------------------------------------------------------------------
+# =============================================================================
