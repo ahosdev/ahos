@@ -1065,6 +1065,87 @@ bool ps2ctrl_cpu_reset(void)
 	return true;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * FIXME
+ */
+
+bool ps2ctrl_send(uint8_t port, uint8_t byte)
+{
+	size_t max_try = 3;
+
+	if (port > 1) {
+		printf("[ps2ctrl] ERROR: invalid port number\n");
+		return false;
+	}
+
+	printf("[ps2ctrl] sending byte (0x%x) to port %u\n", byte, port);
+
+retry:
+	if (max_try-- == 0) {
+		printf("[ps2ctrl] max try reached, sending byte failed\n");
+		return false;
+	}
+
+	if (port == 0) {
+		if (send_byte_to_first_port(byte) == false) {
+			printf("[ps2ctrl] sending byte to first port failed, retrying...\n");
+			goto retry;
+		}
+	} else {
+		// assuming port == 1
+		if (send_byte_to_second_port(byte) == false) {
+			printf("[ps2ctrl] sending byte to second port failed, retrying...\n");
+			goto retry;
+		}
+	}
+
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * FIXME
+ */
+
+bool ps2ctrl_recv(uint8_t port, uint8_t *result)
+{
+	size_t max_try = 3;
+
+	if (port > 1) {
+		printf("[ps2ctrl] ERROR: invalid port number\n");
+		return false;
+	}
+
+	if (result == NULL) {
+		printf("[ps2ctrl] ERROR: invalid argument (NULL pointer)\n");
+		return false;
+	}
+
+	printf("[ps2ctrl] receiving byte from port %u\n", port);
+
+retry:
+	if (max_try-- == 0) {
+		printf("[ps2ctrl] max try reached, receiving byte failed\n");
+		return false;
+	}
+
+	if (port == 0) {
+		if (recv_byte_from_first_port_sync(result) == false) {
+			printf("[ps2ctrl] receiving byte from first port failed, retrying...\n");
+			goto retry;
+		}
+	} else {
+		// assuming port == 1
+		printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
+		abort();
+	}
+
+	return true;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
