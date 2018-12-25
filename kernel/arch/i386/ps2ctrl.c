@@ -26,7 +26,6 @@
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
 #include <kernel/timeout.h>
-#include <kernel/keyboard.h>
 
 #include "io.h"
 
@@ -738,7 +737,6 @@ static enum ps2_device_type device_type_from_id_bytes(uint8_t *bytes, uint8_t nb
 static struct ps2_device* load_driver(enum ps2_device_type type, uint8_t port)
 {
 	struct ps2_device *dev = NULL;
-	uint8_t scan_code_set = 0;
 
 	// validate device type
 	if (type != PS2_DEVICE_KEYBOARD_MF2 &&
@@ -765,20 +763,10 @@ static struct ps2_device* load_driver(enum ps2_device_type type, uint8_t port)
 		dev->release();
 	}
 
-	// we only handle keyboard for now, so just set it
-	dev = &keyboard_device;
-	printf("[ps2ctrl] loading <%s> driver on port %u\n", dev->name, port);
+	// FIXME: find the proper driver
+	printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
+	dev = NULL;
 
-	// all other keyboards use translation (emulate scan code set 1)
-	scan_code_set = (type == PS2_DEVICE_KEYBOARD_MF2) ? 2 : 1;
-
-	if (!dev->init((void*)&scan_code_set)) {
-		printf("[ps2ctrl] driver initialization failed\n");
-		return NULL;
-	}
-	printf("[ps2ctrl] driver successfully initialized\n");
-
-	ps2_devices[port] = dev; // register the driver
 	return dev;
 }
 
