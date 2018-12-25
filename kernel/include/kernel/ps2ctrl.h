@@ -24,6 +24,7 @@ bool ps2ctrl_recv(uint8_t port, uint8_t *result);
 
 bool ps2ctrl_identify_devices(void);
 bool ps2ctrl_register_driver(struct ps2driver *driver);
+bool ps2ctrl_start_drivers(void);
 
 // ============================================================================
 // ----------------------------------------------------------------------------

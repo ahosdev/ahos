@@ -987,8 +987,6 @@ bool ps2ctrl_identify_devices(void)
 	}
 	info("driver <%s> successfully installed", driver->name);
 
-	// TODO: start the driver (enable scanning, IRQ, etc.)
-
 	if (!ps2ctrl_single_channel) {
 		// TODO: identify second port device (if any)
 		NOT_IMPLEMENTED();
@@ -1196,6 +1194,51 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 
 	return true;
 }
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Starts drivers that has been installed.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+bool ps2ctrl_start_drivers(void)
+{
+	size_t slot = 0;
+	struct ps2driver *driver = NULL;
+
+	if (ps2ctrl_initialized == false) {
+		error("PS/2 controller isn't initialized");
+		return false;
+	}
+
+	// there is only two possible slot on a i8042.
+	for (slot = 0; slot < 2; ++slot) {
+		driver = ps2_drivers[slot];
+		if (driver == NULL) {
+			info("no driver installed on slot %u, skipping...", slot);
+			continue;
+		}
+
+		if (driver->start == NULL) {
+			warn("driver has no start function");
+		} else {
+			uint8_t irq_line = slot == 0 ? IRQ1_KEYBOARD : IRQ12_PS2_MOUSE;
+			if (driver->start(irq_line) == false) {
+				error("failed to start driver <%s> on IRQ line %u",
+					driver->name, irq_line);
+				return false;
+			} else {
+				success("starting driver <%s> on IRQ line %u succeed",
+					driver->name, irq_line);
+			}
+		}
+	}
+
+	return true;
+}
+
 
 // ============================================================================
 // ----------------------------------------------------------------------------
