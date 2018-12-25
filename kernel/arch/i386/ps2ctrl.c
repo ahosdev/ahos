@@ -26,6 +26,7 @@
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
 #include <kernel/timeout.h>
+#include <kernel/keyboard.h>
 
 #include "io.h"
 
@@ -113,6 +114,11 @@ enum ctrl_command {
 
 static bool ps2ctrl_initialized = false;
 static bool ps2ctrl_single_channel = true;
+
+static struct ps2_device* ps2_devices[2] = {
+	NULL, // first port
+	NULL, // second port
+};
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -721,6 +727,61 @@ static enum ps2_device_type device_type_from_id_bytes(uint8_t *bytes, uint8_t nb
 	return PS2_DEVICE_UNKNOWN;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Find and load a driver at port @port for the @type device.
+ *
+ * Returns a pointer on the loaded driver on success, NULL otherwise.
+ */
+
+static struct ps2_device* load_driver(enum ps2_device_type type, uint8_t port)
+{
+	struct ps2_device *dev = NULL;
+	uint8_t scan_code_set = 0;
+
+	// validate device type
+	if (type != PS2_DEVICE_KEYBOARD_MF2 &&
+		type != PS2_DEVICE_KEYBOARD_MF2_WITH_TRANSLATION &&
+		type != PS2_DEVICE_KEYBOARD_AT_WITH_TRANSLATION)
+	{
+		printf("[ps2ctrl] ERROR: unsupported device\n");
+		return NULL;
+	}
+
+	// validate port number
+	if (port != 0 && port != 1) {
+		printf("[ps2ctrl] ERROR: invalid port number\n");
+		return NULL;
+	}
+
+	// check if a driver is already loaded
+	if (ps2_devices[port]) {
+		dev = ps2_devices[port];
+		printf("[ps2ctrl] WARNING: driver <%s> is already present for that port...\n",
+			dev->name);
+		printf("[ps2ctrl] WARNING: ...unloading it!\n");
+		dev->disable();
+		dev->release();
+	}
+
+	// we only handle keyboard for now, so just set it
+	dev = &keyboard_device;
+	printf("[ps2ctrl] loading <%s> driver on port %u\n", dev->name, port);
+
+	// all other keyboards use translation (emulate scan code set 1)
+	scan_code_set = (type == PS2_DEVICE_KEYBOARD_MF2) ? 2 : 1;
+
+	if (!dev->init((void*)&scan_code_set)) {
+		printf("[ps2ctrl] driver initialization failed\n");
+		return NULL;
+	}
+	printf("[ps2ctrl] driver successfully initialized\n");
+
+	ps2_devices[port] = dev; // register the driver
+	return dev;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -860,6 +921,7 @@ bool ps2ctrl_identify_devices(void)
 	uint8_t data;
 	struct timeout timeo;
 	enum ps2_device_type device_type;
+	struct ps2_device *dev = NULL;
 
 	printf("[ps2ctrl] identifying devices...\n");
 
@@ -917,7 +979,12 @@ bool ps2ctrl_identify_devices(void)
 		return false;
 	}
 
-	// TODO: now it's time to load the proper driver from the device type
+	//  now it's time to load the proper driver from the device type
+	if ((dev = load_driver(device_type, 0)) == NULL) {
+		printf("[ps2ctrl] ERROR: failed to load a driver\n");
+		return false;
+	}
+	printf("[ps2ctrl] driver successfully loaded\n");
 
 	// TODO: re-enable scanning (0xF4)
 
