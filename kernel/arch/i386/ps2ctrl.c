@@ -974,6 +974,7 @@ bool ps2ctrl_identify_devices(void)
 		error("failed to identify device type from identification code");
 		return false;
 	}
+	info("device on port 0 has been identified (type = 0x%u)", device_type);
 
 	if ((driver = find_driver(device_type)) == NULL) {
 		error("no driver found for device type (0x%x)", device_type);
@@ -1205,7 +1206,7 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 
 bool ps2ctrl_start_drivers(void)
 {
-	size_t slot = 0;
+	size_t port = 0;
 	struct ps2driver *driver = NULL;
 
 	if (ps2ctrl_initialized == false) {
@@ -1213,18 +1214,18 @@ bool ps2ctrl_start_drivers(void)
 		return false;
 	}
 
-	// there is only two possible slot on a i8042.
-	for (slot = 0; slot < 2; ++slot) {
-		driver = ps2_drivers[slot];
+	// there is only two possible port on a i8042.
+	for (port = 0; port < 2; ++port) {
+		driver = ps2_drivers[port];
 		if (driver == NULL) {
-			info("no driver installed on slot %u, skipping...", slot);
+			info("no driver installed on port %u, skipping...", port);
 			continue;
 		}
 
 		if (driver->start == NULL) {
 			warn("driver has no start function");
 		} else {
-			uint8_t irq_line = slot == 0 ? IRQ1_KEYBOARD : IRQ12_PS2_MOUSE;
+			uint8_t irq_line = port == 0 ? IRQ1_KEYBOARD : IRQ12_PS2_MOUSE;
 			if (driver->start(irq_line) == false) {
 				error("failed to start driver <%s> on IRQ line %u",
 					driver->name, irq_line);
