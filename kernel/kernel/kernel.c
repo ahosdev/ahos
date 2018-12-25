@@ -13,6 +13,7 @@
 #include <kernel/clock.h>
 #include <kernel/ps2ctrl.h>
 #include <kernel/timeout.h>
+#include <kernel/keyboard.h>
 
 #if defined(__linux__)
 #error "You are not using a cross-compiler"
@@ -47,19 +48,20 @@ static void kernel_init(void)
 	irq_init(IRQ0_INT, IRQ7_INT);
 
 	clock_init(CLOCK_FREQ);
-	ps2ctrl_init();
 
-	// XXX: devices should be responsible to enable their own IRQ?
-	//irq_clear_mask(IRQ1_KEYBOARD);
+	// Initialize PS/2 controllers and devices
+	ps2ctrl_init();
+	keyboard_init();
+	if (ps2ctrl_identify_devices() == false) {
+		printf("ERROR: failed to identify PS/2 devices\n");
+	} else {
+		printf("PS/2 devices identification succeed\n");
+	}
 
 	// we can re-enable interrupts now
 	printf("enabling interrupts now\n");
 	enable_nmi();
 	enable_irq();
-
-	if (!ps2ctrl_identify_devices()) {
-		printf("ERROR: failed to identify PS/2 devices!\n");
-	}
 
 	printf("kernel initialization complete\n");
 }
