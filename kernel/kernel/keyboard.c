@@ -5,6 +5,8 @@
  */
 
 #include <kernel/keyboard.h>
+#include <kernel/ps2driver.h>
+#include <kernel/ps2ctrl.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +49,12 @@ enum keyboard_response {
 	KBD_RES_RESEND				= 0xFE,
 	KBD_RES_ERROR1				= 0xFF, // key detection error or internal buffer overrun
 };
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
+static struct ps2driver keyboard_driver;
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -110,57 +118,35 @@ bool keyboard_set_led_state(uint8_t state)
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-static bool keyboard_init(void *param)
-{
-	param = param;
+/*
+ * Initialize the keyboard driver and register to the PS/2 controller.
+ *
+ * Returns true on success, false otherwise.
+ */
 
-	// FIXME
+bool keyboard_init(void)
+{
+	struct ps2driver *driver = &keyboard_driver;
+
+	printf("[kbd] initializing...\n");
+
+	if (ps2driver_init(driver, "KEYBOARD") == false) {
+		goto fail;
+	}
+
+	if (ps2ctrl_register_driver(driver) == false) {
+		printf("[kbd] driver registration failed\n");
+		goto fail;
+	}
+
+	printf("[kbd] initialization complete\n");
 
 	return true;
+
+fail:
+	printf("[kbd] keyboard initialization failed\n");
+	return false;
 }
-
-// ----------------------------------------------------------------------------
-
-static void keyboard_release(void)
-{
-	// FIXME
-}
-
-// ----------------------------------------------------------------------------
-
-static void keyboard_recv(uint8_t data)
-{
-	data = data;
-
-	// FIXME
-}
-
-// ----------------------------------------------------------------------------
-
-static void keyboard_enable(void)
-{
-	// FIXME
-}
-
-// ----------------------------------------------------------------------------
-
-static void keyboard_disable(void)
-{
-	// FIXME
-}
-
-// ============================================================================
-// ----------------------------------------------------------------------------
-// ============================================================================
-
-struct ps2_device keyboard_device = {
-	.name = "KEYBOARD",
-	.init = &keyboard_init,
-	.release = &keyboard_release,
-	.recv = &keyboard_recv,
-	.enable = &keyboard_enable,
-	.disable = &keyboard_disable,
-};
 
 // ============================================================================
 // ----------------------------------------------------------------------------
