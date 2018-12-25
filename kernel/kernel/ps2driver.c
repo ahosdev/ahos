@@ -17,40 +17,6 @@
 // ============================================================================
 
 /*
- * Initialize PS2 driver structure.
- *
- * This can only fail if the @name is longer than PS2_DRIVER_NAME_LEN (NULL
- * byte included) or because of invalid parameter (NULL pointers).
- *
- * Returns true on success, false otherwise.
- */
-
-bool ps2driver_init(struct ps2driver *driver, char *name,
-					enum ps2_device_type type)
-{
-	size_t name_len = 0;
-
-	if (driver == NULL || name == NULL || type == PS2_DEVICE_UNKNOWN) {
-		error("invalid parameter");
-		return false;
-	}
-
-	name_len = strlen(name);
-	if (name_len > (PS2_DRIVER_NAME_LEN - 1)) {
-		error("name too long");
-		return false;
-	}
-
-	memset(driver, 0, sizeof(*driver));
-	memcpy(driver->name, name, name_len);
-	driver->type = type;
-
-	return true;
-}
-
-// ----------------------------------------------------------------------------
-
-/*
  * Add @data into the driver's receive queue.
  *
  * This MUST only be called in an interrupt context, hence there is no need to

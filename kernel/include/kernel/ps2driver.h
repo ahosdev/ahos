@@ -41,8 +41,6 @@ struct ps2driver {
 
 // ----------------------------------------------------------------------------
 
-bool ps2driver_init(struct ps2driver *driver, char *name,
-					enum ps2_device_type type);
 bool ps2driver_recv(struct ps2driver *driver, uint8_t data);
 
 // ============================================================================
