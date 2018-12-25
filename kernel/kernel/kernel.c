@@ -49,6 +49,11 @@ static void kernel_init(void)
 
 	clock_init(CLOCK_FREQ);
 
+	// we can re-enable interrupts now
+	printf("enabling interrupts now\n");
+	enable_nmi();
+	enable_irq();
+
 	// Initialize PS/2 controllers and devices
 	ps2ctrl_init();
 	keyboard_init();
@@ -57,11 +62,6 @@ static void kernel_init(void)
 	} else {
 		printf("PS/2 devices identification succeed\n");
 	}
-
-	// we can re-enable interrupts now
-	printf("enabling interrupts now\n");
-	enable_nmi();
-	enable_irq();
 
 	printf("kernel initialization complete\n");
 }
