@@ -23,6 +23,8 @@
 	- test & validate LED status command
 	- implement command state machine
 
+- handle INTEL exceptions
+
 - kernel:
 	- parse multiboot information
 	- implement a basic synchronisation primitives (mutex/semaphore/spinlock?)
