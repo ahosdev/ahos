@@ -32,6 +32,7 @@ $(KERNEL_ARCH_OBJS) \
 kernel/kernel.o \
 kernel/serial.o \
 kernel/timeout.o \
+kernel/keyboard.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \
