@@ -332,11 +332,11 @@ static void flush_controller_output_buffer(void)
 	ctrl_output_buffer_state = inb(STATUS_PORT);
 
 	if ((ctrl_output_buffer_state & SR_OUTPUT_BUFFER_STATUS) == 0) {
-		info("controller output buffer is empty, skipping...");
+		dbg("controller output buffer is empty, skipping...");
 		return;
 	}
 
-	info("controller output buffer is full, flushing...");
+	dbg("controller output buffer is full, flushing...");
 	inb(DATA_PORT); // ignoring the data (garbage)
 }
 
@@ -423,7 +423,7 @@ static int has_two_channels(void)
 		return 0;
 	}
 
-	info("dual channels controller detected");
+	dbg("dual channels controller detected");
 
 	// re-disable the second channel for now
 	if (!send_ctrl_cmd(DISABLE_SECOND_PS2_PORT)) {
@@ -457,7 +457,7 @@ static bool check_single_interface_test(bool first_interface)
 		error("unknown test response (0x%x)", result);
 		return false;
 	} else if (result == 0x00) {
-		info("testing %s interface succeed", name);
+		dbg("testing %s interface succeed", name);
 		return true;
 	}
 
@@ -481,7 +481,7 @@ static bool check_interface_test(bool single_channel)
 	}
 
 	if (single_channel) {
-		info("skipping second interface test");
+		dbg("skipping second interface test");
 		return true;
 	}
 
@@ -498,14 +498,14 @@ static bool enable_devices(bool single_channel, bool enable_irq)
 		error("failed to enable first interface");
 		return false;
 	}
-	info("first interface enabled");
+	dbg("first interface enabled");
 
 	if (!single_channel) {
 		if (!send_ctrl_cmd(ENABLE_SECOND_PS2_PORT)) {
 			error("failed to enable second interface");
 			goto disable_first_interface;
 		}
-		info("second interface enabled");
+		dbg("second interface enabled");
 	}
 
 	if (!enable_irq) {
@@ -572,7 +572,7 @@ static bool send_byte_to_first_port(uint8_t data)
 	}
 
 	outb(DATA_PORT, data);
-	info("sending byte to first port succeed");
+	dbg("sending byte to first port succeed");
 	return true;
 }
 
@@ -619,7 +619,7 @@ static bool recv_byte_from_first_port_sync(uint8_t *data)
 	}
 
 	*data = inb(DATA_PORT);
-	info("receiving byte from first device succeed (0x%x)", *data);
+	dbg("receiving byte from first device succeed (0x%x)", *data);
 	return true;
 }
 
@@ -803,7 +803,7 @@ int ps2ctrl_init(void)
 		return -1;
 	}
 
-	info("starting initialization...");
+	info("initializing PS/2 controller...");
 
 	// clear the driver list
 	memset(drivers, 0, sizeof(drivers));
@@ -813,43 +813,43 @@ int ps2ctrl_init(void)
 		error("failed to disable USB legacy support");
 		return -1;
 	} else {
-		info("USB legacy support disabled (fake)");
+		dbg("USB legacy support disabled (fake)");
 	}
 
 	if (!ps2ctrl_exists()) {
 		error("PS/2 Controller does not exist");
 		return -1;
 	} else {
-		info("PS/2 Controller exist (fake)");
+		dbg("PS/2 Controller exist (fake)");
 	}
 
 	if (!disable_devices()) {
 		error("failed to disable devices");
 		return -1;
 	} else {
-		info("devices are disabled");
+		dbg("devices are disabled");
 	}
 
 	flush_controller_output_buffer();
-	info("controller's output buffer is flushed");
+	dbg("controller's output buffer is flushed");
 
 	if ((configuration_byte = set_controller_configuration_byte()) == (uint8_t)-1) {
 		error("failed to set controller configuration byte");
 		return -1;
 	} else {
-		info("controller's configuration byte set: 0x%x", configuration_byte);
+		dbg("controller's configuration byte set: 0x%x", configuration_byte);
 	}
 
 	// first channel number check
 	single_channel = (configuration_byte & CTRL_CONF_SECOND_PS2_PORT_CLOCK);
-	info("controller handles %s channel(s) (FIRST TEST)",
+	dbg("controller handles %s channel(s) (FIRST TEST)",
 		single_channel ? "single" : "dual");
 
 	if (!check_controller_selt_test()) {
 		error("failed to perform controller self test");
 		return -1;
 	} else {
-		info("controller self test succeed");
+		dbg("controller self test succeed");
 	}
 
 	// reset configuration byte as self-test can reset the controller
@@ -857,7 +857,7 @@ int ps2ctrl_init(void)
 		error("failed to set controller configuration byte");
 		return -1;
 	} else {
-		info("controller's configuration byte set: 0x%x", configuration_byte);
+		dbg("controller's configuration byte set: 0x%x", configuration_byte);
 	}
 
 	if (!single_channel) {
@@ -865,10 +865,10 @@ int ps2ctrl_init(void)
 			error("failed to test dual-channel controller");
 			return -1;
 		} else if (ret == 0) {
-			info("PS/2 Controller has only one channel");
+			dbg("PS/2 Controller has only one channel");
 			single_channel = true;
 		} else {
-			info("PS/2 Controller has two channels");
+			dbg("PS/2 Controller has two channels");
 			// single_channel is already set to false
 		}
 	}
@@ -877,27 +877,27 @@ int ps2ctrl_init(void)
 		error("interface(s) test failed");
 		return -1;
 	} else {
-		info("interface(s) test succeed");
+		dbg("interface(s) test succeed");
 	}
 
 	if (!enable_devices(single_channel, true)) {
 		error("failed to enable devices");
 		return -1;
 	} else {
-		info("enabling devices succeed");
+		dbg("enabling devices succeed");
 	}
 
 	if (!reset_devices(single_channel)) { // XXX: do it during identification ?
 		error("failed to reset devices");
 		return -1;
 	} else {
-		info("resetting devices succeed");
+		dbg("resetting devices succeed");
 	}
 
 	ps2ctrl_initialized = true;
 	ps2ctrl_single_channel = single_channel;
 
-	success("initialization complete");
+	success("PS/2 controller initialization complete");
 
 	return 0;
 }
@@ -966,7 +966,7 @@ bool ps2ctrl_identify_devices(void)
 		}
 	} while ((identify_nbytes < 2) && !timeout_expired(&timeo));
 
-	info("received %u identification bytes from first device", identify_nbytes);
+	dbg("received %u identification bytes from first device", identify_nbytes);
 
 	// identify keyboard from identification bytes
 	device_type = device_type_from_id_bytes(identify_bytes, identify_nbytes);
@@ -980,7 +980,7 @@ bool ps2ctrl_identify_devices(void)
 		error("no driver found for device type (0x%x)", device_type);
 		return false;
 	}
-	info("driver found <%s>", driver->name);
+	dbg("driver found <%s>", driver->name);
 
 	if (install_driver(driver, 0) == false) {
 		error("failed to install driver <%s> on port 0", driver->name);
