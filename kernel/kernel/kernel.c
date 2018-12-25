@@ -40,6 +40,30 @@ static void print_banner(void)
 
 // ----------------------------------------------------------------------------
 
+static void ps2_init(void)
+{
+	info("starting PS/2 subsystem initialization");
+
+	ps2ctrl_init();
+	keyboard_init();
+
+	if (ps2ctrl_identify_devices() == false) {
+		error("failed to identify PS/2 devices");
+		return;
+	}
+	success("PS/2 devices identification succeed");
+
+	if (ps2ctrl_start_drivers() == false) {
+		error("failed to start PS/2 device drivers");
+		return;
+	}
+	success("PS/2 device drivers started");
+
+	success("PS/2 subsystem initialization complete");
+}
+
+// ----------------------------------------------------------------------------
+
 static void kernel_init(void)
 {
 	memman_init();
@@ -58,14 +82,7 @@ static void kernel_init(void)
 	enable_nmi();
 	enable_irq();
 
-	// Initialize PS/2 controllers and devices
-	ps2ctrl_init();
-	keyboard_init();
-	if (ps2ctrl_identify_devices() == false) {
-		error("ERROR: failed to identify PS/2 devices");
-	} else {
-		success("PS/2 devices identification succeed");
-	}
+	ps2_init();
 
 	success("kernel initialization complete");
 }
