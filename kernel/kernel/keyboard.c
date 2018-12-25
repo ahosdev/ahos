@@ -62,7 +62,11 @@ enum keyboard_response {
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-static struct ps2driver keyboard_driver;
+static struct ps2driver keyboard_driver = {
+	.name = "KEYBOARD_MF2",
+	.type = PS2_DEVICE_KEYBOARD_MF2,
+	.start = NULL,
+};
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -76,15 +80,9 @@ static struct ps2driver keyboard_driver;
 
 bool keyboard_init(void)
 {
-	struct ps2driver *driver = &keyboard_driver;
-
 	info("initializing...");
 
-	if (!ps2driver_init(driver, "KEYBOARD_MF2", PS2_DEVICE_KEYBOARD_MF2)) {
-		goto fail;
-	}
-
-	if (ps2ctrl_register_driver(driver) == false) {
+	if (ps2ctrl_register_driver(&keyboard_driver) == false) {
 		error("driver registration failed");
 		goto fail;
 	}
