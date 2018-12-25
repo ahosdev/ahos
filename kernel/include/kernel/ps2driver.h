@@ -13,6 +13,18 @@
 // ----------------------------------------------------------------------------
 // ============================================================================
 
+enum ps2_device_type {
+	PS2_DEVICE_KEYBOARD_AT_WITH_TRANSLATION,
+	PS2_DEVICE_KEYBOARD_MF2,
+	PS2_DEVICE_KEYBOARD_MF2_WITH_TRANSLATION,
+	PS2_DEVICE_MOUSE_STD,
+	PS2_DEVICE_MOUSE_WITH_SCROLL_WHEEL,
+	PS2_DEVICE_MOUSE_5BUTTON,
+	PS2_DEVICE_UNKNOWN,
+};
+
+// ----------------------------------------------------------------------------
+
 #define PS2_DRIVER_NAME_LEN	64	// include the ending NULL byte
 #define PS2_DRIVER_MAX_RECV	255	// in bytes
 

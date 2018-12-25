@@ -37,20 +37,6 @@
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-enum ps2_device_type {
-	PS2_DEVICE_KEYBOARD_AT_WITH_TRANSLATION,
-	PS2_DEVICE_KEYBOARD_MF2,
-	PS2_DEVICE_KEYBOARD_MF2_WITH_TRANSLATION,
-	PS2_DEVICE_MOUSE_STD,
-	PS2_DEVICE_MOUSE_WITH_SCROLL_WHEEL,
-	PS2_DEVICE_MOUSE_5BUTTON,
-	PS2_DEVICE_UNKNOWN,
-};
-
-// ============================================================================
-// ----------------------------------------------------------------------------
-// ============================================================================
-
 // I/O port mapping
 #define DATA_PORT	0x0060 // read/write
 #define STATUS_PORT	0x0064 // read only
