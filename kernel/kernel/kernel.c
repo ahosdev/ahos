@@ -42,17 +42,19 @@ static void print_banner(void)
 
 static void ps2_init(void)
 {
-	info("starting PS/2 subsystem initialization");
+	info("starting PS/2 subsystem initialization...");
 
 	ps2ctrl_init();
 	keyboard_init();
 
+	info("starting PS/2 device identification...");
 	if (ps2ctrl_identify_devices() == false) {
 		error("failed to identify PS/2 devices");
 		return;
 	}
 	success("PS/2 devices identification succeed");
 
+	info("starting PS/2 drivers...");
 	if (ps2ctrl_start_drivers() == false) {
 		error("failed to start PS/2 device drivers");
 		return;
@@ -71,11 +73,16 @@ static void kernel_init(void)
 	// initialise output early for debugging
 	serial_init();
 	terminal_initialize();
+	info("kernel booting...");
 
 	setup_idt();
+	info("IDT setup");
+
 	irq_init(IRQ0_INT, IRQ7_INT);
+	info("IRQ initialized");
 
 	clock_init(CLOCK_FREQ);
+	info("clock initialized");
 
 	// we can re-enable interrupts now
 	info("enabling interrupts now");
@@ -93,25 +100,12 @@ static void kernel_init(void)
 
 void kernel_main(void)
 {
-	struct timeout timeo;
-
 	kernel_init();
 	print_banner();
 
 	info("tick = %d", clock_gettick());
 
 	clock_sleep(3);
-
-	timeout_init(&timeo, 2000);
-	info("starting timeout now");
-
-	timeout_start(&timeo);
-	do {
-		info("waiting timeout to expire...");
-		clock_sleep(400); // sleep 400ms
-	} while (!timeout_expired(&timeo));
-
-	success("timeout expired");
 
 	for (;;) // do not quit yet, otherwise irq will be disabled
 	{
