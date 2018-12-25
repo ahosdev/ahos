@@ -25,13 +25,16 @@
 
 - handle INTEL exceptions
 
+- tty:
+	- buffering
+	- scrolling with keyboard
+
 - kernel:
 	- parse multiboot information
 	- implement a basic synchronisation primitives (mutex/semaphore/spinlock?)
 	- tasks / process
 	- system call
 	- userland
-	- logging (error, warn, dbg) facility (bonus: nice colors)
 	- use an error value (integer) instead of 'boolean'
 
 - libc:
