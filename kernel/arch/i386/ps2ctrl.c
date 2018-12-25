@@ -15,7 +15,7 @@
  * - https://wiki.osdev.org/PS/2_Keyboard
  *
  * TODO:
- * - implement cpu reset
+ * - handle second device (once we have one)
  */
 
 #include <stdio.h>
@@ -972,6 +972,30 @@ void ps2ctrl_irq12_handler(void)
 	abort();
 
 	irq_send_eoi(IRQ12_PS2_MOUSE);
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Reset the CPU using the PS/2 Controller (an extra feature).
+ *
+ * This will either failed (return false) or succeed. In the later case, this
+ * is a noreturn function.
+ */
+
+bool ps2ctrl_cpu_reset(void)
+{
+	printf("[ps2ctrl] resetting cpu\n");
+
+	if (!wait_ctrl_input_buffer_ready()) {
+		printf("[ps2ctrl] ERROR: cannot cpu reset: input buffer is full\n");
+		return false;
+	}
+
+	outb(CMD_PORT, 0xFE);
+
+	/* no return */
+	return true;
 }
 
 // ============================================================================
