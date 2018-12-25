@@ -8,6 +8,7 @@
 #define KERNEL_LOG_H_
 
 #include <stdio.h>
+#include <kernel/tty.h>
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -32,11 +33,40 @@ enum log_level
 
 // ----------------------------------------------------------------------------
 
-#define dbg(fmt, ...)   log_macro_def(LOG_DEBUG, "DBG: ", fmt, ##__VA_ARGS__)
-#define info(fmt, ...)    log_macro_def(LOG_INFO, "", fmt, ##__VA_ARGS__)
-#define success(fmt, ...) log_macro_def(LOG_INFO, "", fmt, ##__VA_ARGS__)
-#define warn(fmt, ...)    log_macro_def(LOG_WARN, "WARN: ", fmt, ##__VA_ARGS__)
-#define error(fmt, ...)   log_macro_def(LOG_ERROR, "ERROR: ", fmt, ##__VA_ARGS__)
+#define dbg(fmt, ...) \
+{\
+	terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK));\
+	log_macro_def(LOG_DEBUG, "DBG: ", fmt, ##__VA_ARGS__); \
+	terminal_reset_color(); \
+}
+
+#define info(fmt, ...) \
+{\
+	terminal_setcolor(vga_entry_color(VGA_COLOR_WHITE, VGA_COLOR_BLACK));\
+	log_macro_def(LOG_INFO, "", fmt, ##__VA_ARGS__); \
+	terminal_reset_color(); \
+}
+
+#define success(fmt, ...) \
+{\
+	terminal_setcolor(vga_entry_color(VGA_COLOR_GREEN, VGA_COLOR_BLACK));\
+	log_macro_def(LOG_INFO, "", fmt, ##__VA_ARGS__); \
+	terminal_reset_color(); \
+}
+
+#define warn(fmt, ...) \
+{\
+	terminal_setcolor(vga_entry_color(VGA_COLOR_BROWN, VGA_COLOR_BLACK));\
+	log_macro_def(LOG_WARN, "WARN: ", fmt, ##__VA_ARGS__); \
+	terminal_reset_color(); \
+}
+
+#define error(fmt, ...) \
+{\
+	terminal_setcolor(vga_entry_color(VGA_COLOR_RED, VGA_COLOR_BLACK));\
+	log_macro_def(LOG_ERROR, "ERROR: ", fmt, ##__VA_ARGS__); \
+	terminal_reset_color(); \
+}
 
 // ----------------------------------------------------------------------------
 
