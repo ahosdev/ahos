@@ -14,17 +14,6 @@
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-struct ps2_device {
-	char name[64];
-	bool (*init)(void *param);
-	void (*release)(void);
-	void (*recv)(uint8_t data);
-	void (*enable)(void);
-	void (*disable)(void);
-};
-
-// ----------------------------------------------------------------------------
-
 int  ps2ctrl_init(void);
 void ps2ctrl_irq1_handler(void); // first port
 void ps2ctrl_irq12_handler(void); // second port
