@@ -8,6 +8,7 @@
 
 #include <kernel/timeout.h>
 #include <kernel/clock.h>
+#include <kernel/log.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,12 +24,12 @@
 void timeout_init(struct timeout *timeo, int32_t length)
 {
 	if (timeo == NULL) {
-		printf("[timeout] invalid argument");
+		error("invalid argument");
 		abort();
 	}
 
 	if (length <= 0) {
-		printf("[timeout] WARNING: defining a zero or negative length timeout\n");
+		warn("defining a zero or negative length timeout");
 	}
 
 	timeo->length = (length * CLOCK_FREQ) / 1000;
@@ -44,7 +45,7 @@ void timeout_init(struct timeout *timeo, int32_t length)
 void timeout_start(struct timeout *timeo)
 {
 	if (timeo == NULL) {
-		printf("[timeout] invalid argument");
+		error("invalid argument");
 		abort();
 	}
 
@@ -60,7 +61,7 @@ void timeout_start(struct timeout *timeo)
 bool timeout_expired(struct timeout *timeo)
 {
 	if (timeo == NULL) {
-		printf("[timeout] invalid argument");
+		error("invalid argument");
 		abort();
 	}
 

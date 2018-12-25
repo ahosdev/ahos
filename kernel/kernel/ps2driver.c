@@ -5,8 +5,8 @@
  */
 
 #include <kernel/ps2driver.h>
+#include <kernel/log.h>
 
-#include <stdio.h>
 #include <string.h>
 
 // ============================================================================
@@ -27,13 +27,13 @@ bool ps2driver_init(struct ps2driver *driver, char *name)
 	size_t name_len = 0;
 
 	if (driver == NULL || name == NULL) {
-		printf("[ps2driver] invalid parameter\n");
+		error("invalid parameter");
 		return false;
 	}
 
 	name_len = strlen(name);
 	if (name_len > (PS2_DRIVER_NAME_LEN - 1)) {
-		printf("[ps2driver] name too long\n");
+		error("name too long");
 		return false;
 	}
 
@@ -59,12 +59,12 @@ bool ps2driver_recv(struct ps2driver *driver, uint8_t data)
 	size_t offset = 0;
 
 	if (driver == NULL) {
-		printf("[ps2driver] invalid parameter\n");
+		error("invalid parameter");
 		return false;
 	}
 
 	if (driver->recv_queue_size == PS2_DRIVER_MAX_RECV) {
-		printf("[ps2driver] receive queue is full\n");
+		error("receive queue is full");
 		return false;
 	}
 

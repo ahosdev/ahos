@@ -14,6 +14,7 @@
 #include <kernel/ps2ctrl.h>
 #include <kernel/timeout.h>
 #include <kernel/keyboard.h>
+#include <kernel/log.h>
 
 #if defined(__linux__)
 #error "You are not using a cross-compiler"
@@ -50,7 +51,7 @@ static void kernel_init(void)
 	clock_init(CLOCK_FREQ);
 
 	// we can re-enable interrupts now
-	printf("enabling interrupts now\n");
+	info("enabling interrupts now");
 	enable_nmi();
 	enable_irq();
 
@@ -58,12 +59,12 @@ static void kernel_init(void)
 	ps2ctrl_init();
 	keyboard_init();
 	if (ps2ctrl_identify_devices() == false) {
-		printf("ERROR: failed to identify PS/2 devices\n");
+		error("ERROR: failed to identify PS/2 devices");
 	} else {
-		printf("PS/2 devices identification succeed\n");
+		success("PS/2 devices identification succeed");
 	}
 
-	printf("kernel initialization complete\n");
+	success("kernel initialization complete");
 }
 
 // ============================================================================
@@ -77,20 +78,20 @@ void kernel_main(void)
 	kernel_init();
 	print_banner();
 
-	printf("tick = %d\n", clock_gettick());
+	info("tick = %d", clock_gettick());
 
 	clock_sleep(3);
 
 	timeout_init(&timeo, 2000);
-	printf("starting timeout now\n");
+	info("starting timeout now");
 
 	timeout_start(&timeo);
 	do {
-		printf("waiting timeout to expire...\n");
+		info("waiting timeout to expire...");
 		clock_sleep(400); // sleep 400ms
 	} while (!timeout_expired(&timeo));
 
-	printf("timeout expired\n");
+	success("timeout expired");
 
 	for (;;) // do not quit yet, otherwise irq will be disabled
 	{

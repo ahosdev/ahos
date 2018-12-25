@@ -2,13 +2,18 @@
  * keyboard.c
  *
  * Keyboard driver implementation.
+ *
+ * Documentation:
+ * - https://wiki.osdev.org/PS/2_Keyboard
+ * - https://www.avrfreaks.net/sites/default/files/PS2%20Keyboard.pdf
+ * - https://wiki.osdev.org/%228042%22_PS/2_Controller#Step_10:_Reset_Devices
  */
 
 #include <kernel/keyboard.h>
 #include <kernel/ps2driver.h>
 #include <kernel/ps2ctrl.h>
+#include <kernel/log.h>
 
-#include <stdio.h>
 #include <stdlib.h>
 
 // ============================================================================
@@ -70,23 +75,23 @@ bool keyboard_init(void)
 {
 	struct ps2driver *driver = &keyboard_driver;
 
-	printf("[kbd] initializing...\n");
+	info("initializing...");
 
 	if (ps2driver_init(driver, "KEYBOARD") == false) {
 		goto fail;
 	}
 
 	if (ps2ctrl_register_driver(driver) == false) {
-		printf("[kbd] driver registration failed\n");
+		error("driver registration failed");
 		goto fail;
 	}
 
-	printf("[kbd] initialization complete\n");
+	success("initialization complete");
 
 	return true;
 
 fail:
-	printf("[kbd] keyboard initialization failed\n");
+	error("keyboard initialization failed");
 	return false;
 }
 
