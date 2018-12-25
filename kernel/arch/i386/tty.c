@@ -24,13 +24,6 @@ static const size_t VGA_ELT_SIZE = sizeof(terminal_buffer[0]);
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-static void terminal_setcolor(uint8_t color)
-{
-	terminal_color = color;
-}
-
-// ----------------------------------------------------------------------------
-
 static void terminal_putentryat(unsigned char c, uint8_t color, size_t x, size_t y)
 {
 	const size_t index = y * VGA_WIDTH + x;
@@ -132,6 +125,20 @@ void terminal_write(const char* data, size_t size)
 void terminal_writestring(const char* data)
 {
 	terminal_write(data, strlen(data));
+}
+
+// ----------------------------------------------------------------------------
+
+inline void terminal_reset_color(void)
+{
+	terminal_setcolor(terminal_default_color);
+}
+
+// ----------------------------------------------------------------------------
+
+inline void terminal_setcolor(uint8_t color)
+{
+	terminal_color = color;
 }
 
 // ============================================================================
