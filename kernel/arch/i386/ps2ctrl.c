@@ -761,13 +761,45 @@ static struct ps2_device* load_driver(enum ps2_device_type type, uint8_t port)
 	return dev;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Find a registered driver from device @type.
+ *
+ * Returns a pointer to the driver, NULL otherwise.
+ */
+
+static struct ps2driver* find_driver(enum ps2_device_type type)
+{
+	struct ps2driver *driver = NULL;
+
+	if (type == PS2_DEVICE_UNKNOWN) {
+		error("can't find a driver for an unknown device\n");
+		return NULL;
+	}
+
+	for (size_t slot = 0; slot < PS2CTRL_MAX_DRIVERS; ++slot) {
+		if (registered_drivers[slot] && drivers[slot].type == type) {
+			if (driver != NULL) {
+				warn("found another driver candidate for this device\n");
+			} else {
+				driver = &drivers[slot];
+			}
+		}
+	}
+
+	return driver;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
 
 /*
- * Initializes the PS/2 8042 Controller. It assumes that:
- * - interrupts are disabled
+ * Initializes the PS/2 8042 Controller.
+ *
+ * It assumes that:
+ * - interrupts are enabled (required by timeouts)
  * - IRQ1 (keyboard) is masked
  * - IRQ12 (mouse) is masked
  * - controller is in an unknown state
@@ -903,7 +935,7 @@ bool ps2ctrl_identify_devices(void)
 	uint8_t data;
 	struct timeout timeo;
 	enum ps2_device_type device_type;
-	struct ps2_device *dev = NULL;
+	struct ps2driver *driver = NULL;
 
 	info("identifying devices...");
 
@@ -960,8 +992,14 @@ bool ps2ctrl_identify_devices(void)
 		return false;
 	}
 
+	if ((driver = find_driver(device_type)) == NULL) {
+		error("no driver found");
+		return false;
+	}
+	info("driver found <%s>", driver->name);
+
 	//  now it's time to load the proper driver from the device type
-	if ((dev = load_driver(device_type, 0)) == NULL) {
+	if (load_driver(device_type, 0) == NULL) {
 		error("failed to load a driver");
 		return false;
 	}
