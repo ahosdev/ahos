@@ -1,12 +1,11 @@
+/*
+ * vga.h
+ */
+
 #ifndef ARCH_I386_VGA_H
 #define ARCH_I386_VGA_H
 
-// ============================================================================
-// ----------------------------------------------------------------------------
-// ============================================================================
-
-#include <stdint.h>
-#include "io.h"
+#include <kernel/types.h>
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -53,42 +52,13 @@ static inline uint16_t vga_entry(unsigned char uc, uint8_t color) {
 	return (uint16_t) uc | (uint16_t) color << 8;
 }
 
+// ============================================================================
 // ----------------------------------------------------------------------------
+// ============================================================================
 
-// from https://wiki.osdev.org/Text_Mode_Cursor
-static inline void vga_enable_cursor(enum vga_cursor_style style)
-{
-	const uint8_t cursor_start = 0;
-	const uint8_t cursor_end = (style == VGA_CURSOR_BOX) ? 15 : 1;
-
-	outb(0x3D4, 0x0A);
-	outb(0x3D5, (inb(0x3D5) & 0xC0) | cursor_start);
-
-	outb(0x3D4, 0x0B);
-	outb(0x3D5, (inb(0x3D5) & 0xE0) | cursor_end);
-}
-
-// ----------------------------------------------------------------------------
-
-// from https://wiki.osdev.org/Text_Mode_Cursor
-static inline void vga_disable_cursor(void)
-{
-	outb(0x3D4, 0x0A);
-	outb(0x3D5, 0x20);
-}
-
-// ----------------------------------------------------------------------------
-
-// from https://wiki.osdev.org/Text_Mode_Cursor
-static inline void vga_update_cursor(int x, int y)
-{
-	uint16_t pos = y * VGA_WIDTH + x;
-
-	outb(0x3D4, 0x0F);
-	outb(0x3D5, (uint8_t) (pos & 0xFF));
-	outb(0x3D4, 0x0E);
-	outb(0x3D5, (uint8_t) ((pos >> 8) & 0xFF));
-}
+void vga_enable_cursor(enum vga_cursor_style style);
+void vga_disable_cursor(void);
+void vga_update_cursor(int x, int y);
 
 // ============================================================================
 // ----------------------------------------------------------------------------
