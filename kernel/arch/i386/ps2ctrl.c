@@ -631,23 +631,63 @@ static bool recv_byte_from_first_port_sync(uint8_t *data)
  * to send AND receive data from devices. In order to do so, there is two ways:
  * polling and IRQs.
  *
- * However, during initialization, IRQ1/IRQ12 are masked out. So we can send data,
- * but then we don't know how to get the response. If we do some polling, there is
- * no way to distinct if data comes from first or second port. While this is
- * easier to do with IRQ.
- *
- * Maybe, defers it until IRQs are enabled or to devices responsability?
- *
- * XXX: Let's start coding the keyboard driver, we will see!
+ * As we are only supporting a single channel for now, we do it with polling
+ * (i.e. sync) while interrupts are disabled.
  */
 
 static bool reset_devices(bool single_channel)
 {
-	single_channel = single_channel;
+	int max_try = 3;
+	uint8_t response = 0;
 
-	// TODO: send 0xFF to each usable device. 0xFA=succeed, 0xFC=failure
+retry:
+	if (max_try-- < 0) {
+		printf("[ps2ctrl] ERROR: failed to reset device (max try reached)\n");
+		return false;
+	}
 
-	return false;
+	// send 'reset' command
+	if (!send_byte_to_first_port(0xFF)) {
+		printf("[ps2ctrl] ERROR: failed to send 'reset' command to first device\n");
+		goto retry;
+	}
+
+	// receive ACK, failure or no response
+	if (!recv_byte_from_first_port_sync(&response)) {
+		// no response
+		printf("[ps2ctrl] ERROR: did not receive response for 'reset' command\n");
+		goto retry;
+	} else if (response == 0xFC) {
+		printf("[ps2ctrl] ERROR: received failure in response to 'reset' command\n");
+		goto retry;
+	} else if (response != 0xFA) {
+		printf("[ps2ctrl] ERROR: unknown response received\n");
+	} else {
+		// command ACK'ed. Now, selt-test has started. Receive the result.
+		if (!recv_byte_from_first_port_sync(&response)) {
+			printf("[ps2ctrl] device self-test failed\n");
+			goto retry;
+		}
+
+		switch (response) {
+			case 0xAA: goto next_device;
+			case 0xFC: /* fallthrough */
+			case 0xFD: /* fallthrough */
+			case 0xFE: goto retry;
+			default: {
+				printf("[ps2ctrl] WARNING: unknown response (0x%x)\n", response);
+				goto retry;
+			}
+		}
+	}
+
+next_device:
+	if (!single_channel) {
+		printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
+		abort();
+	}
+
+	return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -789,15 +829,12 @@ int ps2ctrl_init(void)
 		printf("[ps2ctrl] enabling devices succeed\n");
 	}
 
-	#if 0
-	// XXX: defer it to device's responsability ?
 	if (!reset_devices(single_channel)) {
 		printf("[ps2ctrl] ERROR: failed to reset devices\n");
 		return -1;
 	} else {
 		printf("[ps2ctrl] resetting devices succeed\n");
 	}
-	#endif
 
 	ps2ctrl_initialized = true;
 	ps2ctrl_single_channel = single_channel;
