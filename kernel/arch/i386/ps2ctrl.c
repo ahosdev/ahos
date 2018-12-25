@@ -26,6 +26,7 @@
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
 #include <kernel/timeout.h>
+#include <kernel/ps2driver.h>
 
 #include "io.h"
 
@@ -111,9 +112,17 @@ enum ctrl_command {
 
 // ----------------------------------------------------------------------------
 
+#define PS2CTRL_MAX_DRIVERS 4
+
+// FIXME: place holder until we have a memory allocator
+struct ps2driver drivers[PS2CTRL_MAX_DRIVERS];
+// true if a driver is registered in a slot
+bool registered_drivers[PS2CTRL_MAX_DRIVERS];
+
 static bool ps2ctrl_initialized = false;
 static bool ps2ctrl_single_channel = true;
 
+// active drivers
 static struct ps2_device* ps2_devices[2] = {
 	NULL, // first port
 	NULL, // second port
@@ -799,6 +808,10 @@ int ps2ctrl_init(void)
 
 	printf("[ps2ctrl] starting initialization...\n");
 
+	// clear the driver list
+	memset(drivers, 0, sizeof(drivers));
+	memset(registered_drivers, 0, sizeof(registered_drivers));
+
 	if (!disable_usb_legacy_support()) {
 		printf("[ps2ctrl] ERROR: failed to disable USB legacy support\n");
 		return -1;
@@ -1130,6 +1143,60 @@ retry:
 		printf("[ps2ctrl] ERROR: NOT IMPLEMENTED\n");
 		abort();
 	}
+
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Registers a PS/2 driver into the driver list.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+bool ps2ctrl_register_driver(struct ps2driver *driver)
+{
+	size_t slot = 0;
+
+	if (driver == NULL) {
+		printf("[ps2ctrl] invalid argument\n");
+		return false;
+	}
+
+	if (ps2ctrl_initialized == false) {
+		printf("[ps2ctrl] PS/2 controller is not ready yet\n");
+		return false;
+	}
+
+	// check if the driver is not already registered (by name for now)
+	for (slot = 0; slot < PS2CTRL_MAX_DRIVERS; ++slot) {
+		if (registered_drivers[slot] == false) {
+			continue;
+		} else if (!memcmp(driver->name, drivers[slot].name, sizeof(drivers[slot].name))) {
+			// FIXME: use strcmp() instead of memcmp()
+			printf("[ps2ctrl] a driver with that name is already registred\n");
+			return false;
+		}
+	}
+
+	// find an empty slot
+	for (slot = 0; slot < PS2CTRL_MAX_DRIVERS; ++slot) {
+		if (registered_drivers[slot] == false) {
+			break;
+		}
+	}
+
+	if (slot == PS2CTRL_MAX_DRIVERS) {
+		printf("[ps2ctrl] no drivers slot available\n");
+		return false;
+	}
+
+	// everything is fine, register it.
+	memcpy(&drivers[slot], driver, sizeof(drivers[slot]));
+	registered_drivers[slot] = true;
+
+	printf("[ps2ctrl] driver <%s> registered at slot %u\n", driver->name, slot);
 
 	return true;
 }
