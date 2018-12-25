@@ -36,6 +36,7 @@ struct ps2driver {
 	uint8_t recv_queue[PS2_DRIVER_MAX_RECV]; // circular
 	size_t recv_queue_size; // nb elements in the queue
 	size_t recv_queue_next; // index of the first element in the queue
+	bool (*start)(uint8_t irq_line); // called after being installed
 };
 
 // ----------------------------------------------------------------------------
