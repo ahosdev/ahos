@@ -268,8 +268,7 @@ static inline bool send_ctrl_cmd_with_response(enum ctrl_command cmd, uint8_t *r
 __attribute__ ((unused)) // debugging function: skip compilation warning
 static void dump_status_register(uint8_t status)
 {
-	error("NOT IMPLEMENTED");
-
+	NOT_IMPLEMENTED();
 	// TODO: implement me
 }
 #endif
@@ -590,13 +589,12 @@ static bool send_byte_to_first_port(uint8_t data)
 
 // ----------------------------------------------------------------------------
 
-__attribute__ ((unused)) // FIXME: implement me
+__attribute__ ((unused))
 static bool send_byte_to_second_port(uint8_t data)
 {
 	data = data;
 
-	error("NOT IMPLEMENTED");
-	abort();
+	NOT_IMPLEMENTED();
 
 	// TODO: implement me
 
@@ -695,8 +693,7 @@ retry:
 
 next_device:
 	if (!single_channel) {
-		error("NOT IMPLEMENTED");
-		abort();
+		NOT_IMPLEMENTED();
 	}
 
 	return true;
@@ -770,7 +767,7 @@ static struct ps2_device* load_driver(enum ps2_device_type type, uint8_t port)
 	}
 
 	// FIXME: find the proper driver
-	error("NOT IMPLEMENTED");
+	NOT_IMPLEMENTED();
 	dev = NULL;
 
 	return dev;
@@ -988,7 +985,7 @@ bool ps2ctrl_identify_devices(void)
 
 	// TODO: identify second port device (if any)
 	if (!ps2ctrl_single_channel) {
-		error("NOT IMPLEMENTED"); // only handle 1 port for now
+		NOT_IMPLEMENTED();
 	}
 
 	success("devices identification complete");
@@ -1031,8 +1028,7 @@ void ps2ctrl_irq12_handler(void)
 
 	// FIXME: handle it
 
-	error("ERROR: NOT IMPLEMENTED");
-	abort();
+	NOT_IMPLEMENTED();
 
 	irq_send_eoi(IRQ12_PS2_MOUSE);
 }
@@ -1135,8 +1131,7 @@ retry:
 		}
 	} else {
 		// assuming port == 1
-		error("NOT IMPLEMENTED");
-		abort();
+		NOT_IMPLEMENTED();
 	}
 
 	return true;
