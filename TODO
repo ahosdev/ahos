@@ -29,6 +29,12 @@
 	- tasks / process
 	- system call
 	- userland
+	- logging (error, warn, dbg) facility (bonus: nice colors)
+	- use an error value (integer) instead of 'boolean'
+
+- libc:
+	- strncpy()
+	- strcmp()
 
 - compilation
 	- userland toolchain (hosted)

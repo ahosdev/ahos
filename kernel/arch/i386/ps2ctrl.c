@@ -115,9 +115,9 @@ enum ctrl_command {
 #define PS2CTRL_MAX_DRIVERS 4
 
 // FIXME: place holder until we have a memory allocator
-struct ps2driver drivers[PS2CTRL_MAX_DRIVERS];
+static struct ps2driver drivers[PS2CTRL_MAX_DRIVERS];
 // true if a driver is registered in a slot
-bool registered_drivers[PS2CTRL_MAX_DRIVERS];
+static bool registered_drivers[PS2CTRL_MAX_DRIVERS];
 
 static bool ps2ctrl_initialized = false;
 static bool ps2ctrl_single_channel = true;
