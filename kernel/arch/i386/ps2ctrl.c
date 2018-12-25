@@ -30,6 +30,9 @@
 
 #include "io.h"
 
+#undef LOG_MODULE
+#define LOG_MODULE "ps2ctrl"
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -767,7 +770,6 @@ static struct ps2_device* load_driver(enum ps2_device_type type, uint8_t port)
 	}
 
 	// FIXME: find the proper driver
-	NOT_IMPLEMENTED();
 	dev = NULL;
 
 	return dev;

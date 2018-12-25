@@ -25,11 +25,19 @@ enum log_level
 
 // ----------------------------------------------------------------------------
 
+#if 0 // XXX: use this version if you want something more verbose
 #define log_macro_def(level, prefixe, fmt, ...)\
   do {\
     if (g_log_level >= level) \
-      printf("%s: "prefixe fmt"\n", __FUNCTION__, ##__VA_ARGS__); \
+      printf("[%s] %s: "prefixe fmt"\n", LOG_MODULE, __FUNCTION__, ##__VA_ARGS__); \
   } while (0)
+#else
+#define log_macro_def(level, prefixe, fmt, ...)\
+  do {\
+    if (g_log_level >= level) \
+      printf("[%s] "prefixe fmt"\n", LOG_MODULE, ##__VA_ARGS__); \
+  } while (0)
+#endif
 
 // ----------------------------------------------------------------------------
 

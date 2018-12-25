@@ -16,6 +16,9 @@
 #include <kernel/keyboard.h>
 #include <kernel/log.h>
 
+#undef LOG_MODULE
+#define LOG_MODULE "main"
+
 #if defined(__linux__)
 #error "You are not using a cross-compiler"
 #endif
