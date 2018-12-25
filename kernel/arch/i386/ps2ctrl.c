@@ -111,8 +111,8 @@ static bool registered_drivers[PS2CTRL_MAX_DRIVERS];
 static bool ps2ctrl_initialized = false;
 static bool ps2ctrl_single_channel = true;
 
-// active drivers
-static struct ps2_device* ps2_devices[2] = {
+// installed drivers
+static struct ps2driver * ps2_drivers[2] = {
 	NULL, // first port
 	NULL, // second port
 };
@@ -722,48 +722,6 @@ static enum ps2_device_type device_type_from_id_bytes(uint8_t *bytes, uint8_t nb
 // ----------------------------------------------------------------------------
 
 /*
- * Find and load a driver at port @port for the @type device.
- *
- * Returns a pointer on the loaded driver on success, NULL otherwise.
- */
-
-static struct ps2_device* load_driver(enum ps2_device_type type, uint8_t port)
-{
-	struct ps2_device *dev = NULL;
-
-	// validate device type
-	if (type != PS2_DEVICE_KEYBOARD_MF2 &&
-		type != PS2_DEVICE_KEYBOARD_MF2_WITH_TRANSLATION &&
-		type != PS2_DEVICE_KEYBOARD_AT_WITH_TRANSLATION)
-	{
-		error("unsupported device");
-		return NULL;
-	}
-
-	// validate port number
-	if (port != 0 && port != 1) {
-		error("invalid port number");
-		return NULL;
-	}
-
-	// check if a driver is already loaded
-	if (ps2_devices[port]) {
-		dev = ps2_devices[port];
-		warn("driver <%s> is already present for that port, unloading it",
-			dev->name);
-		dev->disable();
-		dev->release();
-	}
-
-	// FIXME: find the proper driver
-	dev = NULL;
-
-	return dev;
-}
-
-// ----------------------------------------------------------------------------
-
-/*
  * Find a registered driver from device @type.
  *
  * Returns a pointer to the driver, NULL otherwise.
@@ -789,6 +747,31 @@ static struct ps2driver* find_driver(enum ps2_device_type type)
 	}
 
 	return driver;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Installs the @driver on port number @port.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool install_driver(struct ps2driver *driver, uint8_t port)
+{
+	if (driver == NULL || port > 1) {
+		error("invalid argument");
+		return false;
+	}
+
+	if (ps2_drivers[port] != NULL) {
+		error("a driver is already installed on that port");
+		return false;
+	}
+
+	ps2_drivers[port] = driver;
+
+	return true;
 }
 
 // ============================================================================
@@ -993,24 +976,21 @@ bool ps2ctrl_identify_devices(void)
 	}
 
 	if ((driver = find_driver(device_type)) == NULL) {
-		error("no driver found");
+		error("no driver found for device type (0x%x)", device_type);
 		return false;
 	}
 	info("driver found <%s>", driver->name);
 
-	//  now it's time to load the proper driver from the device type
-	if (load_driver(device_type, 0) == NULL) {
-		error("failed to load a driver");
+	if (install_driver(driver, 0) == false) {
+		error("failed to install driver <%s> on port 0", driver->name);
 		return false;
 	}
-	success("driver successfully loaded");
+	info("driver <%s> successfully installed", driver->name);
 
-	// TODO: re-enable scanning (0xF4)
+	// TODO: start the driver (enable scanning, IRQ, etc.)
 
-	//irq_clear_mask(IRQ1_KEYBOARD);
-
-	// TODO: identify second port device (if any)
 	if (!ps2ctrl_single_channel) {
+		// TODO: identify second port device (if any)
 		NOT_IMPLEMENTED();
 	}
 
