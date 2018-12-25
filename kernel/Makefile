@@ -34,6 +34,7 @@ kernel/serial.o \
 kernel/timeout.o \
 kernel/keyboard.o \
 kernel/ps2driver.o \
+kernel/log.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \
