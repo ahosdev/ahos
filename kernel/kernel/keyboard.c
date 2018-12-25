@@ -52,6 +52,64 @@ enum keyboard_response {
 // ----------------------------------------------------------------------------
 // ============================================================================
 
+/*
+ * Send the SET LED command to the keyboard. The @state parameter is a bitmask
+ * using 'keyboard_led_state' constants.
+ *
+ * WARNING: This is untested code (no way to test LED status with QEMU)
+ */
+
+bool keyboard_set_led_state(uint8_t state)
+{
+	uint8_t result;
+
+	printf("[kbd] setting led state (0x%x)\n", state);
+
+	if (state & ~(KBD_LED_SCROLL_LOCK|KBD_LED_NUMBER_LOCK|KBD_LED_CAPS_LOCK)) {
+		printf("[kbd] ERROR: invalid LED state\n");
+		return false;
+	}
+
+	if (ps2ctrl_send(0, KBD_CMD_SET_LED) == false) {
+		// retry or not ?
+		printf("[kbd] ERROR: failed to send command\n");
+		return false;
+	}
+	printf("[kbd] command 'set led' sent\n");
+
+	if (ps2ctrl_send(0, state) == false) {
+		// retry or not ?
+		printf("[kbd] ERROR: failed to send led status\n");
+		return false;
+	}
+	printf("[kbd] led status sent\n");
+
+	// we expect an 'ACK" or 'RESEND' response
+	if (ps2ctrl_recv(0, &result) == false) {
+		// retry or not ?
+		printf("[kbd] ERROR: failed to receive command\n");
+		return false;
+	}
+	printf("[kbd] received response (0x%x)\n", result);
+
+	if (result == KBD_RES_ACK) {
+		printf("[kbd] succeed\n");
+		// succeed
+		return true;
+	} else if (result == KBD_RES_RESEND) {
+		// FIXME: resend it
+		printf("[kbd] need resend\n");
+		return false; // FIXME: implement retry
+	}
+
+	printf("[kbd] unexpected response code\n");
+	return false; // FIXME: retry or give up ?
+}
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
 static bool keyboard_init(void *param)
 {
 	param = param;
