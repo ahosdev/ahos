@@ -543,6 +543,48 @@ static bool keyboard_resend_last_byte(uint8_t *last_byte)
 	return true;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Reset the keyboard and starts the self-test.
+ *
+ * NOTE: This may reset the keyboard parameters on some firmware.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool keyboard_reset_and_self_test(void)
+{
+	uint8_t result = 0;
+
+	info("starting RESET AND SELF-TEST sequence...");
+
+	if (keyboard_send(KBD_CMD_RESET_AND_SELF_TEST) == false) {
+		error("failed to send RESET AND SELF-TEST command");
+		return false;
+	}
+	dbg("sending RESET AND SELF-TEST command succeed");
+
+	if (ps2driver_read(&keyboard_driver, &result, KBD_TIMEOUT) == false) {
+		error("failed to receive self-test result");
+		return false;
+	}
+
+	if ((result == KBD_RES_SELF_TEST_FAILED0) ||
+		(result == KBD_RES_SELF_TEST_FAILED1))
+	{
+		error("self-test failed");
+		return false;
+	} else if (result != KBD_RES_SELF_TEST_PASSED) {
+		error("unexpected code (0x%x)", result);
+		return false;
+	}
+
+	success("RESET AND SELF-TEST sequence complete");
+
+	return true;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
