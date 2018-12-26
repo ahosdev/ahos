@@ -352,6 +352,21 @@ static bool keyboard_set_scan_code_set(enum keyboard_scs scs)
 	return true;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Identify the keyboard type.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool keyboard_identify(void)
+{
+	NOT_IMPLEMENTED(); // this would duplicate PS/2 controller code
+
+	return false;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
