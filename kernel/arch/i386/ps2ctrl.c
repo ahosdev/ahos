@@ -1259,7 +1259,8 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 
 /*
  * Starts drivers that has been installed. IRQ are cleared for port which have
- * an associated driver.
+ * an associated driver. In addition, the driver's send() callback is set based
+ * on the port where the driver has been installed.
  *
  * Returns true on success, false otherwise.
  */
@@ -1291,6 +1292,15 @@ bool ps2ctrl_start_drivers(void)
 		}
 		info("enabling IRQ line %u...", irq_line);
 		irq_clear_mask(irq_line);
+
+		// route the send() callback to the proper port
+		if (driver->send != NULL) {
+			warn("overwriting an existing send() callback!");
+		}
+		driver->send = (port == 0) ?
+			&ps2ctrl_send_data_first_port :
+			&ps2ctrl_send_data_second_port;
+		info("driver send() callback set");
 
 		// start the driver
 		if (driver->start == NULL) {

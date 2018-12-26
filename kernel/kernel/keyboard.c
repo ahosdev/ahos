@@ -123,6 +123,7 @@ static struct ps2driver keyboard_driver = {
 	.type	= PS2_DEVICE_KEYBOARD_MF2,
 	.start	= &keyboard_start,
 	.recv	= &keyboard_recv,
+	// .send() callback is set by the PS/2 controller during drivers start
 };
 
 // ============================================================================
