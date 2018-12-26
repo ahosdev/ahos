@@ -147,88 +147,33 @@ retry:
  * a "toggle this led" feature.
  *
  * Returns true on success, false otherwise.
- *
- * TODO: we can factorize some code here!
  */
 
 static bool keyboard_set_led(bool scroll, bool number, bool caps)
 {
-	struct ps2driver *driver = &keyboard_driver;
-	uint8_t response = 0;
-	size_t max_try = 3;
 	uint8_t led_mask = 0;
 
-	dbg("starting SET LED STATE sequence...");
+	info("starting SET LED STATE sequence...");
 
 	// I cannot validate this works because QEMU doesn't pass led status
 	warn("UNTESTED");
 	warn("UNTESTED");
 	warn("UNTESTED");
 
-	if (driver->send == NULL) {
-		error("driver cannot send command");
+	if(keyboard_send(KBD_CMD_SET_LED) == false) {
+		error("failed to send SET LED command");
 		return false;
 	}
-
-send_command:
-	if (max_try-- == 0) {
-		error("SET LED STATE sequence failed (max try)");
-		return false;
-	}
-
-	if (driver->send(KBD_CMD_SET_LED, KBD_TIMEOUT) == false) {
-		error("failed to send command");
-		goto send_command;
-	}
-	dbg("sending command succeed");
-
-	if (ps2driver_read(driver, &response, KBD_TIMEOUT) == false) {
-		error("failed to receive keyboard response");
-		goto send_command;
-	}
-	dbg("received 0x%x response from keyboard", response);
-
-	if (response == KBD_RES_ACK) {
-		dbg("received ACK");
-	} else if (response == KBD_RES_RESEND) {
-		dbg("received RESEND");
-		goto send_command;
-	} else {
-		error("unexpected response code 0x%x", response);
-		return false;
-	}
-
-	max_try = 3; // reset the try counter
-send_led_state:
-	if (max_try -- == 0) {
-		error("max try reached");
-		return false;
-	}
+	dbg("sending SET LED command succeed");
 
 	led_mask = (!!scroll << 0) | (!!number << 1) | (!!caps << 2);
-
-	if (driver->send(led_mask, KBD_TIMEOUT) == false) {
-		error("failed to send led mask");
-		goto send_led_state;
-	}
-
-	if (ps2driver_read(driver, &response, KBD_TIMEOUT) == false) {
-		error("failed to receive keyboard response");
-		goto send_led_state;
-	}
-	dbg("received 0x%x response from keyboard", response);
-
-	if (response == KBD_RES_ACK) {
-		dbg("received ACK");
-	} else if (response == KBD_RES_RESEND) {
-		dbg("received RESEND");
-		goto send_led_state;
-	} else {
-		error("unexpected response code 0x%x", response);
+	if (keyboard_send(led_mask) == false) {
+		error("failed to send new led state");
 		return false;
 	}
+	dbg("sending new led state succeed");
 
-	dbg("SET LED STATE sequence complete");
+	success("SET LED STATE sequence complete");
 	return true;
 }
 
