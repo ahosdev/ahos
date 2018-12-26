@@ -105,9 +105,13 @@ static bool keyboard_start(uint8_t irq_line)
 
 static void keyboard_recv(uint8_t data)
 {
-	info("received data = %x", data);
+	struct ps2driver *driver = &keyboard_driver;
 
-	// TODO: store it (if possible)
+	dbg("received data = %x", data);
+
+	if (ps2driver_recv(driver, data) == false) {
+		error("failed to enqueue data (0x%x), data is lost!", data);
+	}
 }
 
 // ============================================================================
