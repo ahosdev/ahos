@@ -32,6 +32,7 @@
 #include <kernel/timeout.h>
 #include <kernel/ps2driver.h>
 #include <kernel/log.h>
+#include <kernel/clock.h>
 
 #include "io.h"
 
@@ -810,11 +811,16 @@ static bool ps2ctrl_send_data(uint8_t data, size_t timeout)
 {
 	uint8_t status = 0;
 	struct timeout timeo;
+	size_t nb_tries = 0;
 
 	timeout_init(&timeo, timeout);
 	timeout_start(&timeo);
 
 	do {
+		// don't sleep on first try
+		if (nb_tries++ > 0) {
+			clock_sleep(20); // wait 20ms before retrying
+		}
 		status = inb(STATUS_PORT);
 	} while (!ps2ctrl_input_buffer_empty(status) || !timeout_expired(&timeo));
 
