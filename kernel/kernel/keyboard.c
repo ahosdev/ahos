@@ -507,6 +507,42 @@ static bool keyboard_set_default_parameter(void)
 	return true;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Resend last byte.
+ *
+ * On success the result is stored in @last_byte, otherwise it is left
+ * untouched.
+ *
+ * Return true on success, false otherwise.
+ */
+
+static bool keyboard_resend_last_byte(uint8_t *last_byte)
+{
+	uint8_t result = 0;
+
+	info("starting RESEND LAST BYTE sequence...");
+
+	UNTESTED_CODE();
+
+	if (last_byte == NULL) {
+		error("invalid argument");
+		return false;
+	}
+
+	if (keyboard_send_and_recv(KBD_CMD_RESEND_LAST_BYTE, &result) == false) {
+		error("failed to send RESEND LAST BYTE command");
+		return false;
+	}
+
+	*last_byte = result;
+
+	success("RESEND LAST BYTE sequence complete (0x%x)", result);
+
+	return true;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
