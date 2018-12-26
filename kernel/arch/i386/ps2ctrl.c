@@ -1304,7 +1304,7 @@ bool ps2ctrl_start_drivers(void)
 		driver->send = (port == 0) ?
 			&ps2ctrl_send_data_first_port :
 			&ps2ctrl_send_data_second_port;
-		info("driver send() callback set");
+		dbg("driver send() callback set");
 
 		// start the driver
 		if (driver->start == NULL) {
