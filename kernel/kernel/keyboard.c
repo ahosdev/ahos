@@ -72,6 +72,63 @@ static struct ps2driver keyboard_driver; // forward declaration
 // ============================================================================
 
 /*
+ * Sends an ECHO command to the keyboard (useful for diagnostic purposes or
+ * device remove detection).
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool keyboard_echo(void)
+{
+	uint8_t response = 0;
+	struct ps2driver *driver = &keyboard_driver;
+	size_t max_try = 3;
+
+	dbg("starting ECHO sequence...");
+
+	if (driver->send == NULL) {
+		error("driver cannot send command");
+		return false;
+	}
+
+retry:
+	if (max_try-- == 0) {
+		error("ECHO sequence failed (max try)");
+		return false;
+	}
+
+	if (driver->send(KBD_CMD_ECHO, KBD_TIMEOUT) == false) {
+		error("failed to send ECHO command");
+		goto retry;
+	}
+	dbg("sending ECHO command succeed");
+
+	if (ps2driver_read(driver, &response, KBD_TIMEOUT) == false) {
+		error("failed to receive keyboard response");
+		goto retry;
+	}
+	dbg("received 0x%x response from keyboard", response);
+
+	if (response == KBD_RES_ECHO) {
+		dbg("received ECHO for ECHO command, ECHO sequence complete");
+		return true;
+	} else if (response == KBD_RES_RESEND) {
+		dbg("received RESEND for ECHO command");
+		goto retry;
+	} else {
+		error("unexpected response code 0x%x", response);
+		return false;
+	}
+
+	/* never reached */
+	return false;
+}
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
+/*
  * Performs the keyboard starting sequence:
  *
  * - clear the receive buffer
