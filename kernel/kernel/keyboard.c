@@ -65,6 +65,16 @@ enum keyboard_response {
 
 // ----------------------------------------------------------------------------
 
+// scan code set
+enum keyboard_scs {
+	KBD_SCS_1 = 0x1,
+	KBD_SCS_2 = 0x2,
+	KBD_SCS_3 = 0x3,
+	KBD_SCS_UNKNOWN,
+};
+
+// ----------------------------------------------------------------------------
+
 static struct ps2driver keyboard_driver; // forward declaration
 
 // ============================================================================
@@ -251,6 +261,57 @@ retry:
 	}
 
 	success("ECHO sequence complete");
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Sends a GET SCAN CODE SET command to the keyboard.
+ *
+ * On success, the result is stored @scs, otherwise @scs is left untouched.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool keyboard_get_scan_code_set(enum keyboard_scs *scs)
+{
+	uint8_t scs_status = 0;
+	uint8_t response = 0;
+	size_t max_try = 3;
+
+	info("starting GET SCAN CODE SET sequence...");
+
+	if (keyboard_send(KBD_CMD_SCAN_CODE_SET) == false) {
+		error("failed to send SCAN CODE SET command");
+		return false;
+	}
+	dbg("sending SCAN CODE SET command succeed");
+
+retry:
+	if (max_try-- == 0) {
+		error("max try reached");
+		return false;
+	}
+
+	// send zero since we want to know the current scan code set
+	scs_status = 0;
+	if (keyboard_send_and_recv(scs_status, &response) == false) {
+		error("failed to send/recv data to/from keyboard");
+		return false;
+	}
+
+	if (response == KBD_RES_RESEND) {
+		warn("received RESEND");
+		goto retry;
+	} else if ((response < 1) && (response > 3)) {
+		error("unexpected response (0x%x)", response);
+		return false;
+	}
+
+	*scs = (enum keyboard_scs) response;
+
+	success("GET SCAN CODE SET sequence complete (set = %u)", response);
 	return true;
 }
 
