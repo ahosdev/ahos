@@ -8,12 +8,13 @@
  * - https://www.avrfreaks.net/sites/default/files/PS2%20Keyboard.pdf
  * - https://wiki.osdev.org/%228042%22_PS/2_Controller
  *
- * FIXME: a lots of commands doesn't seems to work while we still receive an
- * ACK. For instance setting the scan code set works but disabling scan code
- * don't. I don't know if it comes from QEMU or from the code. It should be
- * tested with another emulator (e.g. Bochs). Those commands are marked as
- * UNTESTED until I can figure out what is going on... or maybe it is because
- * we didn't configure the USB controller as advised from OSDev...
+ * WARNING: If you are running the OS from QEMU there is a lot of issues
+ * with PS/2 keyboard. For instance, the "keyboard_set_led()" function does
+ * nothing. Furthermore, the enable/disable scanning is also broken! This is
+ * tought since the driver expect scanning to be disabled before starting.
+ * You can test those feature with another emulator such as BOCHS.
+ *
+ * TODO: investigate if dealing with USB controller fixes QEMU issues
  */
 
 #include <kernel/keyboard.h>
@@ -219,6 +220,8 @@ retry:
  * we need to store the current state in driver data if we want to implement
  * a "toggle this led" feature.
  *
+ * Successfully tested with BOCHS (fail on QEMU).
+ *
  * Returns true on success, false otherwise.
  */
 
@@ -227,9 +230,6 @@ static bool keyboard_set_led(bool scroll, bool number, bool caps)
 	uint8_t led_mask = 0;
 
 	info("starting SET LED STATE sequence...");
-
-	// I cannot validate this works because QEMU doesn't pass led status
-	UNTESTED_CODE();
 
 	if(keyboard_send(KBD_CMD_SET_LED) == false) {
 		error("failed to send SET LED command");
@@ -436,14 +436,14 @@ static bool keyboard_set_typematic(enum keyboard_typematic_repeat repeat,
 /*
  * Enables scanning (keyboard will send scan code).
  *
+ * Successfully tested with BOCHS (fail on QEMU).
+ *
  * Returns true on success, false otherwise.
  */
 
 static bool keyboard_enable_scanning(void)
 {
 	info("starting ENABLE SCANNING sequence...");
-
-	UNTESTED_CODE();
 
 	if (keyboard_send(KBD_CMD_ENABLE_SCANNING) == false) {
 		error("failed to send ENABLE SCANNING command");
@@ -462,16 +462,14 @@ static bool keyboard_enable_scanning(void)
  *
  * WARNING: This MAY reset default parameters on some firmware.
  *
+ * Successfully tested with BOCHS (fail on QEMU).
+ *
  * Returns true on success, false otherwise.
  */
-
-// FIXME: This doesn't work (still receive scanning)! We received an ACK though!
 
 static bool keyboard_disable_scanning(void)
 {
 	info("starting DISABLE SCANNING sequence...");
-
-	UNTESTED_CODE();
 
 	if (keyboard_send(KBD_CMD_DISABLE_SCANNING) == false) {
 		error("failed to send DISABLE SCANNING command");
@@ -597,6 +595,10 @@ static bool keyboard_reset_and_self_test(void)
  * - send a RESET AND SELF-TEST command
  * - get current scan code
  * - enable scanning
+ *
+ * NOTE: It is expected to enter here while scanning is disabled (from the
+ * PS/2 controller). However, QEMU completely ignore this. Test this code with
+ * BOCHS.
  *
  * Returns true on success, false otherwise.
  */
