@@ -192,9 +192,7 @@ static bool keyboard_set_led(bool scroll, bool number, bool caps)
 	info("starting SET LED STATE sequence...");
 
 	// I cannot validate this works because QEMU doesn't pass led status
-	warn("UNTESTED");
-	warn("UNTESTED");
-	warn("UNTESTED");
+	UNTESTED_CODE();
 
 	if(keyboard_send(KBD_CMD_SET_LED) == false) {
 		error("failed to send SET LED command");

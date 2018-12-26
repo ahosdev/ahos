@@ -878,9 +878,7 @@ static bool ps2ctrl_send_data_second_port(uint8_t data, size_t timeout)
 	dbg("sending data (0x%x) to second PS/2 input buffer...", data);
 
 	// we cannot test this code for now as we don't have a second PS/2 device
-	warn("UNTESTED CODE");
-	warn("UNTESTED CODE");
-	warn("UNTESTED CODE");
+	UNTESTED_CODE();
 
 	if (ps2ctrl_single_channel) {
 		error("cannot send data to second port on a single channel controller");
