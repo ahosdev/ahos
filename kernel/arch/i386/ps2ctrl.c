@@ -1255,7 +1255,7 @@ bool ps2ctrl_start_drivers(void)
 		if (driver->start == NULL) {
 			warn("driver has no start function");
 			continue;
-		} else if (driver->start() == false) {
+		} else if (driver->start(irq_line) == false) {
 			error("failed to start driver <%s> on IRQ line %u",
 				driver->name, irq_line);
 			// FIXME: error handling (disable IRQ? other driver?)

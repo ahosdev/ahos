@@ -78,9 +78,14 @@ static struct ps2driver keyboard_driver; // forward declaration
  * Returns true on success, false otherwise.
  */
 
-static bool keyboard_start(void)
+static bool keyboard_start(uint8_t irq_line)
 {
-	info("starting keyboard driver <%s>...", keyboard_driver.name);
+	struct ps2driver *driver = &keyboard_driver;
+
+	info("starting keyboard driver <%s>...", driver->name);
+
+	driver->irq_line = irq_line;
+	dbg("driver uses IRQ line %u", irq_line);
 
 	// TODO: starting sequence
 
