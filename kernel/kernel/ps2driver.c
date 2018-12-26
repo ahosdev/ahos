@@ -18,6 +18,40 @@
 // ============================================================================
 
 /*
+ * Lock driver's data from IRQ handler.
+ */
+
+static inline void ps2driver_lock(struct ps2driver *driver)
+{
+	if (driver == NULL) {
+		error("invalid argument");
+		return;
+	}
+
+	irq_set_mask(driver->irq_line);
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Unlock driver's data from IRQ handler.
+ */
+
+static inline void ps2driver_unlock(struct ps2driver *driver)
+{
+	if (driver == NULL) {
+		error("invalid argument");
+		return;
+	}
+
+	irq_clear_mask(driver->irq_line);
+}
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
+/*
  * Add @data into the driver's receive queue.
  *
  * This MUST only be called in an interrupt context, hence there is no need to
