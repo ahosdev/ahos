@@ -96,11 +96,10 @@ void ps2driver_flush_recv_queue(struct ps2driver *driver)
 		error("invalid argument");
 	} else {
 		// protect writing from race by IRQ handlers
-		// TODO: only mask the "right" IRQ line to avoid global IRQ disable ?
-		disable_irq();
+		ps2driver_lock(driver);
 		driver->recv_queue_size = 0;
 		driver->recv_queue_next = 0;
-		enable_irq();
+		ps2driver_unlock(driver);
 	}
 }
 
