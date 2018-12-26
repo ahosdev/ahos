@@ -46,6 +46,7 @@ struct ps2driver {
 
 bool ps2driver_recv(struct ps2driver *driver, uint8_t data);
 void ps2driver_flush_recv_queue(struct ps2driver *driver);
+bool ps2driver_read(struct ps2driver *driver, uint8_t *data, size_t timeout);
 
 // ============================================================================
 // ----------------------------------------------------------------------------

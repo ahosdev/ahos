@@ -7,6 +7,8 @@
 #include <kernel/ps2driver.h>
 #include <kernel/log.h>
 #include <kernel/interrupt.h>
+#include <kernel/timeout.h>
+#include <kernel/clock.h>
 
 #include <string.h>
 
@@ -104,6 +106,63 @@ void ps2driver_flush_recv_queue(struct ps2driver *driver)
 		driver->recv_queue_size = 0;
 		ps2driver_unlock(driver);
 	}
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Read one byte from the head of the driver receive queue.
+ *
+ * The byte is stored in @data. If there is no data, retry until @timeout (ms)
+ * and left @data untouched.
+ *
+ * WARNING: MUST NOT be called from interrupt context because of timeout
+ * (which requires clock interrupt). Otherwise, be ready for a dead lock...
+ *
+ * Returns true on success, false otherwise.
+ */
+
+bool ps2driver_read(struct ps2driver *driver, uint8_t *data, size_t timeout)
+{
+	struct timeout timeo;
+	size_t size = 0;
+	size_t nb_tries = 0;
+
+	if (driver == NULL || data == NULL) {
+		error("invalid argument");
+		return false;
+	}
+
+	timeout_init(&timeo, timeout);
+	timeout_start(&timeo);
+
+	do {
+		// don't sleep on first try
+		if (nb_tries++ > 0) {
+			clock_sleep(20); // wait 20ms before retrying
+		}
+		ps2driver_lock(driver);
+		size = driver->recv_queue_size;
+		ps2driver_unlock(driver);
+	} while ((size == 0) || !timeout_expired(&timeo));
+
+	if (size == 0) {
+		error("no data available (timeout)");
+		return false;
+	}
+
+	ps2driver_lock(driver);
+	*data = driver->recv_queue[driver->recv_queue_head];
+	driver->recv_queue_head++;
+	if (driver->recv_queue_head == PS2_DRIVER_MAX_RECV) {
+		driver->recv_queue_head = 0;
+	}
+	driver->recv_queue_size--;
+	ps2driver_unlock(driver);
+
+	dbg("got data = 0x%x", *data);
+
+	return true;
 }
 
 // ============================================================================
