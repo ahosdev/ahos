@@ -1016,7 +1016,7 @@ void ps2ctrl_irq1_handler(void)
 
 	// no need to check 'output' status in Status Register (we come from IRQ)
 	data = inb(DATA_PORT);
-	info("IRQ1 handler: receveid data 0x%x", data);
+	//info("IRQ1 handler: receveid data 0x%x", data); // debug only
 
 	if (ps2_irq_handlers[0] == NULL) {
 		error("IRQ1 does not have an associated handler, data is lost!");
@@ -1047,7 +1047,7 @@ void ps2ctrl_irq12_handler(void)
 
 	// no need to check 'output' status in Status Register (we come from IRQ)
 	data = inb(DATA_PORT);
-	info("IRQ12 handler: receveid data 0x%x", data);
+	//info("IRQ12 handler: receveid data 0x%x", data); // debug only
 
 	if (ps2_irq_handlers[1] == NULL) {
 		error("IRQ12 does not have an associated handler, data is lost!");
@@ -1219,41 +1219,50 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 // ----------------------------------------------------------------------------
 
 /*
- * Starts drivers that has been installed.
+ * Starts drivers that has been installed. IRQ are cleared for port which have
+ * an associated driver.
  *
  * Returns true on success, false otherwise.
  */
 
 bool ps2ctrl_start_drivers(void)
 {
-	size_t port = 0;
-	struct ps2driver *driver = NULL;
-
 	if (ps2ctrl_initialized == false) {
 		error("PS/2 controller isn't initialized");
 		return false;
 	}
 
 	// there is only two possible port on a i8042.
-	for (port = 0; port < 2; ++port) {
-		driver = ps2_drivers[port];
+	for (size_t port = 0; port < 2; ++port) {
+		uint8_t irq_line = port == 0 ? IRQ1_KEYBOARD : IRQ12_PS2_MOUSE;
+		struct ps2driver *driver = ps2_drivers[port];
+
 		if (driver == NULL) {
 			info("no driver installed on port %u, skipping...", port);
 			continue;
 		}
 
+		// setup IRQ before starting the driver (it eventually needs it)
+		if (driver->recv == NULL) {
+			warn("driver <%s> does not have an IRQ handler", driver->name);
+		} else {
+			ps2_irq_handlers[port] = driver->recv;
+		}
+		info("enabling IRQ line %u...", irq_line);
+		irq_clear_mask(irq_line);
+
+		// start the driver
 		if (driver->start == NULL) {
 			warn("driver has no start function");
+			continue;
+		} else if (driver->start() == false) {
+			error("failed to start driver <%s> on IRQ line %u",
+				driver->name, irq_line);
+			// FIXME: error handling (disable IRQ? other driver?)
+			return false;
 		} else {
-			uint8_t irq_line = port == 0 ? IRQ1_KEYBOARD : IRQ12_PS2_MOUSE;
-			if (driver->start(irq_line) == false) {
-				error("failed to start driver <%s> on IRQ line %u",
-					driver->name, irq_line);
-				return false;
-			} else {
-				success("starting driver <%s> on IRQ line %u succeed",
-					driver->name, irq_line);
-			}
+			info("starting driver <%s> with IRQ line %u succeed",
+				driver->name, irq_line);
 		}
 	}
 
