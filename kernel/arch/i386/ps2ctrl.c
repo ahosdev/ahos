@@ -103,10 +103,9 @@ enum ctrl_command {
 
 #define PS2CTRL_MAX_DRIVERS 4
 
-// FIXME: place holder until we have a memory allocator
-static struct ps2driver drivers[PS2CTRL_MAX_DRIVERS];
 // true if a driver is registered in a slot
 static bool registered_drivers[PS2CTRL_MAX_DRIVERS];
+static struct ps2driver* drivers[PS2CTRL_MAX_DRIVERS];
 
 static bool ps2ctrl_initialized = false;
 static bool ps2ctrl_single_channel = true;
@@ -743,11 +742,11 @@ static struct ps2driver* find_driver(enum ps2_device_type type)
 	}
 
 	for (size_t slot = 0; slot < PS2CTRL_MAX_DRIVERS; ++slot) {
-		if (registered_drivers[slot] && drivers[slot].type == type) {
+		if (registered_drivers[slot] && drivers[slot]->type == type) {
 			if (driver != NULL) {
 				warn("found another driver candidate for this device\n");
 			} else {
-				driver = &drivers[slot];
+				driver = drivers[slot];
 			}
 		}
 	}
@@ -1188,7 +1187,10 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 	for (slot = 0; slot < PS2CTRL_MAX_DRIVERS; ++slot) {
 		if (registered_drivers[slot] == false) {
 			continue;
-		} else if (!memcmp(driver->name, drivers[slot].name, sizeof(drivers[slot].name))) {
+		} else if (driver == drivers[slot]) {
+			warn("this driver is already registered");
+			return false;
+		} else if (!memcmp(driver->name, drivers[slot]->name, sizeof(drivers[slot]->name))) {
 			// FIXME: use strcmp() instead of memcmp()
 			warn("a driver with that name is already registred");
 			return false;
@@ -1208,7 +1210,7 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 	}
 
 	// everything is fine, register it.
-	memcpy(&drivers[slot], driver, sizeof(drivers[slot]));
+	drivers[slot] = driver;
 	registered_drivers[slot] = true;
 
 	success("driver <%s> registered at slot %u", driver->name, slot);
@@ -1231,6 +1233,8 @@ bool ps2ctrl_start_drivers(void)
 		error("PS/2 controller isn't initialized");
 		return false;
 	}
+
+	info("starting PS/2 drivers...");
 
 	// there is only two possible port on a i8042.
 	for (size_t port = 0; port < 2; ++port) {
@@ -1266,9 +1270,10 @@ bool ps2ctrl_start_drivers(void)
 		}
 	}
 
+	success("PS/2 drivers successfully started");
+
 	return true;
 }
-
 
 // ============================================================================
 // ----------------------------------------------------------------------------
