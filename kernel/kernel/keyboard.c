@@ -72,6 +72,71 @@ static struct ps2driver keyboard_driver; // forward declaration
 // ============================================================================
 
 /*
+ * Helper to sends @data byte and receive response to the keyboard.
+ *
+ * The keyboard always responds with an ACK (0xFA) or RESEND (0xFE) after
+ * receiving a byte.
+ *
+ * The only exceptions being the ECHO/RESEND commands which have a different
+ * "positive answer". To keep the interface simple (one parameter) they don't
+ * use this helper.
+ *
+ * Also, some commands (Identify keyboard, get scan code, self-test) needs to
+ * receive additional data after a ACK. Those data must be catch and handled
+ * from the command directly.
+ *
+ * Returns true on success (received ACK), false otherwise (max try reached,
+ * unknown response).
+ */
+
+static bool keyboard_send(uint8_t data)
+{
+	struct ps2driver *driver = &keyboard_driver;
+	uint8_t response = 0;
+	size_t max_try = 3;
+
+	dbg("sending 0x%x byte", data);
+
+	if (driver->send == NULL) {
+		error("driver cannot send data");
+		return false;
+	}
+
+retry:
+	if (max_try-- == 0) {
+		error("max try reached");
+		return false;
+	}
+
+	if (driver->send(data, KBD_TIMEOUT) == false) {
+		warn("failed to send byte");
+		goto retry;
+	}
+	dbg("sending byte succeed");
+
+	if (ps2driver_read(driver, &response, KBD_TIMEOUT) == false) {
+		warn("failed to receive response");
+		goto retry;
+	}
+	dbg("received 0x%x response", response);
+
+	if (response == KBD_RES_RESEND) {
+		dbg("received RESEND");
+		goto retry;
+	} else if (response != KBD_RES_ACK) {
+		error("unexpected response received (0x%x)", response);
+		return false; // give up now, this could indicate a severe error
+	}
+
+	dbg("received ACK");
+	return true;
+}
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
+/*
  * Sends a SET LED STATE command to the keyboard.
  *
  * Leds are set if parameters @scroll, @number or @caps are true, otherwise
