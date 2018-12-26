@@ -9,6 +9,11 @@
  * - A20 gate handling
  * - system reset
  *
+ * WARNING: The "input/output" buffer are from the controller/devices
+ * perspective. In other words, writing to controller/devices means writing
+ * to the "input" buffer. On the other hand, reading from the controller/devices
+ * means reading from the "output" buffer.
+ *
  * Documentation:
  * - http://www.diakom.ru/el/elfirms/datashts/Smsc/42w11.pdf (datasheet)
  * - https://wiki.osdev.org/%228042%22_PS/2_Controller
@@ -188,6 +193,8 @@ static bool wait_ctrl_output_buffer_ready(void)
  * Send a command to the controller. If there is two bytes, then @data must not
  * be NULL. On the other hand, if the command expect a response, @response must
  * not be NULL.
+ *
+ * Returns true on success, false otherwise.
  */
 
 static bool __send_ctrl_cmd(enum ctrl_command cmd, uint8_t *data, uint8_t *response)
@@ -776,6 +783,116 @@ static bool install_driver(struct ps2driver *driver, uint8_t port)
 
 	ps2_drivers[port] = driver;
 
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+static inline bool ps2ctrl_input_buffer_empty(uint8_t status)
+{
+	return ((status & SR_INPUT_BUFFER_STATUS) == 0);
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Send @data byte to the data port.
+ *
+ * This will fail if the input buffer is still full after @timeout milleseconds.
+ *
+ * NOTE: It does not know if the data will ends up in the controller, first or
+ * second port. It needs to be configured (via controller command) before hand.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool ps2ctrl_send_data(uint8_t data, size_t timeout)
+{
+	uint8_t status = 0;
+	struct timeout timeo;
+
+	timeout_init(&timeo, timeout);
+	timeout_start(&timeo);
+
+	do {
+		status = inb(STATUS_PORT);
+	} while (!ps2ctrl_input_buffer_empty(status) || !timeout_expired(&timeo));
+
+	if (!ps2ctrl_input_buffer_empty(status)) {
+		error("failed to send data: input buffer is full (timeout)");
+		return false;
+	}
+
+	outb(DATA_PORT, data);
+
+	// XXX: it's pointless to test the input buffer status right here. It can
+	// be either full (unprocessed yet or re-filled by another thread) or empty
+	// (already processed) when we test the status register.
+
+	dbg("sending '0x%x' byte to input buffer succeed", data);
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Send @data byte to the first PS/2 input buffer.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool ps2ctrl_send_data_first_port(uint8_t data, size_t timeout)
+{
+	dbg("sending data (0x%x) to first PS/2 input buffer...", data);
+
+	if (ps2ctrl_send_data(data, timeout) == false) {
+		error("failed to send data to the first PS/2 input buffer");
+		return false;
+	}
+
+	dbg("sending data (0x%x) to first PS/2 input buffer succeed", data);
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Send @data byte to the second PS/2 input buffer.
+ *
+ * Unlike the first PS/2 input buffer, it needs to issue a "write next byte to
+ * second PS/2 port" command before sending data.
+ *
+ * WARNING: This code is untested for now (don't have a second device).
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool ps2ctrl_send_data_second_port(uint8_t data, size_t timeout)
+{
+	dbg("sending data (0x%x) to second PS/2 input buffer...", data);
+
+	// we cannot test this code for now as we don't have a second PS/2 device
+	warn("UNTESTED CODE");
+	warn("UNTESTED CODE");
+	warn("UNTESTED CODE");
+
+	if (ps2ctrl_single_channel) {
+		error("cannot send data to second port on a single channel controller");
+		return false;
+	}
+
+	// TODO: the timeout must be parametrable
+	if (send_ctrl_cmd(WRITE_BYTE_SECOND_PS2_INPUT_PORT) == false) {
+		error("failed to send 'write to second input buffer' command");
+		return false;
+	}
+
+	if (ps2ctrl_send_data(data, timeout) == false) {
+		error("failed to send data to the second PS/2 input buffer");
+		return false;
+	}
+
+	dbg("sending data (0x%x) to second PS/2 input buffer succeed", data);
 	return true;
 }
 
