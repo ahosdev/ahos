@@ -107,7 +107,7 @@ static void keyboard_recv(uint8_t data)
 {
 	struct ps2driver *driver = &keyboard_driver;
 
-	dbg("received data = %x", data);
+	dbg("[IRQ] received data = 0x%x", data);
 
 	if (ps2driver_recv(driver, data) == false) {
 		error("failed to enqueue data (0x%x), data is lost!", data);
