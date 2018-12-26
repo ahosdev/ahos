@@ -58,14 +58,62 @@ enum keyboard_response {
 	KBD_RES_ERROR1				= 0xFF, // key detection error or internal buffer overrun
 };
 
+// ----------------------------------------------------------------------------
+
+static struct ps2driver keyboard_driver; // forward declaration
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
+/*
+ * Performs the keyboard starting sequence:
+ *
+ * - clear the receive buffer
+ * - disable scanning
+ * - send a RESET AND SELF-TEST command
+ * - get current scan code
+ * - enable scanning
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool keyboard_start(void)
+{
+	info("starting keyboard driver <%s>...", keyboard_driver.name);
+
+	// TODO: starting sequence
+
+	success("keyboard driver started");
+
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Receives data from the IRQ handler.
+ *
+ * WARNING: Because of the interrupt context, this has to return as soon as
+ * possible.
+ */
+
+static void keyboard_recv(uint8_t data)
+{
+	info("received data = %x", data);
+
+	// TODO: store it (if possible)
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
 
 static struct ps2driver keyboard_driver = {
-	.name = "KEYBOARD_MF2",
-	.type = PS2_DEVICE_KEYBOARD_MF2,
-	.start = NULL,
+	.name	= "KEYBOARD_MF2",
+	.type	= PS2_DEVICE_KEYBOARD_MF2,
+	.start	= &keyboard_start,
+	.recv	= &keyboard_recv,
 };
 
 // ============================================================================
@@ -80,19 +128,19 @@ static struct ps2driver keyboard_driver = {
 
 bool keyboard_init(void)
 {
-	info("initializing...");
+	info("keyboard driver initialization...");
 
 	if (ps2ctrl_register_driver(&keyboard_driver) == false) {
 		error("driver registration failed");
 		goto fail;
 	}
 
-	success("initialization complete");
+	success("keyboard driver initialization complete");
 
 	return true;
 
 fail:
-	error("keyboard initialization failed");
+	error("keyboard driver initialization failed");
 	return false;
 }
 
