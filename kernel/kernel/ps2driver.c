@@ -6,6 +6,7 @@
 
 #include <kernel/ps2driver.h>
 #include <kernel/log.h>
+#include <kernel/interrupt.h>
 
 #include <string.h>
 
@@ -47,6 +48,26 @@ bool ps2driver_recv(struct ps2driver *driver, uint8_t data)
 	driver->recv_queue_size++;
 
 	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Flush the driver receive queue.
+ */
+
+void ps2driver_flush_recv_queue(struct ps2driver *driver)
+{
+	if (driver == NULL) {
+		error("invalid argument");
+	} else {
+		// protect writing from race by IRQ handlers
+		// TODO: only mask the "right" IRQ line to avoid global IRQ disable ?
+		disable_irq();
+		driver->recv_queue_size = 0;
+		driver->recv_queue_next = 0;
+		enable_irq();
+	}
 }
 
 // ============================================================================
