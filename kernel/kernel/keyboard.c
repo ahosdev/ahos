@@ -142,16 +142,8 @@ retry:
 
 static bool keyboard_send(uint8_t data)
 {
-	struct ps2driver *driver = &keyboard_driver;
 	uint8_t response = 0;
 	size_t max_try = 3;
-
-	dbg("sending 0x%x byte", data);
-
-	if (driver->send == NULL) {
-		error("driver cannot send data");
-		return false;
-	}
 
 retry:
 	if (max_try-- == 0) {
@@ -159,17 +151,10 @@ retry:
 		return false;
 	}
 
-	if (driver->send(data, KBD_TIMEOUT) == false) {
-		warn("failed to send byte");
-		goto retry;
+	if (keyboard_send_and_recv(data, &response) == false) {
+		error("failed to send/recv data to/from keyboard");
+		return false;
 	}
-	dbg("sending byte succeed");
-
-	if (ps2driver_read(driver, &response, KBD_TIMEOUT) == false) {
-		warn("failed to receive response");
-		goto retry;
-	}
-	dbg("received 0x%x response", response);
 
 	if (response == KBD_RES_RESEND) {
 		dbg("received RESEND");
@@ -234,21 +219,19 @@ static bool keyboard_set_led(bool scroll, bool number, bool caps)
  * Sends an ECHO command to the keyboard (useful for diagnostic purposes or
  * device remove detection).
  *
+ * NOTE: It doesn't use the keyboard_send() helper since the "positive answer"
+ * is an ECHO (0xEE) instead of an ACK (0xFA)... and I don't want to add an
+ * extra parameter to keyboard_send() (KISS).
+ *
  * Returns true on success, false otherwise.
  */
 
 static bool keyboard_echo(void)
 {
 	uint8_t response = 0;
-	struct ps2driver *driver = &keyboard_driver;
 	size_t max_try = 3;
 
-	dbg("starting ECHO sequence...");
-
-	if (driver->send == NULL) {
-		error("driver cannot send command");
-		return false;
-	}
+	info("starting ECHO sequence...");
 
 retry:
 	if (max_try-- == 0) {
@@ -256,31 +239,21 @@ retry:
 		return false;
 	}
 
-	if (driver->send(KBD_CMD_ECHO, KBD_TIMEOUT) == false) {
-		error("failed to send ECHO command");
-		goto retry;
-	}
-	dbg("sending ECHO command succeed");
-
-	if (ps2driver_read(driver, &response, KBD_TIMEOUT) == false) {
-		error("failed to receive keyboard response");
-		goto retry;
-	}
-	dbg("received 0x%x response from keyboard", response);
-
-	if (response == KBD_RES_ECHO) {
-		dbg("received ECHO for ECHO command, ECHO sequence complete");
-		return true;
-	} else if (response == KBD_RES_RESEND) {
-		dbg("received RESEND for ECHO command");
-		goto retry;
-	} else {
-		error("unexpected response code 0x%x", response);
+	if (keyboard_send_and_recv(KBD_CMD_ECHO, &response) == false) {
+		error("failed to send/recv data to/from keyboard");
 		return false;
 	}
 
-	/* never reached */
-	return false;
+	if (response == KBD_RES_RESEND) {
+		warn("received RESEND");
+		goto retry;
+	} else if (response != KBD_RES_ECHO) {
+		error("unexpected response received (0x%x)", response);
+		return false; // could indicate a severe error
+	}
+
+	success("ECHO sequence complete");
+	return true;
 }
 
 // ============================================================================
