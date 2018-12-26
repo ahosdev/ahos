@@ -267,7 +267,7 @@ retry:
 // ----------------------------------------------------------------------------
 
 /*
- * Sends a GET SCAN CODE SET command to the keyboard.
+ * Get the keyboard scan code set.
  *
  * On success, the result is stored @scs, otherwise @scs is left untouched.
  *
@@ -312,6 +312,43 @@ retry:
 	*scs = (enum keyboard_scs) response;
 
 	success("GET SCAN CODE SET sequence complete (set = %u)", response);
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Set the keyboard scan code set @scs.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool keyboard_set_scan_code_set(enum keyboard_scs scs)
+{
+	info("starting SET SCAN CODE SET (set = %d) sequence...", scs);
+
+	if (scs == KBD_SCS_UNKNOWN) {
+		error("invalid argument");
+		return false;
+	}
+
+	if (scs != KBD_SCS_2) {
+		NOT_IMPLEMENTED(); // we only handle scan code set 2 for now (ever?)
+		return false;
+	}
+
+	if (keyboard_send(KBD_CMD_SCAN_CODE_SET) == false) {
+		error("failed to send SCAN CODE SET command");
+		return false;
+	}
+	dbg("sending SCAN CODE SET command succeed");
+
+	if (keyboard_send((uint8_t)scs) == false) {
+		error("failed to send the new scan code set");
+		return false;
+	}
+
+	success("SET SCAN CODE SET sequence complete (set = %d)", scs);
 	return true;
 }
 
