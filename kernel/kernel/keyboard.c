@@ -6,7 +6,7 @@
  * Documentation:
  * - https://wiki.osdev.org/PS/2_Keyboard
  * - https://www.avrfreaks.net/sites/default/files/PS2%20Keyboard.pdf
- * - https://wiki.osdev.org/%228042%22_PS/2_Controller#Step_10:_Reset_Devices
+ * - https://wiki.osdev.org/%228042%22_PS/2_Controller
  */
 
 #include <kernel/keyboard.h>
@@ -70,6 +70,57 @@ static struct ps2driver keyboard_driver; // forward declaration
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
+
+/*
+ * Sends the @data byte and receive a response to/from the keyboard.
+ *
+ * On success, the response is stored in @response. Otherwise, @response is
+ * untouched.
+ *
+ * Returns true on success, false otherwise (max try, timeout).
+ */
+
+static bool keyboard_send_and_recv(uint8_t data, uint8_t *response)
+{
+	struct ps2driver *driver = &keyboard_driver;
+	uint8_t res; // stack variable to let @response untouched on error
+	size_t max_try = 3;
+
+	dbg("sending 0x%x byte", data);
+
+	if (driver->send == NULL) {
+		error("driver cannot send data");
+		return false;
+	}
+
+	if (response == NULL) {
+		error("invalid argument");
+		return false;
+	}
+
+retry:
+	if (max_try-- == 0) {
+		error("max try reached");
+		return false;
+	}
+
+	if (driver->send(data, KBD_TIMEOUT) == false) {
+		warn("failed to send byte");
+		goto retry;
+	}
+	dbg("sending byte succeed");
+
+	if (ps2driver_read(driver, &res, KBD_TIMEOUT) == false) {
+		warn("failed to receive response");
+		goto retry;
+	}
+	dbg("received 0x%x response", res);
+
+	*response = res;
+	return true;
+}
+
+// ----------------------------------------------------------------------------
 
 /*
  * Helper to sends @data byte and receive response to the keyboard.
