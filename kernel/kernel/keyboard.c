@@ -472,6 +472,28 @@ static bool keyboard_disable_scanning(void)
 	return true;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Set default parameters.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool keyboard_set_default_parameter(void)
+{
+	info("starting SET DEFAULT PARAMETER sequence...");
+
+	if (keyboard_send(KBD_CMD_SET_DEFAULT_PARAMS) == false) {
+		error("failed to send SET DEFAULT PARAMETER command");
+		return false;
+	}
+
+	success("SET DEFAULT PARAMETER sequence complete");
+
+	return true;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
