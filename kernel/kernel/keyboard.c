@@ -7,6 +7,13 @@
  * - https://wiki.osdev.org/PS/2_Keyboard
  * - https://www.avrfreaks.net/sites/default/files/PS2%20Keyboard.pdf
  * - https://wiki.osdev.org/%228042%22_PS/2_Controller
+ *
+ * FIXME: a lots of commands doesn't seems to work while we still receive an
+ * ACK. For instance setting the scan code set works but disabling scan code
+ * don't. I don't know if it comes from QEMU or from the code. It should be
+ * tested with another emulator (e.g. Bochs). Those commands are marked as
+ * UNTESTED until I can figure out what is going on... or maybe it is because
+ * we didn't configure the USB controller as advised from OSDev...
  */
 
 #include <kernel/keyboard.h>
@@ -436,6 +443,8 @@ static bool keyboard_enable_scanning(void)
 {
 	info("starting ENABLE SCANNING sequence...");
 
+	UNTESTED_CODE();
+
 	if (keyboard_send(KBD_CMD_ENABLE_SCANNING) == false) {
 		error("failed to send ENABLE SCANNING command");
 		return false;
@@ -462,6 +471,8 @@ static bool keyboard_disable_scanning(void)
 {
 	info("starting DISABLE SCANNING sequence...");
 
+	UNTESTED_CODE();
+
 	if (keyboard_send(KBD_CMD_DISABLE_SCANNING) == false) {
 		error("failed to send DISABLE SCANNING command");
 		return false;
@@ -483,6 +494,8 @@ static bool keyboard_disable_scanning(void)
 static bool keyboard_set_default_parameter(void)
 {
 	info("starting SET DEFAULT PARAMETER sequence...");
+
+	UNTESTED_CODE();
 
 	if (keyboard_send(KBD_CMD_SET_DEFAULT_PARAMS) == false) {
 		error("failed to send SET DEFAULT PARAMETER command");
