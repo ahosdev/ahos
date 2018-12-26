@@ -35,8 +35,9 @@ struct ps2driver {
 	enum ps2_device_type type;
 	uint8_t irq_line; // set during start()
 	uint8_t recv_queue[PS2_DRIVER_MAX_RECV]; // circular
-	size_t recv_queue_size; // nb elements in the queue
-	size_t recv_queue_next; // index of the first element in the queue
+	size_t recv_queue_head; // index of the first element, always wrapped!
+	size_t recv_queue_last; // index of last element, always wrapped!
+	size_t recv_queue_size; // nb of elements in the queue
 	bool (*start)(uint8_t irq_line); // called by PS2 controller
 	void (*recv)(uint8_t data); // called from IRQ handler
 };

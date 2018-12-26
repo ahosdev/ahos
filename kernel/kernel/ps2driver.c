@@ -19,6 +19,8 @@
 
 /*
  * Lock driver's data from IRQ handler.
+ *
+ * WARNING: this method only works on single processor, single task system.
  */
 
 static inline void ps2driver_lock(struct ps2driver *driver)
@@ -35,6 +37,8 @@ static inline void ps2driver_lock(struct ps2driver *driver)
 
 /*
  * Unlock driver's data from IRQ handler.
+ *
+ * WARNING: this method only works on single processor, single task system.
  */
 
 static inline void ps2driver_unlock(struct ps2driver *driver)
@@ -62,8 +66,6 @@ static inline void ps2driver_unlock(struct ps2driver *driver)
 
 bool ps2driver_recv(struct ps2driver *driver, uint8_t data)
 {
-	size_t offset = 0;
-
 	if (driver == NULL) {
 		error("invalid parameter");
 		return false;
@@ -74,11 +76,11 @@ bool ps2driver_recv(struct ps2driver *driver, uint8_t data)
 		return false;
 	}
 
-	offset  = driver->recv_queue_next + driver->recv_queue_size;
-	offset %= PS2_DRIVER_MAX_RECV;
+	driver->recv_queue[driver->recv_queue_last++] = data;
+	if (driver->recv_queue_last == PS2_DRIVER_MAX_RECV) {
+		driver->recv_queue_last = 0;
+	}
 
-	driver->recv_queue[offset] = data;
-	driver->recv_queue_next++;
 	driver->recv_queue_size++;
 
 	return true;
@@ -97,8 +99,9 @@ void ps2driver_flush_recv_queue(struct ps2driver *driver)
 	} else {
 		// protect writing from race by IRQ handlers
 		ps2driver_lock(driver);
+		driver->recv_queue_head = 0;
+		driver->recv_queue_last = 0;
 		driver->recv_queue_size = 0;
-		driver->recv_queue_next = 0;
 		ps2driver_unlock(driver);
 	}
 }
