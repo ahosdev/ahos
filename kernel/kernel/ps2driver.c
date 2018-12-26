@@ -128,6 +128,8 @@ bool ps2driver_read(struct ps2driver *driver, uint8_t *data, size_t timeout)
 	size_t size = 0;
 	size_t nb_tries = 0;
 
+	dbg("reading data from receive queue");
+
 	if (driver == NULL || data == NULL) {
 		error("invalid argument");
 		return false;
