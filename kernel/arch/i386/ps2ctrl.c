@@ -117,6 +117,12 @@ static struct ps2driver * ps2_drivers[2] = {
 	NULL, // second port
 };
 
+typedef void (*ps2_irq_handler)(uint8_t data);
+static ps2_irq_handler ps2_irq_handlers[2] = {
+	NULL, // first port
+	NULL, // second port
+};
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -1012,7 +1018,11 @@ void ps2ctrl_irq1_handler(void)
 	data = inb(DATA_PORT);
 	info("IRQ1 handler: receveid data 0x%x", data);
 
-	// FIXME: handle it
+	if (ps2_irq_handlers[0] == NULL) {
+		error("IRQ1 does not have an associated handler, data is lost!");
+	} else {
+		ps2_irq_handlers[0](data);
+	}
 
 	irq_send_eoi(IRQ1_KEYBOARD);
 }
@@ -1021,19 +1031,29 @@ void ps2ctrl_irq1_handler(void)
 
 void ps2ctrl_irq12_handler(void)
 {
+	uint8_t data = 0;
+
 	if (!ps2ctrl_initialized) {
 		error("PS/2 controller not initialized!");
 		abort();
 	}
 
 	if (!ps2ctrl_single_channel) {
+		// XXX: this should never happend since the IRQ is cleared during
+		// driver start up.
 		error("PS/2 controller has a single channel!");
 		abort();
 	}
 
-	// FIXME: handle it
+	// no need to check 'output' status in Status Register (we come from IRQ)
+	data = inb(DATA_PORT);
+	info("IRQ12 handler: receveid data 0x%x", data);
 
-	NOT_IMPLEMENTED();
+	if (ps2_irq_handlers[1] == NULL) {
+		error("IRQ12 does not have an associated handler, data is lost!");
+	} else {
+		ps2_irq_handlers[1](data);
+	}
 
 	irq_send_eoi(IRQ12_PS2_MOUSE);
 }
