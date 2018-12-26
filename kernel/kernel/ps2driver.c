@@ -70,7 +70,7 @@ bool ps2driver_recv(struct ps2driver *driver, uint8_t data)
 	}
 
 	if (driver->recv_queue_size == PS2_DRIVER_MAX_RECV) {
-		error("receive queue is full");
+		warn("<%s> receive queue is full", driver->name);
 		return false;
 	}
 
