@@ -424,6 +424,54 @@ static bool keyboard_set_typematic(enum keyboard_typematic_repeat repeat,
 	return true;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Enables scanning (keyboard will send scan code).
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool keyboard_enable_scanning(void)
+{
+	info("starting ENABLE SCANNING sequence...");
+
+	if (keyboard_send(KBD_CMD_ENABLE_SCANNING) == false) {
+		error("failed to send ENABLE SCANNING command");
+		return false;
+	}
+
+	success("ENABLE SCANNING sequence complete");
+
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Disables scanning (keyboard won't send scan code).
+ *
+ * WARNING: This MAY reset default parameters on some firmware.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+// FIXME: This doesn't work (still receive scanning)! We received an ACK though!
+
+static bool keyboard_disable_scanning(void)
+{
+	info("starting DISABLE SCANNING sequence...");
+
+	if (keyboard_send(KBD_CMD_DISABLE_SCANNING) == false) {
+		error("failed to send DISABLE SCANNING command");
+		return false;
+	}
+
+	success("DISABLE SCANNING sequence complete");
+
+	return true;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
