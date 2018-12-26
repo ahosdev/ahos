@@ -75,6 +75,26 @@ enum keyboard_scs {
 
 // ----------------------------------------------------------------------------
 
+enum keyboard_typematic_repeat {
+	KBD_TMT_REPEAT_SLOW		= 0b11111, // 2 Hz
+	KBK_TMT_REPEAT_NORMAL	= 0b01000, // 14 Hz (?)
+	KBD_TMT_REPEAT_FAST		= 0b00000, // 30 Hz
+};
+
+// ----------------------------------------------------------------------------
+
+enum keyboard_typematic_delay {
+	// in milliseconds
+	KBD_TMT_DELAY_250	= 0b00,
+	KBD_TMT_DELAY_500	= 0b01,
+	KBD_TMT_DELAY_750	= 0b10,
+	KBD_TMT_DELAY_1000	= 0b11,
+};
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
 static struct ps2driver keyboard_driver; // forward declaration
 
 // ============================================================================
@@ -365,6 +385,43 @@ static bool keyboard_identify(void)
 	NOT_IMPLEMENTED(); // this would duplicate PS/2 controller code
 
 	return false;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Set typematic rate and delay.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+static bool keyboard_set_typematic(enum keyboard_typematic_repeat repeat,
+								   enum keyboard_typematic_delay delay)
+{
+	uint8_t typematic = 0;
+
+	info("starting SET TYPEMATIC sequence...");
+
+	// XXX: it's pretty hard to test typematic "visually". Let's check later
+	// once we have a TUI/GUI.
+	UNTESTED_CODE();
+
+	if (keyboard_send(KBD_CMD_SET_TYPEMATIC) == false) {
+		error("failed to send SET TYPEMATIC command");
+		return false;
+	}
+	dbg("sending SET TYPEMATIC comamnd succeed");
+
+	typematic = (uint8_t) repeat | ((uint8_t)delay << 5);
+
+	if (keyboard_send(typematic) == false) {
+		error("failed to send new typematic");
+		return false;
+	}
+
+	success("SET TYPEMATIC sequence complete");
+
+	return true;
 }
 
 // ============================================================================
