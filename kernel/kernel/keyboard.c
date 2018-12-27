@@ -315,13 +315,10 @@ retry:
  * Returns true on success, false otherwise.
  */
 
-// FIXME: this code is wrong now (was true for buggy QEMU 2.0.0)
-
 static bool keyboard_get_scan_code_set(enum keyboard_scs *scs)
 {
+	struct ps2driver *driver = &keyboard_driver;
 	uint8_t scs_status = 0;
-	uint8_t response = 0;
-	size_t max_try = 3;
 
 	info("starting GET SCAN CODE SET sequence...");
 
@@ -331,30 +328,28 @@ static bool keyboard_get_scan_code_set(enum keyboard_scs *scs)
 	}
 	dbg("sending SCAN CODE SET command succeed");
 
-retry:
-	if (max_try-- == 0) {
-		error("max try reached");
-		return false;
-	}
-
 	// send zero since we want to know the current scan code set
-	scs_status = 0;
-	if (keyboard_send_and_recv(scs_status, &response) == false) {
-		error("failed to send/recv data to/from keyboard");
+	if (keyboard_send(0) == false) {
+		error("failed to ask the scan code set");
 		return false;
 	}
 
-	if (response == KBD_RES_RESEND) {
-		warn("received RESEND");
-		goto retry;
-	} else if ((response < 1) && (response > 3)) {
-		error("unexpected response (0x%x)", response);
+	if (ps2driver_read(driver, &scs_status, KBD_TIMEOUT) == false) {
+		error("did not receive current scan code set");
 		return false;
 	}
 
-	*scs = (enum keyboard_scs) response;
+	if (scs_status != KBD_SCS_1 &&
+		scs_status != KBD_SCS_2 &&
+		scs_status != KBD_SCS_3)
+	{
+		error("unknown scan code set");
+		return false;
+	}
 
-	success("GET SCAN CODE SET sequence complete (set = %u)", response);
+	*scs = (enum keyboard_scs) scs_status;
+
+	success("GET SCAN CODE SET sequence complete (set = %u)", scs_status);
 	return true;
 }
 
