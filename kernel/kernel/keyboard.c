@@ -125,6 +125,8 @@ enum keyboard_state {
 
 // ----------------------------------------------------------------------------
 
+// NOTE: this is "keycode", not a direct ASCII translation. For instance, you
+// won't find "underscore" here since it is a combination of HYPHEN+SHIFT keys.
 enum keycode {
 	KEY_UNK,
 	// alpha
@@ -133,6 +135,9 @@ enum keycode {
 	KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z,
 	// num
 	KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9,
+	// others non-special key
+	KEY_BKQUOTE, KEY_HYPEN, KEY_EQUAL, KEY_BKSLASH, KEY_LBRACKET, KEY_RBRACKET,
+	KEY_SEMICOLON, KEY_SQUOTE, KEY_COMMA, KEY_DOT, KEY_SLASH
 };
 
 // ============================================================================
@@ -670,7 +675,7 @@ enum keycode scan_to_key[] = {
 	// 0x00
 	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
 	// 0x08
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_BKQUOTE, KEY_UNK,
 	// 0x10
 	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_Q, KEY_1, KEY_UNK,
 	// 0x18
@@ -684,13 +689,13 @@ enum keycode scan_to_key[] = {
 	// 0x38
 	KEY_UNK, KEY_UNK, KEY_M, KEY_J, KEY_U, KEY_7, KEY_8, KEY_UNK,
 	// 0x40
-	KEY_UNK, KEY_UNK, KEY_K, KEY_I, KEY_O, KEY_0, KEY_9, KEY_UNK,
+	KEY_UNK, KEY_COMMA, KEY_K, KEY_I, KEY_O, KEY_0, KEY_9, KEY_UNK,
 	// 0x48
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_L, KEY_UNK, KEY_P, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_DOT, KEY_SLASH, KEY_L, KEY_SEMICOLON, KEY_P, KEY_HYPEN, KEY_UNK,
 	// 0x50
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_UNK, KEY_SQUOTE, KEY_UNK, KEY_LBRACKET, KEY_EQUAL, KEY_UNK, KEY_UNK,
 	// 0x58
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_RBRACKET, KEY_UNK, KEY_BKSLASH, KEY_UNK, KEY_UNK,
 	// 0x60
 	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
 	// 0x68
@@ -738,6 +743,21 @@ static unsigned char keycode_to_ascii(enum keycode kc) {
 		return 'A' + (kc - KEY_A);
 	} else if (kc >= KEY_0 && kc <= KEY_9) {
 		return '0' + (kc - KEY_0);
+	} else {
+		switch (kc) {
+		case KEY_BKQUOTE:	return '`';
+		case KEY_HYPEN:		return '-';
+		case KEY_EQUAL:		return '=';
+		case KEY_BKSLASH:	return '\\';
+		case KEY_LBRACKET:	return '[';
+		case KEY_RBRACKET:	return ']';
+		case KEY_SEMICOLON: return ';';
+		case KEY_SQUOTE:	return '\'';
+		case KEY_COMMA:		return ',';
+		case KEY_DOT:		return '.';
+		case KEY_SLASH:		return '/';
+		default: break;
+		}
 	}
 
 	warn("unknown or not printable keycode");
