@@ -15,15 +15,31 @@
 - serial:
 	- handle asynchronous printing
 	- optimize output
+	- FIXME: bochs detects a 'com1: transmit FIFO overflow'
 
 - ps2ctrl:
-	- handle dual channel completly
+	- "uniformize" the send/receive/wait functions + clean/refactor *old* code
+	- handle dual channel completely
+	- document the driver model
+	- PS/2 mouse can be tested with BOCHS (?)
 
 - keyboard:
-	- test & validate LED status command
 	- implement command state machine
+	- export keyboard commands
+	- implement the start sequence
+	- protect keyboard commands against unstarted driver
+	- translate scan code into key code (implement state machine)
+	- handle US QWERTY key mapping
+	- handle special (shift / ctrl / etc...)
+
+- panic:
+	- basic handler which reset halt the cpu
+	- display register state
+	- unwind the stack
+		- build a symbol map ('ahos.symbol') file
 
 - handle INTEL exceptions
+	- disallow first page access to detect NULL pointer deref
 
 - tty:
 	- buffering
@@ -43,6 +59,11 @@
 
 - compilation
 	- userland toolchain (hosted)
+
+- build
+	- make a top-level Makefile and remove unnecessary scripts
+
+- re-order source code hierarchy (e.g. drivers/*)
 
 # =============================================================================
 # -----------------------------------------------------------------------------
