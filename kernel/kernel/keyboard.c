@@ -135,10 +135,18 @@ enum keycode {
 	KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z,
 	// num
 	KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9,
-	// others non-special key
+	// others key
 	KEY_BKQUOTE, KEY_HYPEN, KEY_EQUAL, KEY_BKSLASH, KEY_LBRACKET, KEY_RBRACKET,
 	KEY_SEMICOLON, KEY_SQUOTE, KEY_COMMA, KEY_DOT, KEY_SLASH,
-	KEY_BKSP, KEY_SPACE, KEY_TAB, KEY_CAPS, KEY_LSHIFT, KEY_LCTRL, KEY_LALT
+	KEY_BKSP, KEY_SPACE, KEY_TAB, KEY_CAPS, KEY_LSHIFT, KEY_LCTRL, KEY_LALT,
+	KEY_ENTER, KEY_ESC, KEY_SCROLL, KEY_NUM, KEY_LT,
+	// function keys
+	KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9,
+	KEY_F10, KEY_F11, KEY_F12,
+	// keypad
+	KEY_KP_STAR, KEY_KP_HYPHEN, KEY_KP_MINUS, KEY_KP_PLUS, KEY_KP_DOT,
+	KEY_KP_0, KEY_KP_1, KEY_KP_2, KEY_KP_3, KEY_KP_4,
+	KEY_KP_5, KEY_KP_6, KEY_KP_7, KEY_KP_8, KEY_KP_9
 };
 
 // ============================================================================
@@ -670,9 +678,9 @@ static void keyboard_wait_scan(void)
 // scan code set 2
 enum keycode scan_to_key[] = {
 	// 0x00
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_F9, KEY_UNK, KEY_F5, KEY_F3, KEY_F1, KEY_F2, KEY_F12,
 	// 0x08
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_TAB, KEY_BKQUOTE, KEY_UNK,
+	KEY_UNK, KEY_F10, KEY_F8, KEY_F6, KEY_F4, KEY_TAB, KEY_BKQUOTE, KEY_UNK,
 	// 0x10
 	KEY_UNK, KEY_LALT, KEY_LSHIFT, KEY_UNK, KEY_LCTRL, KEY_Q, KEY_1, KEY_UNK,
 	// 0x18
@@ -692,17 +700,17 @@ enum keycode scan_to_key[] = {
 	// 0x50
 	KEY_UNK, KEY_UNK, KEY_SQUOTE, KEY_UNK, KEY_LBRACKET, KEY_EQUAL, KEY_UNK, KEY_UNK,
 	// 0x58
-	KEY_CAPS, KEY_UNK, KEY_UNK, KEY_RBRACKET, KEY_UNK, KEY_BKSLASH, KEY_UNK, KEY_UNK,
+	KEY_CAPS, KEY_UNK, KEY_ENTER, KEY_RBRACKET, KEY_UNK, KEY_BKSLASH, KEY_UNK, KEY_UNK,
 	// 0x60
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_BKSP, KEY_UNK,
+	KEY_UNK, KEY_LT, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_BKSP, KEY_UNK,
 	// 0x68
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_KP_1, KEY_UNK, KEY_KP_4, KEY_KP_7, KEY_UNK, KEY_UNK, KEY_UNK,
 	// 0x70
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	KEY_KP_0, KEY_KP_DOT, KEY_KP_2, KEY_KP_5, KEY_KP_6, KEY_KP_8, KEY_ESC, KEY_NUM,
 	// 0x78
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	KEY_F11, KEY_KP_PLUS, KEY_KP_3, KEY_KP_HYPHEN, KEY_KP_STAR, KEY_KP_9, KEY_SCROLL, KEY_UNK,
 	// 0x80
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_F7, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
 	// 0x88
 	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
 	// 0x90
@@ -772,6 +780,38 @@ static void keycode2str(enum keycode kc, char *buf, size_t buf_size)
 		case KEY_LSHIFT:	strcpy(buf, "<LSHIFT>"); break;
 		case KEY_LCTRL:		strcpy(buf, "<LCTRL>"); break;
 		case KEY_LALT:		strcpy(buf, "<LALT>"); break;
+		case KEY_LT:		strcpy(buf, "<"); break;
+		case KEY_ENTER:		strcpy(buf, "<ENTER>"); break;
+		case KEY_ESC:		strcpy(buf, "<ESC>"); break;
+		case KEY_F1:		strcpy(buf, "<F1>"); break;
+		case KEY_F2:		strcpy(buf, "<F2>"); break;
+		case KEY_F3:		strcpy(buf, "<F3>"); break;
+		case KEY_F4:		strcpy(buf, "<F4>"); break;
+		case KEY_F5:		strcpy(buf, "<F5>"); break;
+		case KEY_F6:		strcpy(buf, "<F6>"); break;
+		case KEY_F7:		strcpy(buf, "<F7>"); break;
+		case KEY_F8:		strcpy(buf, "<F8>"); break;
+		case KEY_F9:		strcpy(buf, "<F9>"); break;
+		case KEY_F10:		strcpy(buf, "<F10>"); break;
+		case KEY_F11:		strcpy(buf, "<F11>"); break;
+		case KEY_F12:		strcpy(buf, "<F12>"); break;
+		case KEY_SCROLL:	strcpy(buf, "<SCROLL>"); break;
+		case KEY_NUM:		strcpy(buf, "<NUM>"); break;
+		case KEY_KP_STAR:	strcpy(buf, "<KP_STAR>"); break;
+		case KEY_KP_HYPHEN:	strcpy(buf, "<KP_HYPHEN>"); break;
+		case KEY_KP_MINUS:	strcpy(buf, "<KP_MINUS>"); break;
+		case KEY_KP_PLUS:	strcpy(buf, "<KP_PLUS>"); break;
+		case KEY_KP_DOT:	strcpy(buf, "<KP_DOT>"); break;
+		case KEY_KP_0:		strcpy(buf, "<KP_0>"); break;
+		case KEY_KP_1:		strcpy(buf, "<KP_1>"); break;
+		case KEY_KP_2:		strcpy(buf, "<KP_2>"); break;
+		case KEY_KP_3:		strcpy(buf, "<KP_3>"); break;
+		case KEY_KP_4:		strcpy(buf, "<KP_4>"); break;
+		case KEY_KP_5:		strcpy(buf, "<KP_5>"); break;
+		case KEY_KP_6:		strcpy(buf, "<KP_6>"); break;
+		case KEY_KP_7:		strcpy(buf, "<KP_7>"); break;
+		case KEY_KP_8:		strcpy(buf, "<KP_8>"); break;
+		case KEY_KP_9:		strcpy(buf, "<KP_9>"); break;
 		default:			strcpy(buf, "<UNKNOWN>"); break;
 		}
 	}
