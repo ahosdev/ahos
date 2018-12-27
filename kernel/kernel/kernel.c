@@ -15,6 +15,7 @@
 #include <kernel/timeout.h>
 #include <kernel/keyboard.h>
 #include <kernel/log.h>
+#include <kernel/scheduler.h>
 
 #undef LOG_MODULE
 #define LOG_MODULE "main"
@@ -108,7 +109,7 @@ static void kernel_main_loop(void)
 	info("starting kernel main loop");
 
 	for (;;) {
-		keyboard_task();
+		run_task(100, "keyboard", &keyboard_task);
 	}
 
 	info("kernel main loop stopped");
