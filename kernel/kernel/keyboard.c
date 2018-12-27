@@ -121,6 +121,7 @@ enum keyboard_led {
 
 static struct ps2driver keyboard_driver; // forward declaration
 static uint8_t keyboard_led_state = KBD_LED_OFF;
+static enum keyboard_scs keyboard_scanset = KBD_SCS_UNKNOWN;
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -601,11 +602,7 @@ static bool keyboard_reset_and_self_test(void)
 // ============================================================================
 
 /*
- * Performs the keyboard starting sequence:
- * - clear the receive buffer
- * - reset LED state
- * - validate or reset scan code set to 2
- * - enable scanning
+ * Initializes the keyboard driver.
  *
  * The driver assumes that:
  * - the device is enabled
@@ -628,6 +625,30 @@ static bool keyboard_start(uint8_t irq_line)
 	dbg("driver uses IRQ line %u", irq_line);
 
 	// TODO: starting sequence
+
+	ps2driver_flush_recv_queue(driver);
+
+	// turns all led off (should be the case after reset but let's be paranoid)
+	if (keyboard_set_led(KBD_LED_OFF) == false) {
+		warn("failed to turn leds off");
+		// we can continue here even if it failed
+	}
+
+	if (keyboard_get_scan_code_set(&keyboard_scanset) == false) {
+		error("failed to retrieve current scan code set");
+		return false;
+	} else if (keyboard_scanset != KBD_SCS_2) {
+		dbg("the keyboard is currently in another mode than scan code set 2");
+		if (keyboard_set_scan_code_set(KBD_SCS_2) == false) {
+			error("failed to change scan code set to 2");
+			return false;
+		}
+	}
+
+	if (keyboard_enable_scanning() == false) {
+		error("failed to re-enable scanning");
+		return true;
+	}
 
 	success("keyboard driver started");
 

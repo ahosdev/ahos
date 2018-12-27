@@ -26,7 +26,6 @@
 - keyboard:
 	- implement command state machine
 	- export keyboard commands
-	- implement the start sequence
 	- protect keyboard commands against unstarted driver
 	- translate scan code into key code (implement state machine)
 	- handle US QWERTY key mapping
