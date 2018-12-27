@@ -1262,7 +1262,7 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 // ----------------------------------------------------------------------------
 
 /*
- * Starts drivers that has been installed. IRQ are cleared for port which have
+ * Starts drivers that has been installed. IRQ are cleared for ports which have
  * an associated driver. In addition, the driver's send() callback is set based
  * on the port where the driver has been installed.
  *

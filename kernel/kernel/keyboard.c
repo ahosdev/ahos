@@ -1,20 +1,27 @@
 /*
  * keyboard.c
  *
- * Keyboard driver implementation.
+ * PS/2 Keyboard driver implementation.
  *
  * Documentation:
  * - https://wiki.osdev.org/PS/2_Keyboard
  * - https://www.avrfreaks.net/sites/default/files/PS2%20Keyboard.pdf
  * - https://wiki.osdev.org/%228042%22_PS/2_Controller
  *
- * WARNING: If you are running the OS from QEMU there is a lot of issues
- * with PS/2 keyboard. For instance, the "keyboard_set_led()" function does
- * nothing. Furthermore, the enable/disable scanning is also broken! This is
- * tought since the driver expect scanning to be disabled before starting.
- * You can test those feature with another emulator such as BOCHS.
+ * QEMU source code that handles PS2 keyboard (and mouse):
+ * - https://github.com/qemu/qemu/blob/master/hw/input/ps2.c
  *
- * TODO: investigate if dealing with USB controller fixes QEMU issues
+ * WARNING: Beware of the limitation of your emulation software (if any)
+ * and/or buggy PS2 controller/keyboard firmware. For instance QEMU 3.1.0
+ * (December 2018) does not handle the following command properly:
+ * - KBD_CMD_SET_TYPEMATIC -> NO-OP
+ * - KBD_CMD_SET_LED -> no passthrough (testable with BOCHS/VMWARE)
+ * - KBD_CMD_RESEND -> inexistent (BOCHS seems to panic on this one)
+ * - KBD_CMD_DISABLE -> QEMU also reset the keyboard default parameter
+ * - doesnt support any "scancode set 3" only commands
+ *
+ * TODO:
+ * - all keyboards commands shouldn't be callable before driver has started.
  */
 
 #include <kernel/keyboard.h>
@@ -32,7 +39,7 @@
 // ============================================================================
 
 // the default timeout value (in milliseconds)
-#define KBD_TIMEOUT 200
+#define KBD_TIMEOUT 200 // XXX: this should be longer for "reset" command
 
 // ----------------------------------------------------------------------------
 
@@ -301,6 +308,8 @@ retry:
  * Returns true on success, false otherwise.
  */
 
+// FIXME: this code is wrong now (was true for buggy QEMU 2.0.0)
+
 static bool keyboard_get_scan_code_set(enum keyboard_scs *scs)
 {
 	uint8_t scs_status = 0;
@@ -410,7 +419,7 @@ static bool keyboard_set_typematic(enum keyboard_typematic_repeat repeat,
 	info("starting SET TYPEMATIC sequence...");
 
 	// XXX: it's pretty hard to test typematic "visually". Let's check later
-	// once we have a TUI/GUI.
+	// once we have a TUI/GUI. This is not handle by QEMU nor BOCH anyway...
 	UNTESTED_CODE();
 
 	if (keyboard_send(KBD_CMD_SET_TYPEMATIC) == false) {
@@ -436,8 +445,6 @@ static bool keyboard_set_typematic(enum keyboard_typematic_repeat repeat,
 /*
  * Enables scanning (keyboard will send scan code).
  *
- * Successfully tested with BOCHS (fail on QEMU).
- *
  * Returns true on success, false otherwise.
  */
 
@@ -462,8 +469,6 @@ static bool keyboard_enable_scanning(void)
  *
  * WARNING: This MAY reset default parameters on some firmware.
  *
- * Successfully tested with BOCHS (fail on QEMU).
- *
  * Returns true on success, false otherwise.
  */
 
@@ -485,6 +490,8 @@ static bool keyboard_disable_scanning(void)
 
 /*
  * Set default parameters.
+ *
+ * NOTE: This also re-enable scanning.
  *
  * Returns true on success, false otherwise.
  */
@@ -512,6 +519,10 @@ static bool keyboard_set_default_parameter(void)
  *
  * On success the result is stored in @last_byte, otherwise it is left
  * untouched.
+ *
+ * WARNING: QEMU does not implement this and BOCHS panic on this one. Anyway,
+ * this is very hardware specific and does not matter on "emulator only"
+ * environment.
  *
  * Return true on success, false otherwise.
  */
@@ -546,7 +557,7 @@ static bool keyboard_resend_last_byte(uint8_t *last_byte)
 /*
  * Reset the keyboard and starts the self-test.
  *
- * NOTE: This may reset the keyboard parameters on some firmware.
+ * NOTE: This will re-enable scanning.
  *
  * Returns true on success, false otherwise.
  */
@@ -589,16 +600,18 @@ static bool keyboard_reset_and_self_test(void)
 
 /*
  * Performs the keyboard starting sequence:
- *
  * - clear the receive buffer
- * - disable scanning
- * - send a RESET AND SELF-TEST command
- * - get current scan code
+ * - reset LED state
+ * - validate or reset scan code set to 2
  * - enable scanning
  *
- * NOTE: It is expected to enter here while scanning is disabled (from the
- * PS/2 controller). However, QEMU completely ignore this. Test this code with
- * BOCHS.
+ * The driver assumes that:
+ * - the device is enabled
+ * - it has been reset and passed the power-on self-test
+ * - scanning has been disabled by the PS/2 controller
+ * - the PS/2 controller enable its interrupts (configuration byte)
+ * - its IRQ line is cleared
+ * - the receive queue might NOT by empty (holds garbage)
  *
  * Returns true on success, false otherwise.
  */
@@ -648,7 +661,7 @@ static struct ps2driver keyboard_driver = {
 	.type	= PS2_DEVICE_KEYBOARD_MF2,
 	.start	= &keyboard_start,
 	.recv	= &keyboard_recv,
-	// .send() callback is set by the PS/2 controller during drivers start
+	// .send() is set by the PS/2 controller during drivers start
 };
 
 // ============================================================================

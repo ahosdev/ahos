@@ -1,7 +1,7 @@
 /*
  * keyboard.h
  *
- * Keyboard driver implementation.
+ * PS/2 Keyboard driver implementation.
  */
 
 #ifndef KERNEL_KEYBOARD_H_
