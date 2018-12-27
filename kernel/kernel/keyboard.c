@@ -115,6 +115,13 @@ enum keyboard_led {
 	KBD_LED_CAPSLOCK	= 1 << 2,
 };
 
+// ----------------------------------------------------------------------------
+
+enum keyboard_state {
+	KBD_STATE_RESET = 0, // flush the recv queue and get back to a clean state
+	KBD_STATE_WAIT_SCAN = 1, // wait for a scan code
+};
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -122,6 +129,7 @@ enum keyboard_led {
 static struct ps2driver keyboard_driver; // forward declaration
 static uint8_t keyboard_led_state = KBD_LED_OFF;
 static enum keyboard_scs keyboard_scanset = KBD_SCS_UNKNOWN;
+static enum keyboard_state kbd_state = KBD_STATE_RESET;
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -657,6 +665,8 @@ static bool keyboard_start(uint8_t irq_line)
 		return true;
 	}
 
+	kbd_state = KBD_STATE_RESET;
+
 	success("keyboard driver started");
 
 	return true;
@@ -725,17 +735,29 @@ fail:
 // ----------------------------------------------------------------------------
 
 /*
- * Keyboard "upper-half".
+ * Keyboard task entry point.
  *
- * This simulate the keyboard "task". Note at this point, the concept of "task"
- * does not exist yet. So, the main kernel loop simply invoke us in a regular
- * fashion. It is supposed to act as a "good citizen", that is, give cpu back
- * to the main loop pretty "fairly" (i.e. don't handle everything at once).
+ * This is where the keyboard state machine processing starts. It should returns
+ * often in order to give the scheduler opportunity to run another task.
  */
 
 void keyboard_task(void)
 {
-	// FIXME
+	struct ps2driver *driver = &keyboard_driver;
+
+	switch (kbd_state) {
+		case KBD_STATE_RESET:
+			ps2driver_flush_recv_queue(driver);
+			kbd_state = KBD_STATE_WAIT_SCAN;
+			break;
+		case KBD_STATE_WAIT_SCAN:
+			// TODO
+			break;
+		default:
+			warn("unknown keyboard state, switching to RESET state");
+			kbd_state = KBD_STATE_RESET;
+			break;
+	}
 }
 
 // ============================================================================
