@@ -32,13 +32,13 @@ static inline void run_task(int32_t quantum, char *name, void (*task)(void))
 {
 	const int32_t end_tick = clock_gettick() + quantum;
 
-	info("running task <%s>", name);
+	dbg("running task <%s>", name);
 
 	while (clock_gettick() < end_tick) {
 		(*task)();
 	}
 
-	info("stopping task <%s>", name);
+	dbg("stopping task <%s>", name);
 }
 
 // ============================================================================
