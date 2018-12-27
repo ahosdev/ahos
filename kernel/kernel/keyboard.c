@@ -131,6 +131,8 @@ enum keycode {
 	KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H, KEY_I, KEY_J,
 	KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P, KEY_Q, KEY_R, KEY_S, KEY_T,
 	KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z,
+	// num
+	KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9,
 };
 
 // ============================================================================
@@ -670,19 +672,19 @@ enum keycode scan_to_key[] = {
 	// 0x08
 	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
 	// 0x10
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_Q, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_Q, KEY_1, KEY_UNK,
 	// 0x18
-	KEY_UNK, KEY_UNK, KEY_Z, KEY_S, KEY_A, KEY_W, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_UNK, KEY_Z, KEY_S, KEY_A, KEY_W, KEY_2, KEY_UNK,
 	// 0x20
-	KEY_UNK, KEY_C, KEY_X, KEY_D, KEY_E, KEY_UNK, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_C, KEY_X, KEY_D, KEY_E, KEY_4, KEY_3, KEY_UNK,
 	// 0x28
-	KEY_UNK, KEY_UNK, KEY_V, KEY_F, KEY_T, KEY_R, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_UNK, KEY_V, KEY_F, KEY_T, KEY_R, KEY_5, KEY_UNK,
 	// 0x30
-	KEY_UNK, KEY_N, KEY_B, KEY_H, KEY_G, KEY_Y, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_N, KEY_B, KEY_H, KEY_G, KEY_Y, KEY_6, KEY_UNK,
 	// 0x38
-	KEY_UNK, KEY_UNK, KEY_M, KEY_J, KEY_U, KEY_UNK, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_UNK, KEY_M, KEY_J, KEY_U, KEY_7, KEY_8, KEY_UNK,
 	// 0x40
-	KEY_UNK, KEY_UNK, KEY_K, KEY_I, KEY_O, KEY_UNK, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_UNK, KEY_K, KEY_I, KEY_O, KEY_0, KEY_9, KEY_UNK,
 	// 0x48
 	KEY_UNK, KEY_UNK, KEY_UNK, KEY_L, KEY_UNK, KEY_P, KEY_UNK, KEY_UNK,
 	// 0x50
@@ -734,6 +736,8 @@ enum keycode scan_to_key[] = {
 static unsigned char keycode_to_ascii(enum keycode kc) {
 	if (kc >= KEY_A && kc <= KEY_Z) {
 		return 'A' + (kc - KEY_A);
+	} else if (kc >= KEY_0 && kc <= KEY_9) {
+		return '0' + (kc - KEY_0);
 	}
 
 	warn("unknown or not printable keycode");
