@@ -106,11 +106,21 @@ enum keyboard_typematic_delay {
 	KBD_TMT_DELAY_1000	= 0b11,
 };
 
+// ----------------------------------------------------------------------------
+
+enum keyboard_led {
+	KBD_LED_OFF			= 0, // turns all leds off
+	KBD_LED_SCROLL		= 1 << 0,
+	KBD_LED_NUMBER		= 1 << 1,
+	KBD_LED_CAPSLOCK	= 1 << 2,
+};
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
 
 static struct ps2driver keyboard_driver; // forward declaration
+static uint8_t keyboard_led_state = KBD_LED_OFF;
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -220,23 +230,19 @@ retry:
 /*
  * Sends a SET LED STATE command to the keyboard.
  *
- * Leds are set if parameters @scroll, @number or @caps are true, otherwise
- * they are turned off.
- *
- * NOTE: there is no way to query the current led state from keyboard. That is,
- * we need to store the current state in driver data if we want to implement
- * a "toggle this led" feature.
- *
- * Successfully tested with BOCHS (fail on QEMU).
+ * The leds are toggled on/off based on the @led_state bitmask.
  *
  * Returns true on success, false otherwise.
  */
 
-static bool keyboard_set_led(bool scroll, bool number, bool caps)
+static bool keyboard_set_led(uint8_t led_state)
 {
-	uint8_t led_mask = 0;
-
 	info("starting SET LED STATE sequence...");
+
+	if (led_state > (KBD_LED_SCROLL|KBD_LED_NUMBER|KBD_LED_CAPSLOCK)) {
+		error("invalid argument");
+		return false;
+	}
 
 	if(keyboard_send(KBD_CMD_SET_LED) == false) {
 		error("failed to send SET LED command");
@@ -244,12 +250,13 @@ static bool keyboard_set_led(bool scroll, bool number, bool caps)
 	}
 	dbg("sending SET LED command succeed");
 
-	led_mask = (!!scroll << 0) | (!!number << 1) | (!!caps << 2);
-	if (keyboard_send(led_mask) == false) {
+	if (keyboard_send(led_state) == false) {
 		error("failed to send new led state");
 		return false;
 	}
 	dbg("sending new led state succeed");
+
+	keyboard_led_state = led_state; // save the current state
 
 	success("SET LED STATE sequence complete");
 	return true;
