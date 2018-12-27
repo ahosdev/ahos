@@ -94,6 +94,26 @@ static void kernel_init(void)
 	success("kernel initialization complete");
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * The kernel main loop.
+ *
+ * Since we don't handle task (and thus scheduler) we call any subsystem on a
+ * regular basis in a sequential way. Think of it as a "cheap fake scheduler".
+ */
+
+static void kernel_main_loop(void)
+{
+	info("starting kernel main loop");
+
+	for (;;) {
+		// FIXME
+	}
+
+	info("kernel main loop stopped");
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -103,9 +123,10 @@ void kernel_main(void)
 	kernel_init();
 	print_banner();
 
-	info("tick = %d", clock_gettick());
+	// it only accounts from the clock initialization
+	info("kernel booted in %d tick(s)", clock_gettick());
 
-	clock_sleep(3);
+	kernel_main_loop();
 
 	for (;;) // do not quit yet, otherwise irq will be disabled
 	{
