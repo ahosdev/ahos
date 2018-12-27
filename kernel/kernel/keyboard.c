@@ -129,6 +129,7 @@ enum keyboard_state {
 // won't find "underscore" here since it is a combination of HYPHEN+SHIFT keys.
 enum keycode {
 	KEY_UNK,
+	// --- 1 byte scan code ---
 	// alpha
 	KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H, KEY_I, KEY_J,
 	KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P, KEY_Q, KEY_R, KEY_S, KEY_T,
@@ -139,14 +140,19 @@ enum keycode {
 	KEY_BKQUOTE, KEY_HYPEN, KEY_EQUAL, KEY_BKSLASH, KEY_LBRACKET, KEY_RBRACKET,
 	KEY_SEMICOLON, KEY_SQUOTE, KEY_COMMA, KEY_DOT, KEY_SLASH,
 	KEY_BKSP, KEY_SPACE, KEY_TAB, KEY_CAPS, KEY_LSHIFT, KEY_LCTRL, KEY_LALT,
-	KEY_ENTER, KEY_ESC, KEY_SCROLL, KEY_NUM, KEY_LT,
+	KEY_ENTER, KEY_ESC, KEY_SCROLL, KEY_NUM, KEY_LT, KEY_RSHIFT,
 	// function keys
 	KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9,
 	KEY_F10, KEY_F11, KEY_F12,
 	// keypad
 	KEY_KP_STAR, KEY_KP_HYPHEN, KEY_KP_MINUS, KEY_KP_PLUS, KEY_KP_DOT,
 	KEY_KP_0, KEY_KP_1, KEY_KP_2, KEY_KP_3, KEY_KP_4,
-	KEY_KP_5, KEY_KP_6, KEY_KP_7, KEY_KP_8, KEY_KP_9
+	KEY_KP_5, KEY_KP_6, KEY_KP_7, KEY_KP_8, KEY_KP_9,
+
+	// --- 2 bytes keycodes ---
+	KEY_LGUI, KEY_RCTRL, KEY_RGUI, KEY_RALT, KEY_APPS, KEY_INSERT, KEY_HOME,
+	KEY_PGUP, KEY_DEL, KEY_END, KEY_PGDOWN, KEY_UP, KEY_LEFT, KEY_DOWN,
+	KEY_RIGHT, KEY_KP_DIV, KEY_KP_EN
 };
 
 // ============================================================================
@@ -644,6 +650,7 @@ static bool keyboard_reset_and_self_test(void)
 // ============================================================================
 
 uint8_t last_scancode = 0;
+size_t nb_scancodes = 0;
 
 static void keyboard_wait_scan(void)
 {
@@ -656,9 +663,33 @@ static void keyboard_wait_scan(void)
 		return;
 	}
 
-	if (scancode == 0xe0 || scancode == 0xe1) {
-		// need another scan code (unhandled yet)
+	if (scancode == 0xe0) {
+		// this is (at least) a two bytes scan code
+		if (ps2driver_read(driver, &scancode, 0) == false) {
+			warn("didn't receive second scan code");
+		} else if (scancode == 0xf0) {
+			// starts a breaking sequence: read a third byte and discard
+			if (ps2driver_read(driver, &scancode, 0) == false) {
+				error("failed to read next scan code");
+			} else if (scancode == 0x7c) {
+				// TODO: print screen break code
+				NOT_IMPLEMENTED();
+			} else {
+				// discard it
+			}
+		} else if (scancode == 0x12) {
+			// TODO: need to read more byte (print screen)
+			NOT_IMPLEMENTED();
+		} else {
+			// this is a std 2 byte MAKE code
+			last_scancode = scancode;
+			nb_scancodes = 2;
+			kbd_state = KBD_STATE_TRANSLATE;
+		}
+	} else if (scancode == 0xe1) {
+		// need another scan code (pause)
 		error("scancode not handled (yet)");
+		NOT_IMPLEMENTED();
 	} else if (scancode == 0xf0) {
 		// starting break sequence
 		if (ps2driver_read(driver, &scancode, 0) == false) {
@@ -667,15 +698,15 @@ static void keyboard_wait_scan(void)
 		// we got it, now throw it
 	} else {
 		// translate the scan code into a key code
-		dbg("received scan code 0x%x", scancode);
 		last_scancode = scancode;
+		nb_scancodes = 1;
 		kbd_state = KBD_STATE_TRANSLATE;
 	}
 }
 
 // ----------------------------------------------------------------------------
 
-// scan code set 2
+// scan code set 2 (one byte only)
 enum keycode scan_to_key[] = {
 	// 0x00
 	KEY_UNK, KEY_F9, KEY_UNK, KEY_F5, KEY_F3, KEY_F1, KEY_F2, KEY_F12,
@@ -700,7 +731,7 @@ enum keycode scan_to_key[] = {
 	// 0x50
 	KEY_UNK, KEY_UNK, KEY_SQUOTE, KEY_UNK, KEY_LBRACKET, KEY_EQUAL, KEY_UNK, KEY_UNK,
 	// 0x58
-	KEY_CAPS, KEY_UNK, KEY_ENTER, KEY_RBRACKET, KEY_UNK, KEY_BKSLASH, KEY_UNK, KEY_UNK,
+	KEY_CAPS, KEY_RSHIFT, KEY_ENTER, KEY_RBRACKET, KEY_UNK, KEY_BKSLASH, KEY_UNK, KEY_UNK,
 	// 0x60
 	KEY_UNK, KEY_LT, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_BKSP, KEY_UNK,
 	// 0x68
@@ -778,6 +809,7 @@ static void keycode2str(enum keycode kc, char *buf, size_t buf_size)
 		case KEY_TAB:		strcpy(buf, "<TAB>"); break;
 		case KEY_CAPS:		strcpy(buf, "<CAPS>"); break;
 		case KEY_LSHIFT:	strcpy(buf, "<LSHIFT>"); break;
+		case KEY_RSHIFT:	strcpy(buf, "<RSHIFT>"); break;
 		case KEY_LCTRL:		strcpy(buf, "<LCTRL>"); break;
 		case KEY_LALT:		strcpy(buf, "<LALT>"); break;
 		case KEY_LT:		strcpy(buf, "<"); break;
@@ -812,6 +844,26 @@ static void keycode2str(enum keycode kc, char *buf, size_t buf_size)
 		case KEY_KP_7:		strcpy(buf, "<KP_7>"); break;
 		case KEY_KP_8:		strcpy(buf, "<KP_8>"); break;
 		case KEY_KP_9:		strcpy(buf, "<KP_9>"); break;
+
+		// 2 bytes keycodes
+		case KEY_LGUI:		strcpy(buf, "<LGUI>"); break;
+		case KEY_RCTRL:		strcpy(buf, "<RCTRL>"); break;
+		case KEY_RGUI:		strcpy(buf, "<RGUI>"); break;
+		case KEY_RALT:		strcpy(buf, "<RALT>"); break;
+		case KEY_APPS:		strcpy(buf, "<APPS>"); break;
+		case KEY_INSERT:	strcpy(buf, "<INSERT>"); break;
+		case KEY_HOME:		strcpy(buf, "<HOME>"); break;
+		case KEY_PGUP:		strcpy(buf, "<PGUP>"); break;
+		case KEY_DEL:		strcpy(buf, "<DEL>"); break;
+		case KEY_END:		strcpy(buf, "<END>"); break;
+		case KEY_PGDOWN:	strcpy(buf, "<PGDOWN>"); break;
+		case KEY_UP:		strcpy(buf, "<UP>"); break;
+		case KEY_LEFT:		strcpy(buf, "<LEFT>"); break;
+		case KEY_DOWN:		strcpy(buf, "<DOWN>"); break;
+		case KEY_RIGHT:		strcpy(buf, "<RIGHT>"); break;
+		case KEY_KP_DIV:	strcpy(buf, "<KP_DIV>"); break;
+		case KEY_KP_EN:		strcpy(buf, "<KP_EN>"); break;
+
 		default:			strcpy(buf, "<UNKNOWN>"); break;
 		}
 	}
@@ -820,7 +872,38 @@ static void keycode2str(enum keycode kc, char *buf, size_t buf_size)
 static void keyboard_translate(void)
 {
 	uint8_t scancode = last_scancode;
-	enum keycode kc = scan_to_key[scancode];
+	enum keycode kc = KEY_UNK;
+
+	if (nb_scancodes == 1) {
+		kc = scan_to_key[scancode];
+	} else if (nb_scancodes == 2) {
+		switch (last_scancode) {
+			case 0x1f: kc = KEY_LGUI; break;
+			case 0x14: kc = KEY_RCTRL; break;
+			case 0x27: kc = KEY_RGUI; break;
+			case 0x11: kc = KEY_RALT; break;
+			case 0x2f: kc = KEY_APPS; break;
+			case 0x70: kc = KEY_INSERT; break;
+			case 0x6c: kc = KEY_HOME; break;
+			case 0x7d: kc = KEY_PGUP; break;
+			case 0x71: kc = KEY_DEL; break;
+			case 0x69: kc = KEY_END; break;
+			case 0x7a: kc = KEY_PGDOWN; break;
+			case 0x75: kc = KEY_UP; break;
+			case 0x6b: kc = KEY_LEFT; break;
+			case 0x72: kc = KEY_DOWN; break;
+			case 0x74: kc = KEY_RIGHT; break;
+			case 0x4a: kc = KEY_KP_DIV; break;
+			case 0x5a: kc = KEY_KP_EN; break;
+			default: {
+				warn("unknown 2 bytes scan code");
+				kc = KEY_UNK;
+			} break;
+		}
+	} else {
+		// TODO: print screen and pause
+		NOT_IMPLEMENTED();
+	}
 
 	dbg("scancode = 0x%x", scancode);
 
