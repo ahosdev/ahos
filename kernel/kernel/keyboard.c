@@ -666,10 +666,6 @@ static void keyboard_wait_scan(void)
 
 // ----------------------------------------------------------------------------
 
-#define MAX_KEYCODE_BUFFER 128
-enum keycode keycode_buffer[MAX_KEYCODE_BUFFER];
-size_t keycode_next = 0;
-
 // scan code set 2
 enum keycode scan_to_key[] = {
 	// 0x00
@@ -738,30 +734,39 @@ enum keycode scan_to_key[] = {
 	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
 };
 
-static unsigned char keycode_to_ascii(enum keycode kc) {
+static void strcpy(char *dst, char *src) // FIXME: temporary
+{
+	while (*src) {
+		*dst++ = *src++;
+	}
+}
+
+#include <string.h>
+
+static void keycode2str(enum keycode kc, char *buf, size_t buf_size)
+{
+	memset(buf, 0, buf_size);
+
 	if (kc >= KEY_A && kc <= KEY_Z) {
-		return 'A' + (kc - KEY_A);
+		buf[0] = 'A' + (kc - KEY_A);
 	} else if (kc >= KEY_0 && kc <= KEY_9) {
-		return '0' + (kc - KEY_0);
+		buf[0] = '0' + (kc - KEY_0);
 	} else {
 		switch (kc) {
-		case KEY_BKQUOTE:	return '`';
-		case KEY_HYPEN:		return '-';
-		case KEY_EQUAL:		return '=';
-		case KEY_BKSLASH:	return '\\';
-		case KEY_LBRACKET:	return '[';
-		case KEY_RBRACKET:	return ']';
-		case KEY_SEMICOLON: return ';';
-		case KEY_SQUOTE:	return '\'';
-		case KEY_COMMA:		return ',';
-		case KEY_DOT:		return '.';
-		case KEY_SLASH:		return '/';
-		default: break;
+		case KEY_BKQUOTE:	buf[0] = '`'; break;
+		case KEY_HYPEN:		buf[0] = '-'; break;
+		case KEY_EQUAL:		buf[0] = '='; break;
+		case KEY_BKSLASH:	buf[0] = '\\'; break;
+		case KEY_LBRACKET:	buf[0] = '['; break;
+		case KEY_RBRACKET:	buf[0] = ']'; break;
+		case KEY_SEMICOLON: buf[0] = ';'; break;
+		case KEY_SQUOTE:	buf[0] = '\''; break;
+		case KEY_COMMA:		buf[0] = ','; break;
+		case KEY_DOT:		buf[0] = '.'; break;
+		case KEY_SLASH:		buf[0] = '/'; break;
+		default: strcpy(buf, "<UNKNOWN>"); break;
 		}
 	}
-
-	warn("unknown or not printable keycode");
-	return '\0';
 }
 
 static void keyboard_translate(void)
@@ -771,17 +776,9 @@ static void keyboard_translate(void)
 
 	dbg("scancode = 0x%x", scancode);
 
-	if (kc == KEY_UNK) {
-		warn("key not handled");
-	} else {
-		if (kc == MAX_KEYCODE_BUFFER) {
-			error("keycode buffer is full");
-		} else {
-			keycode_buffer[keycode_next] = kc;
-			info("key %c detected", keycode_to_ascii(keycode_buffer[keycode_next]));
-			keycode_next++;
-		}
-	}
+	char buf[16];
+	keycode2str(kc, buf, sizeof(buf));
+	info("key detected '%s'", buf);
 
 	kbd_state = KBD_STATE_WAIT_SCAN; // process a new sequence
 }
