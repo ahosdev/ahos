@@ -146,7 +146,7 @@ bool ps2driver_read(struct ps2driver *driver, uint8_t *data, size_t timeout)
 		ps2driver_lock(driver);
 		size = driver->recv_queue_size;
 		ps2driver_unlock(driver);
-	} while ((size == 0) || !timeout_expired(&timeo));
+	} while ((size == 0) && !timeout_expired(&timeo));
 
 	if (size == 0) {
 		error("no data available (timeout)");

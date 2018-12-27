@@ -822,7 +822,7 @@ static bool ps2ctrl_send_data(uint8_t data, size_t timeout)
 			clock_sleep(20); // wait 20ms before retrying
 		}
 		status = inb(STATUS_PORT);
-	} while (!ps2ctrl_input_buffer_empty(status) || !timeout_expired(&timeo));
+	} while (!ps2ctrl_input_buffer_empty(status) && !timeout_expired(&timeo));
 
 	if (!ps2ctrl_input_buffer_empty(status)) {
 		error("failed to send data: input buffer is full (timeout)");
