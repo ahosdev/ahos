@@ -137,7 +137,8 @@ enum keycode {
 	KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9,
 	// others non-special key
 	KEY_BKQUOTE, KEY_HYPEN, KEY_EQUAL, KEY_BKSLASH, KEY_LBRACKET, KEY_RBRACKET,
-	KEY_SEMICOLON, KEY_SQUOTE, KEY_COMMA, KEY_DOT, KEY_SLASH
+	KEY_SEMICOLON, KEY_SQUOTE, KEY_COMMA, KEY_DOT, KEY_SLASH,
+	KEY_BKSP, KEY_SPACE, KEY_TAB, KEY_CAPS, KEY_LSHIFT, KEY_LCTRL, KEY_LALT
 };
 
 // ============================================================================
@@ -671,15 +672,15 @@ enum keycode scan_to_key[] = {
 	// 0x00
 	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
 	// 0x08
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_BKQUOTE, KEY_UNK,
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_TAB, KEY_BKQUOTE, KEY_UNK,
 	// 0x10
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_Q, KEY_1, KEY_UNK,
+	KEY_UNK, KEY_LALT, KEY_LSHIFT, KEY_UNK, KEY_LCTRL, KEY_Q, KEY_1, KEY_UNK,
 	// 0x18
 	KEY_UNK, KEY_UNK, KEY_Z, KEY_S, KEY_A, KEY_W, KEY_2, KEY_UNK,
 	// 0x20
 	KEY_UNK, KEY_C, KEY_X, KEY_D, KEY_E, KEY_4, KEY_3, KEY_UNK,
 	// 0x28
-	KEY_UNK, KEY_UNK, KEY_V, KEY_F, KEY_T, KEY_R, KEY_5, KEY_UNK,
+	KEY_UNK, KEY_SPACE, KEY_V, KEY_F, KEY_T, KEY_R, KEY_5, KEY_UNK,
 	// 0x30
 	KEY_UNK, KEY_N, KEY_B, KEY_H, KEY_G, KEY_Y, KEY_6, KEY_UNK,
 	// 0x38
@@ -691,9 +692,9 @@ enum keycode scan_to_key[] = {
 	// 0x50
 	KEY_UNK, KEY_UNK, KEY_SQUOTE, KEY_UNK, KEY_LBRACKET, KEY_EQUAL, KEY_UNK, KEY_UNK,
 	// 0x58
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_RBRACKET, KEY_UNK, KEY_BKSLASH, KEY_UNK, KEY_UNK,
+	KEY_CAPS, KEY_UNK, KEY_UNK, KEY_RBRACKET, KEY_UNK, KEY_BKSLASH, KEY_UNK, KEY_UNK,
 	// 0x60
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_BKSP, KEY_UNK,
 	// 0x68
 	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
 	// 0x70
@@ -764,7 +765,14 @@ static void keycode2str(enum keycode kc, char *buf, size_t buf_size)
 		case KEY_COMMA:		buf[0] = ','; break;
 		case KEY_DOT:		buf[0] = '.'; break;
 		case KEY_SLASH:		buf[0] = '/'; break;
-		default: strcpy(buf, "<UNKNOWN>"); break;
+		case KEY_SPACE:		buf[0] = ' '; break;
+		case KEY_BKSP:		strcpy(buf, "<BKSP>"); break;
+		case KEY_TAB:		strcpy(buf, "<TAB>"); break;
+		case KEY_CAPS:		strcpy(buf, "<CAPS>"); break;
+		case KEY_LSHIFT:	strcpy(buf, "<LSHIFT>"); break;
+		case KEY_LCTRL:		strcpy(buf, "<LCTRL>"); break;
+		case KEY_LALT:		strcpy(buf, "<LALT>"); break;
+		default:			strcpy(buf, "<UNKNOWN>"); break;
 		}
 	}
 }
