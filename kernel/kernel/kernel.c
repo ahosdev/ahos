@@ -108,7 +108,7 @@ static void kernel_main_loop(void)
 	info("starting kernel main loop");
 
 	for (;;) {
-		// FIXME
+		keyboard_task();
 	}
 
 	info("kernel main loop stopped");

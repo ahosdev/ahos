@@ -715,6 +715,22 @@ fail:
 	return false;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Keyboard "upper-half".
+ *
+ * This simulate the keyboard "task". Note at this point, the concept of "task"
+ * does not exist yet. So, the main kernel loop simply invoke us in a regular
+ * fashion. It is supposed to act as a "good citizen", that is, give cpu back
+ * to the main loop pretty "fairly" (i.e. don't handle everything at once).
+ */
+
+void keyboard_task(void)
+{
+	// FIXME
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
