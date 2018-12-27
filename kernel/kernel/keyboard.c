@@ -276,6 +276,7 @@ static bool keyboard_set_led(uint8_t led_state)
  * Returns true on success, false otherwise.
  */
 
+__attribute__((unused))
 static bool keyboard_echo(void)
 {
 	uint8_t response = 0;
@@ -399,6 +400,7 @@ static bool keyboard_set_scan_code_set(enum keyboard_scs scs)
  * Returns true on success, false otherwise.
  */
 
+__attribute__((unused))
 static bool keyboard_identify(void)
 {
 	NOT_IMPLEMENTED(); // this would duplicate PS/2 controller code
@@ -414,6 +416,7 @@ static bool keyboard_identify(void)
  * Returns true on success, false otherwise.
  */
 
+__attribute__((unused))
 static bool keyboard_set_typematic(enum keyboard_typematic_repeat repeat,
 								   enum keyboard_typematic_delay delay)
 {
@@ -475,6 +478,7 @@ static bool keyboard_enable_scanning(void)
  * Returns true on success, false otherwise.
  */
 
+__attribute__((unused))
 static bool keyboard_disable_scanning(void)
 {
 	info("starting DISABLE SCANNING sequence...");
@@ -499,6 +503,7 @@ static bool keyboard_disable_scanning(void)
  * Returns true on success, false otherwise.
  */
 
+__attribute__((unused))
 static bool keyboard_set_default_parameter(void)
 {
 	info("starting SET DEFAULT PARAMETER sequence...");
@@ -530,6 +535,7 @@ static bool keyboard_set_default_parameter(void)
  * Return true on success, false otherwise.
  */
 
+__attribute__((unused))
 static bool keyboard_resend_last_byte(uint8_t *last_byte)
 {
 	uint8_t result = 0;
@@ -565,6 +571,7 @@ static bool keyboard_resend_last_byte(uint8_t *last_byte)
  * Returns true on success, false otherwise.
  */
 
+__attribute__((unused))
 static bool keyboard_reset_and_self_test(void)
 {
 	uint8_t result = 0;
