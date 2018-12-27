@@ -118,8 +118,19 @@ enum keyboard_led {
 // ----------------------------------------------------------------------------
 
 enum keyboard_state {
-	KBD_STATE_RESET = 0, // flush the recv queue and get back to a clean state
-	KBD_STATE_WAIT_SCAN = 1, // wait for a scan code
+	KBD_STATE_RESET, // flush the recv queue and get back to a clean state
+	KBD_STATE_WAIT_SCAN, // wait for a scan code
+	KBD_STATE_TRANSLATE, // receive a complete sequence, translate it
+};
+
+// ----------------------------------------------------------------------------
+
+enum keycode {
+	KEY_UNK,
+	// alpha
+	KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H, KEY_I, KEY_J,
+	KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P, KEY_Q, KEY_R, KEY_S, KEY_T,
+	KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z,
 };
 
 // ============================================================================
@@ -616,6 +627,145 @@ static bool keyboard_reset_and_self_test(void)
 // ----------------------------------------------------------------------------
 // ============================================================================
 
+uint8_t last_scancode = 0;
+
+static void keyboard_wait_scan(void)
+{
+	struct ps2driver *driver = &keyboard_driver;
+	uint8_t scancode = 0;
+
+	if (ps2driver_read(driver, &scancode, 0) == false) {
+		// no scan code available
+		dbg("no scan code");
+		return;
+	}
+
+	if (scancode == 0xe0 || scancode == 0xe1) {
+		// need another scan code (unhandled yet)
+		error("scancode not handled (yet)");
+	} else if (scancode == 0xf0) {
+		// starting break sequence
+		if (ps2driver_read(driver, &scancode, 0) == false) {
+			error("failed to read next scan code");
+		}
+		// we got it, now throw it
+	} else {
+		// translate the scan code into a key code
+		dbg("received scan code 0x%x", scancode);
+		last_scancode = scancode;
+		kbd_state = KBD_STATE_TRANSLATE;
+	}
+}
+
+// ----------------------------------------------------------------------------
+
+#define MAX_KEYCODE_BUFFER 128
+enum keycode keycode_buffer[MAX_KEYCODE_BUFFER];
+size_t keycode_next = 0;
+
+// scan code set 2
+enum keycode scan_to_key[] = {
+	// 0x00
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x08
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x10
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_Q, KEY_UNK, KEY_UNK,
+	// 0x18
+	KEY_UNK, KEY_UNK, KEY_Z, KEY_S, KEY_A, KEY_W, KEY_UNK, KEY_UNK,
+	// 0x20
+	KEY_UNK, KEY_C, KEY_X, KEY_D, KEY_E, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x28
+	KEY_UNK, KEY_UNK, KEY_V, KEY_F, KEY_T, KEY_R, KEY_UNK, KEY_UNK,
+	// 0x30
+	KEY_UNK, KEY_N, KEY_B, KEY_H, KEY_G, KEY_Y, KEY_UNK, KEY_UNK,
+	// 0x38
+	KEY_UNK, KEY_UNK, KEY_M, KEY_J, KEY_U, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x40
+	KEY_UNK, KEY_UNK, KEY_K, KEY_I, KEY_O, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x48
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_L, KEY_UNK, KEY_P, KEY_UNK, KEY_UNK,
+	// 0x50
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x58
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x60
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x68
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x70
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x78
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x80
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x88
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x90
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x98
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0xa0
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0xa8
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0xb0
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0xb8
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0xc0
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0xc8
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0xd0
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0xd8
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0xe0
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0xe8
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0xf0
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0xf8
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+};
+
+static unsigned char keycode_to_ascii(enum keycode kc) {
+	if (kc >= KEY_A && kc <= KEY_Z) {
+		return 'A' + (kc - KEY_A);
+	}
+
+	warn("unknown or not printable keycode");
+	return '\0';
+}
+
+static void keyboard_translate(void)
+{
+	uint8_t scancode = last_scancode;
+	enum keycode kc = scan_to_key[scancode];
+
+	dbg("scancode = 0x%x", scancode);
+
+	if (kc == KEY_UNK) {
+		warn("key not handled");
+	} else {
+		if (kc == MAX_KEYCODE_BUFFER) {
+			error("keycode buffer is full");
+		} else {
+			keycode_buffer[keycode_next] = kc;
+			info("key %c detected", keycode_to_ascii(keycode_buffer[keycode_next]));
+			keycode_next++;
+		}
+	}
+
+	kbd_state = KBD_STATE_WAIT_SCAN; // process a new sequence
+}
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
 /*
  * Initializes the keyboard driver.
  *
@@ -745,18 +895,23 @@ void keyboard_task(void)
 {
 	struct ps2driver *driver = &keyboard_driver;
 
-	switch (kbd_state) {
-		case KBD_STATE_RESET:
-			ps2driver_flush_recv_queue(driver);
-			kbd_state = KBD_STATE_WAIT_SCAN;
-			break;
-		case KBD_STATE_WAIT_SCAN:
-			// TODO
-			break;
-		default:
-			warn("unknown keyboard state, switching to RESET state");
-			kbd_state = KBD_STATE_RESET;
-			break;
+	for (size_t loop = 0; loop < 2; ++loop) {
+		switch (kbd_state) {
+			case KBD_STATE_RESET:
+				ps2driver_flush_recv_queue(driver);
+				kbd_state = KBD_STATE_WAIT_SCAN;
+				break;
+			case KBD_STATE_WAIT_SCAN:
+				keyboard_wait_scan();
+				break;
+			case KBD_STATE_TRANSLATE:
+				keyboard_translate();
+				break;
+			default:
+				warn("unknown keyboard state, switching to RESET state");
+				kbd_state = KBD_STATE_RESET;
+				break;
+		}
 	}
 }
 
