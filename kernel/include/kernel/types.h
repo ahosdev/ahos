@@ -17,7 +17,7 @@
 // we declare it here since it is imported almost everywhere
 #define NOT_IMPLEMENTED()\
 {\
-	error("NOT IMPLEMENTED!"); \
+	error("NOT IMPLEMENTED [%s:%d]", __FILE__, __LINE__); \
 	abort(); \
 }
 
