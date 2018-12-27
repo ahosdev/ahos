@@ -31,8 +31,8 @@ void timeout_init(struct timeout *timeo, int32_t length)
 		abort();
 	}
 
-	if (length <= 0) {
-		warn("defining a zero or negative length timeout");
+	if (length < 0) {
+		warn("defining a negative length timeout");
 	}
 
 	timeo->length = (length * CLOCK_FREQ) / 1000;
