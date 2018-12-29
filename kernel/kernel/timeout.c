@@ -7,8 +7,9 @@
  */
 
 #include <kernel/timeout.h>
-#include <kernel/clock.h>
 #include <kernel/log.h>
+
+#include <drivers/clock.h>
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -11,7 +11,8 @@
 #define KERNEL_SCHEDULER_H_
 
 #include <kernel/types.h>
-#include <kernel/clock.h>
+
+#include <drivers/clock.h>
 
 #undef LOG_MODULE
 #define LOG_MODULE "sched"

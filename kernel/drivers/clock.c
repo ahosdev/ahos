@@ -2,21 +2,22 @@
  * clock.c
  *
  * Programs the Programmable Interval Timer (PIT) 8254 controller.
- * 
+ *
  * Recommended readings:
  * - https://wiki.osdev.org/Programmable_Interval_Timer
  * - http://www.scs.stanford.edu/10wi-cs140/pintos/specs/8254.pdf
  */
 
+#include <drivers/clock.h>
+
 #include <kernel/types.h>
-#include <kernel/clock.h>
 #include <kernel/interrupt.h>
 #include <kernel/log.h>
 
-#include <stdlib.h>
+#include <arch/atomic.h>
+#include <arch/io.h>
 
-#include "atomic.h"
-#include "io.h"
+#include <stdlib.h>
 
 #undef LOG_MODULE
 #define LOG_MODULE "clock"

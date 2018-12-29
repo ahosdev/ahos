@@ -25,6 +25,7 @@
 
 #include <drivers/ps2ctrl.h>
 #include <drivers/ps2driver.h>
+#include <drivers/clock.h>
 
 #include <arch/io.h>
 
@@ -32,7 +33,6 @@
 #include <kernel/interrupt.h>
 #include <kernel/timeout.h>
 #include <kernel/log.h>
-#include <kernel/clock.h>
 
 #include <stdlib.h>
 #include <string.h>

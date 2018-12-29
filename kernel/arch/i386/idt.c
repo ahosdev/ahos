@@ -11,14 +11,16 @@
  *
  * TODO
  * - use trap_gate() to handle nested interrupts
- * - find a better way to write wrapper and export them
+ * - export a "register IRQ line" interface so we don't need to include headers
+ *   from drivers
  */
 
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
-#include <kernel/clock.h>
-#include <drivers/ps2ctrl.h>
 #include <kernel/log.h>
+
+#include <drivers/ps2ctrl.h>
+#include <drivers/clock.h>
 
 #include <stdlib.h> // uses abort
 

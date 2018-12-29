@@ -5,10 +5,11 @@
  */
 
 #include <drivers/ps2driver.h>
+#include <drivers/clock.h>
+
 #include <kernel/log.h>
 #include <kernel/interrupt.h>
 #include <kernel/timeout.h>
-#include <kernel/clock.h>
 
 #include <string.h>
 
