@@ -8,7 +8,7 @@
 
 // TODO: clean unused headers
 #include <kernel/tty.h>
-#include <kernel/serial.h>
+#include <drivers/serial.h>
 #include <kernel/memman.h>
 #include <kernel/interrupt.h>
 #include <kernel/clock.h>

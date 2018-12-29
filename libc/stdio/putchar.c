@@ -2,7 +2,7 @@
 
 #if defined(__is_libk)
 #include <kernel/tty.h>
-#include <kernel/serial.h>
+#include <drivers/serial.h>
 #endif
 
 int putchar(int ic) {
