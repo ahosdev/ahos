@@ -152,7 +152,10 @@ enum keycode {
 	// --- 2 bytes keycodes ---
 	KEY_LGUI, KEY_RCTRL, KEY_RGUI, KEY_RALT, KEY_APPS, KEY_INSERT, KEY_HOME,
 	KEY_PGUP, KEY_DEL, KEY_END, KEY_PGDOWN, KEY_UP, KEY_LEFT, KEY_DOWN,
-	KEY_RIGHT, KEY_KP_DIV, KEY_KP_EN
+	KEY_RIGHT, KEY_KP_DIV, KEY_KP_EN,
+
+	// --- extra long keycodes ---
+	KEY_PRNT_SCRN, KEY_PAUSE,
 };
 
 // ============================================================================
@@ -652,6 +655,14 @@ static bool keyboard_reset_and_self_test(void)
 uint8_t last_scancode = 0;
 size_t nb_scancodes = 0;
 
+// TODO: handle key breaks
+
+// FIXME: on BOCHS this code is running "too fast" so we miss the "next byte"
+// because we set a timeout to zero. A workaround would be to increase the
+// timeout but this would degrage the overall performance. Instead, we really
+// need to implement the state machine and accept that a scan code will
+// naturally come later on.
+
 static void keyboard_wait_scan(void)
 {
 	struct ps2driver *driver = &keyboard_driver;
@@ -678,8 +689,23 @@ static void keyboard_wait_scan(void)
 				// discard it
 			}
 		} else if (scancode == 0x12) {
-			// TODO: need to read more byte (print screen)
-			NOT_IMPLEMENTED();
+			// TODO: the following code is ugly...
+			// read two more bytes
+			if (ps2driver_read(driver, &scancode, 0) == false) {
+				error("failed to read third byte");
+			} else if (scancode != 0xe0) {
+				error("unexpected byte 0x%x (expected: 0x%x)", scancode, 0xe0);
+			} else {
+				// read the last (fourth) byte
+				if (ps2driver_read(driver, &scancode, 0) == false) {
+					error("failed to read fourth byte");
+				} else if (scancode != 0x7c) {
+					error("unexpected byte 0x%x (expected: 0x%x)", scancode, 0x7c);
+				} else {
+					nb_scancodes = 4;
+					kbd_state = KBD_STATE_TRANSLATE;
+				}
+			}
 		} else {
 			// this is a std 2 byte MAKE code
 			last_scancode = scancode;
@@ -834,6 +860,10 @@ static void keycode2str(enum keycode kc, char *buf, size_t buf_size)
 		case KEY_KP_DIV:	strcpy(buf, "<KP_DIV>"); break;
 		case KEY_KP_EN:		strcpy(buf, "<KP_EN>"); break;
 
+		// extra long keycode
+		case KEY_PRNT_SCRN:	strcpy(buf, "<PRNT_SCRN>"); break;
+		case KEY_PAUSE:		strcpy(buf, "<PAUSE>"); break;
+
 		default:			strcpy(buf, "<UNKNOWN>"); break;
 		}
 	}
@@ -870,9 +900,12 @@ static void keyboard_translate(void)
 				kc = KEY_UNK;
 			} break;
 		}
-	} else {
-		// TODO: print screen and pause
-		NOT_IMPLEMENTED();
+	} else if (nb_scancodes == 4) {
+		// scan codes have already been validated, this is PRINT SCREEN
+		kc = KEY_PRNT_SCRN;
+	} else if (nb_scancodes == 8) {
+		// scan codes have already been validated, this is PAUSE
+		kc = KEY_PAUSE;
 	}
 
 	dbg("scancode = 0x%x", scancode);
