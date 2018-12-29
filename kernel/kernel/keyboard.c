@@ -775,6 +775,7 @@ static void keycode2str(enum keycode kc, char *buf, size_t buf_size)
 		case KEY_DOT:		buf[0] = '.'; break;
 		case KEY_SLASH:		buf[0] = '/'; break;
 		case KEY_SPACE:		buf[0] = ' '; break;
+		case KEY_LT:		buf[0] = '<'; break;
 		case KEY_BKSP:		strcpy(buf, "<BKSP>"); break;
 		case KEY_TAB:		strcpy(buf, "<TAB>"); break;
 		case KEY_CAPS:		strcpy(buf, "<CAPS>"); break;
@@ -782,7 +783,6 @@ static void keycode2str(enum keycode kc, char *buf, size_t buf_size)
 		case KEY_RSHIFT:	strcpy(buf, "<RSHIFT>"); break;
 		case KEY_LCTRL:		strcpy(buf, "<LCTRL>"); break;
 		case KEY_LALT:		strcpy(buf, "<LALT>"); break;
-		case KEY_LT:		strcpy(buf, "<"); break;
 		case KEY_ENTER:		strcpy(buf, "<ENTER>"); break;
 		case KEY_ESC:		strcpy(buf, "<ESC>"); break;
 		case KEY_F1:		strcpy(buf, "<F1>"); break;
