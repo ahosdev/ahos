@@ -18,10 +18,11 @@
  * - KBD_CMD_SET_LED -> no passthrough (testable with BOCHS/VMWARE)
  * - KBD_CMD_RESEND -> inexistent (BOCHS seems to panic on this one)
  * - KBD_CMD_DISABLE -> QEMU also reset the keyboard default parameter
- * - doesnt support any "scancode set 3" only commands
+ * - doesnt support any "scancode set 3 only" commands
  *
  * TODO:
  * - all keyboards commands shouldn't be callable before driver has started.
+ * - handle scan code set 1 and 3
  */
 
 #include <kernel/keyboard.h>
@@ -30,6 +31,7 @@
 #include <kernel/log.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 #undef LOG_MODULE
 #define LOG_MODULE "keyboard"
@@ -120,6 +122,7 @@ enum keyboard_led {
 enum keyboard_state {
 	KBD_STATE_RESET, // flush the recv queue and get back to a clean state
 	KBD_STATE_WAIT_SCAN, // wait for a scan code
+	KBD_STATE_READ_MORE, // received a first scan code but we need more
 	KBD_STATE_TRANSLATE, // receive a complete sequence, translate it
 };
 
@@ -158,6 +161,68 @@ enum keycode {
 	KEY_PRNT_SCRN, KEY_PAUSE,
 };
 
+// ----------------------------------------------------------------------------
+
+// scan code set 2 (one byte only)
+enum keycode scan_to_key[] = {
+	// 0x00
+	KEY_UNK, KEY_F9, KEY_UNK, KEY_F5, KEY_F3, KEY_F1, KEY_F2, KEY_F12,
+	// 0x08
+	KEY_UNK, KEY_F10, KEY_F8, KEY_F6, KEY_F4, KEY_TAB, KEY_BKQUOTE, KEY_UNK,
+	// 0x10
+	KEY_UNK, KEY_LALT, KEY_LSHIFT, KEY_UNK, KEY_LCTRL, KEY_Q, KEY_1, KEY_UNK,
+	// 0x18
+	KEY_UNK, KEY_UNK, KEY_Z, KEY_S, KEY_A, KEY_W, KEY_2, KEY_UNK,
+	// 0x20
+	KEY_UNK, KEY_C, KEY_X, KEY_D, KEY_E, KEY_4, KEY_3, KEY_UNK,
+	// 0x28
+	KEY_UNK, KEY_SPACE, KEY_V, KEY_F, KEY_T, KEY_R, KEY_5, KEY_UNK,
+	// 0x30
+	KEY_UNK, KEY_N, KEY_B, KEY_H, KEY_G, KEY_Y, KEY_6, KEY_UNK,
+	// 0x38
+	KEY_UNK, KEY_UNK, KEY_M, KEY_J, KEY_U, KEY_7, KEY_8, KEY_UNK,
+	// 0x40
+	KEY_UNK, KEY_COMMA, KEY_K, KEY_I, KEY_O, KEY_0, KEY_9, KEY_UNK,
+	// 0x48
+	KEY_UNK, KEY_DOT, KEY_SLASH, KEY_L, KEY_SEMICOLON, KEY_P, KEY_HYPEN, KEY_UNK,
+	// 0x50
+	KEY_UNK, KEY_UNK, KEY_SQUOTE, KEY_UNK, KEY_LBRACKET, KEY_EQUAL, KEY_UNK, KEY_UNK,
+	// 0x58
+	KEY_CAPS, KEY_RSHIFT, KEY_ENTER, KEY_RBRACKET, KEY_UNK, KEY_BKSLASH, KEY_UNK, KEY_UNK,
+	// 0x60
+	KEY_UNK, KEY_LT, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_BKSP, KEY_UNK,
+	// 0x68
+	KEY_UNK, KEY_KP_1, KEY_UNK, KEY_KP_4, KEY_KP_7, KEY_UNK, KEY_UNK, KEY_UNK,
+	// 0x70
+	KEY_KP_0, KEY_KP_DOT, KEY_KP_2, KEY_KP_5, KEY_KP_6, KEY_KP_8, KEY_ESC, KEY_NUM,
+	// 0x78
+	KEY_F11, KEY_KP_PLUS, KEY_KP_3, KEY_KP_HYPHEN, KEY_KP_STAR, KEY_KP_9, KEY_SCROLL, KEY_UNK,
+	// 0x80
+	KEY_UNK, KEY_UNK, KEY_UNK, KEY_F7, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
+};
+
+// ----------------------------------------------------------------------------
+
+enum keycode_type {
+	KBD_KEYTYPE_MAKE,
+	KBD_KEYTYPE_BREAK,
+};
+
+// ----------------------------------------------------------------------------
+
+struct scancode_seq {
+	unsigned char scancodes[8]; // maximum sequence on SCS-2 is 8 (pause)!
+	size_t len;
+	size_t need;
+};
+
+// ----------------------------------------------------------------------------
+
+struct keycode_res {
+	enum keycode kc;
+	enum keycode_type type;
+};
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -166,6 +231,7 @@ static struct ps2driver keyboard_driver; // forward declaration
 static uint8_t keyboard_led_state = KBD_LED_OFF;
 static enum keyboard_scs keyboard_scanset = KBD_SCS_UNKNOWN;
 static enum keyboard_state kbd_state = KBD_STATE_RESET;
+static struct scancode_seq kbd_seq;
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -266,6 +332,280 @@ retry:
 
 	dbg("received ACK");
 	return true;
+}
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
+static void keycode2str(enum keycode kc, char *buf, size_t buf_size)
+{
+	memset(buf, 0, buf_size);
+
+	if (kc >= KEY_A && kc <= KEY_Z) {
+		buf[0] = 'A' + (kc - KEY_A);
+	} else if (kc >= KEY_0 && kc <= KEY_9) {
+		buf[0] = '0' + (kc - KEY_0);
+	} else {
+		switch (kc) {
+		case KEY_BKQUOTE:	buf[0] = '`'; break;
+		case KEY_HYPEN:		buf[0] = '-'; break;
+		case KEY_EQUAL:		buf[0] = '='; break;
+		case KEY_BKSLASH:	buf[0] = '\\'; break;
+		case KEY_LBRACKET:	buf[0] = '['; break;
+		case KEY_RBRACKET:	buf[0] = ']'; break;
+		case KEY_SEMICOLON: buf[0] = ';'; break;
+		case KEY_SQUOTE:	buf[0] = '\''; break;
+		case KEY_COMMA:		buf[0] = ','; break;
+		case KEY_DOT:		buf[0] = '.'; break;
+		case KEY_SLASH:		buf[0] = '/'; break;
+		case KEY_SPACE:		buf[0] = ' '; break;
+		case KEY_LT:		buf[0] = '<'; break;
+		case KEY_BKSP:		strcpy(buf, "<BKSP>"); break;
+		case KEY_TAB:		strcpy(buf, "<TAB>"); break;
+		case KEY_CAPS:		strcpy(buf, "<CAPS>"); break;
+		case KEY_LSHIFT:	strcpy(buf, "<LSHIFT>"); break;
+		case KEY_RSHIFT:	strcpy(buf, "<RSHIFT>"); break;
+		case KEY_LCTRL:		strcpy(buf, "<LCTRL>"); break;
+		case KEY_LALT:		strcpy(buf, "<LALT>"); break;
+		case KEY_ENTER:		strcpy(buf, "<ENTER>"); break;
+		case KEY_ESC:		strcpy(buf, "<ESC>"); break;
+		case KEY_F1:		strcpy(buf, "<F1>"); break;
+		case KEY_F2:		strcpy(buf, "<F2>"); break;
+		case KEY_F3:		strcpy(buf, "<F3>"); break;
+		case KEY_F4:		strcpy(buf, "<F4>"); break;
+		case KEY_F5:		strcpy(buf, "<F5>"); break;
+		case KEY_F6:		strcpy(buf, "<F6>"); break;
+		case KEY_F7:		strcpy(buf, "<F7>"); break;
+		case KEY_F8:		strcpy(buf, "<F8>"); break;
+		case KEY_F9:		strcpy(buf, "<F9>"); break;
+		case KEY_F10:		strcpy(buf, "<F10>"); break;
+		case KEY_F11:		strcpy(buf, "<F11>"); break;
+		case KEY_F12:		strcpy(buf, "<F12>"); break;
+		case KEY_SCROLL:	strcpy(buf, "<SCROLL>"); break;
+		case KEY_NUM:		strcpy(buf, "<NUM>"); break;
+		case KEY_KP_STAR:	strcpy(buf, "<KP_STAR>"); break;
+		case KEY_KP_HYPHEN:	strcpy(buf, "<KP_HYPHEN>"); break;
+		case KEY_KP_MINUS:	strcpy(buf, "<KP_MINUS>"); break;
+		case KEY_KP_PLUS:	strcpy(buf, "<KP_PLUS>"); break;
+		case KEY_KP_DOT:	strcpy(buf, "<KP_DOT>"); break;
+		case KEY_KP_0:		strcpy(buf, "<KP_0>"); break;
+		case KEY_KP_1:		strcpy(buf, "<KP_1>"); break;
+		case KEY_KP_2:		strcpy(buf, "<KP_2>"); break;
+		case KEY_KP_3:		strcpy(buf, "<KP_3>"); break;
+		case KEY_KP_4:		strcpy(buf, "<KP_4>"); break;
+		case KEY_KP_5:		strcpy(buf, "<KP_5>"); break;
+		case KEY_KP_6:		strcpy(buf, "<KP_6>"); break;
+		case KEY_KP_7:		strcpy(buf, "<KP_7>"); break;
+		case KEY_KP_8:		strcpy(buf, "<KP_8>"); break;
+		case KEY_KP_9:		strcpy(buf, "<KP_9>"); break;
+
+		// 2 bytes keycodes
+		case KEY_LGUI:		strcpy(buf, "<LGUI>"); break;
+		case KEY_RCTRL:		strcpy(buf, "<RCTRL>"); break;
+		case KEY_RGUI:		strcpy(buf, "<RGUI>"); break;
+		case KEY_RALT:		strcpy(buf, "<RALT>"); break;
+		case KEY_APPS:		strcpy(buf, "<APPS>"); break;
+		case KEY_INSERT:	strcpy(buf, "<INSERT>"); break;
+		case KEY_HOME:		strcpy(buf, "<HOME>"); break;
+		case KEY_PGUP:		strcpy(buf, "<PGUP>"); break;
+		case KEY_DEL:		strcpy(buf, "<DEL>"); break;
+		case KEY_END:		strcpy(buf, "<END>"); break;
+		case KEY_PGDOWN:	strcpy(buf, "<PGDOWN>"); break;
+		case KEY_UP:		strcpy(buf, "<UP>"); break;
+		case KEY_LEFT:		strcpy(buf, "<LEFT>"); break;
+		case KEY_DOWN:		strcpy(buf, "<DOWN>"); break;
+		case KEY_RIGHT:		strcpy(buf, "<RIGHT>"); break;
+		case KEY_KP_DIV:	strcpy(buf, "<KP_DIV>"); break;
+		case KEY_KP_EN:		strcpy(buf, "<KP_EN>"); break;
+
+		// extra long keycode
+		case KEY_PRNT_SCRN:	strcpy(buf, "<PRNT_SCRN>"); break;
+		case KEY_PAUSE:		strcpy(buf, "<PAUSE>"); break;
+
+		default:			strcpy(buf, "<UNKNOWN>"); break;
+		}
+	}
+}
+
+// ----------------------------------------------------------------------------
+
+static bool keyboard_validate_sequence(unsigned char *expect,
+									   unsigned char *seq,
+									   size_t len)
+{
+	for (size_t i = 0; i < len; ++i) {
+		if (expect[i] != seq[i]) {
+			dbg("error: expected 0x%x, got 0x%x", expect[i], seq[i]);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+static enum keycode scan_2bytes_to_key(unsigned char scan)
+{
+	switch (scan) {
+		case 0x1f: return KEY_LGUI;
+		case 0x14: return KEY_RCTRL;
+		case 0x27: return KEY_RGUI;
+		case 0x11: return KEY_RALT;
+		case 0x2f: return KEY_APPS;
+		case 0x70: return KEY_INSERT;
+		case 0x6c: return KEY_HOME;
+		case 0x7d: return KEY_PGUP;
+		case 0x71: return KEY_DEL;
+		case 0x69: return KEY_END;
+		case 0x7a: return KEY_PGDOWN;
+		case 0x75: return KEY_UP;
+		case 0x6b: return KEY_LEFT;
+		case 0x72: return KEY_DOWN;
+		case 0x74: return KEY_RIGHT;
+		case 0x4a: return KEY_KP_DIV;
+		case 0x5a: return KEY_KP_EN;
+	}
+
+	warn("unknown 2 bytes scan code");
+	return KEY_UNK;
+}
+
+// ----------------------------------------------------------------------------
+
+static struct keycode_res keyboard_state_translate(void)
+{
+	struct keycode_res res;
+
+	if (kbd_seq.len == 1) {
+		// one byte make code
+		res.kc = scan_to_key[kbd_seq.scancodes[0]];
+		res.type = KBD_KEYTYPE_MAKE;
+	} else if (kbd_seq.len == 2) {
+		if (kbd_seq.scancodes[0] == 0xe0) {
+			// two bytes make code
+			res.kc = scan_2bytes_to_key(kbd_seq.scancodes[1]);
+			res.type = KBD_KEYTYPE_MAKE;
+		} else {
+			// one byte break code
+			res.kc = scan_to_key[kbd_seq.scancodes[1]];
+			res.type = KBD_KEYTYPE_BREAK;
+		}
+	} else if (kbd_seq.len == 3) {
+			// two bytes break code
+		res.kc = scan_2bytes_to_key(kbd_seq.scancodes[2]);
+		res.type = KBD_KEYTYPE_BREAK;
+	} else if (kbd_seq.len == 4) {
+		unsigned char expect[] = { 0xe0, 0x12, 0xe0, 0x7c };
+		if (!keyboard_validate_sequence(expect, kbd_seq.scancodes, kbd_seq.len)) {
+			warn("unexpected scancode in print screen make sequence");
+		}
+		res.kc = KEY_PRNT_SCRN;
+		res.type = KBD_KEYTYPE_MAKE;
+	} else if (kbd_seq.len == 6) {
+		unsigned char expect[] =
+			{ 0xe0, 0xf0, 0x7c, 0xe0, 0xf0, 0x12 };
+		if (!keyboard_validate_sequence(expect, kbd_seq.scancodes, kbd_seq.len)) {
+			warn("unexpected scancode in print screen break sequence");
+		}
+		res.kc = KEY_PRNT_SCRN;
+		res.type = KBD_KEYTYPE_BREAK;
+	} else if (kbd_seq.len == 8) {
+		unsigned char expect[] =
+			{ 0xe1, 0x14, 0x77, 0xe1, 0xf0, 0x14, 0xf0, 0x77 };
+		if (!keyboard_validate_sequence(expect, kbd_seq.scancodes, kbd_seq.len)) {
+			warn("unexpected scancode in pause sequence");
+		}
+		res.kc = KEY_PAUSE;
+		res.type = KBD_KEYTYPE_MAKE;
+	} else {
+		error("unknown sequence len %d", kbd_seq.len);
+		res.kc = KEY_UNK;
+		res.type = KBD_KEYTYPE_MAKE;
+	}
+
+	kbd_state = KBD_STATE_WAIT_SCAN;
+
+	return res;
+}
+
+// ----------------------------------------------------------------------------
+
+static void keyboard_state_read_more(void)
+{
+	uint8_t scancode = 0;
+
+	if (ps2driver_read(&keyboard_driver, &scancode, 0) == false) {
+		// no scan code available
+		dbg("no scan code");
+		return;
+	}
+
+	kbd_seq.scancodes[kbd_seq.len++] = scancode;
+	kbd_seq.need--;
+
+	if ((kbd_seq.len == 2) && (kbd_seq.scancodes[0] == 0xe0)) {
+		if (kbd_seq.scancodes[1] == 0x12) {
+			// print screen make code
+			kbd_seq.need = 2;
+		} else if (kbd_seq.scancodes[1] == 0xf0) {
+			// two bytes break code
+			kbd_seq.need = 1;
+		} else {
+			// two-bytes make code
+		}
+	} else if ((kbd_seq.len == 3) && (kbd_seq.scancodes[2] == 0x7c)) {
+		// print screen break code
+		kbd_seq.need = 3;
+	}
+
+	if (kbd_seq.need == 0) {
+		kbd_state = KBD_STATE_TRANSLATE;
+	}
+}
+
+// ----------------------------------------------------------------------------
+
+static void keyboard_state_wait_scan(void)
+{
+	uint8_t scancode = 0;
+
+	if (ps2driver_read(&keyboard_driver, &scancode, 0) == false) {
+		// no scan code available
+		dbg("no scan code");
+		return;
+	}
+
+	kbd_seq.scancodes[0] = scancode;
+	kbd_seq.len = 1;
+
+	switch (scancode) {
+		case 0xe0: /* fall through */
+		case 0xf0:
+			kbd_seq.need = 1;
+			kbd_state = KBD_STATE_READ_MORE;
+			break;
+		case 0xe1:
+			kbd_seq.need = 7;
+			kbd_state = KBD_STATE_READ_MORE;
+			break;
+		default:
+			kbd_state = KBD_STATE_TRANSLATE;
+			break;
+	};
+}
+
+// ----------------------------------------------------------------------------
+
+static void keyboard_state_reset(void)
+{
+	ps2driver_flush_recv_queue(&keyboard_driver);
+
+	kbd_seq.len = 0;
+	kbd_seq.need = 0;
+
+	kbd_state = KBD_STATE_WAIT_SCAN;
 }
 
 // ============================================================================
@@ -652,275 +992,6 @@ static bool keyboard_reset_and_self_test(void)
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-uint8_t last_scancode = 0;
-size_t nb_scancodes = 0;
-
-// TODO: handle key breaks
-
-// FIXME: on BOCHS this code is running "too fast" so we miss the "next byte"
-// because we set a timeout to zero. A workaround would be to increase the
-// timeout but this would degrage the overall performance. Instead, we really
-// need to implement the state machine and accept that a scan code will
-// naturally come later on.
-
-static void keyboard_wait_scan(void)
-{
-	struct ps2driver *driver = &keyboard_driver;
-	uint8_t scancode = 0;
-
-	if (ps2driver_read(driver, &scancode, 0) == false) {
-		// no scan code available
-		dbg("no scan code");
-		return;
-	}
-
-	if (scancode == 0xe0) {
-		// this is (at least) a two bytes scan code
-		if (ps2driver_read(driver, &scancode, 0) == false) {
-			warn("didn't receive second scan code");
-		} else if (scancode == 0xf0) {
-			// starts a breaking sequence: read a third byte and discard
-			if (ps2driver_read(driver, &scancode, 0) == false) {
-				error("failed to read next scan code");
-			} else if (scancode == 0x7c) {
-				// TODO: print screen break code
-				NOT_IMPLEMENTED();
-			} else {
-				// discard it
-			}
-		} else if (scancode == 0x12) {
-			// TODO: the following code is ugly...
-			// read two more bytes
-			if (ps2driver_read(driver, &scancode, 0) == false) {
-				error("failed to read third byte");
-			} else if (scancode != 0xe0) {
-				error("unexpected byte 0x%x (expected: 0x%x)", scancode, 0xe0);
-			} else {
-				// read the last (fourth) byte
-				if (ps2driver_read(driver, &scancode, 0) == false) {
-					error("failed to read fourth byte");
-				} else if (scancode != 0x7c) {
-					error("unexpected byte 0x%x (expected: 0x%x)", scancode, 0x7c);
-				} else {
-					nb_scancodes = 4;
-					kbd_state = KBD_STATE_TRANSLATE;
-				}
-			}
-		} else {
-			// this is a std 2 byte MAKE code
-			last_scancode = scancode;
-			nb_scancodes = 2;
-			kbd_state = KBD_STATE_TRANSLATE;
-		}
-	} else if (scancode == 0xe1) {
-		// need another scan code (pause)
-		error("scancode not handled (yet)");
-		NOT_IMPLEMENTED();
-	} else if (scancode == 0xf0) {
-		// starting break sequence
-		if (ps2driver_read(driver, &scancode, 0) == false) {
-			error("failed to read next scan code");
-		}
-		// we got it, now throw it
-	} else {
-		// translate the scan code into a key code
-		last_scancode = scancode;
-		nb_scancodes = 1;
-		kbd_state = KBD_STATE_TRANSLATE;
-	}
-}
-
-// ----------------------------------------------------------------------------
-
-// scan code set 2 (one byte only)
-enum keycode scan_to_key[] = {
-	// 0x00
-	KEY_UNK, KEY_F9, KEY_UNK, KEY_F5, KEY_F3, KEY_F1, KEY_F2, KEY_F12,
-	// 0x08
-	KEY_UNK, KEY_F10, KEY_F8, KEY_F6, KEY_F4, KEY_TAB, KEY_BKQUOTE, KEY_UNK,
-	// 0x10
-	KEY_UNK, KEY_LALT, KEY_LSHIFT, KEY_UNK, KEY_LCTRL, KEY_Q, KEY_1, KEY_UNK,
-	// 0x18
-	KEY_UNK, KEY_UNK, KEY_Z, KEY_S, KEY_A, KEY_W, KEY_2, KEY_UNK,
-	// 0x20
-	KEY_UNK, KEY_C, KEY_X, KEY_D, KEY_E, KEY_4, KEY_3, KEY_UNK,
-	// 0x28
-	KEY_UNK, KEY_SPACE, KEY_V, KEY_F, KEY_T, KEY_R, KEY_5, KEY_UNK,
-	// 0x30
-	KEY_UNK, KEY_N, KEY_B, KEY_H, KEY_G, KEY_Y, KEY_6, KEY_UNK,
-	// 0x38
-	KEY_UNK, KEY_UNK, KEY_M, KEY_J, KEY_U, KEY_7, KEY_8, KEY_UNK,
-	// 0x40
-	KEY_UNK, KEY_COMMA, KEY_K, KEY_I, KEY_O, KEY_0, KEY_9, KEY_UNK,
-	// 0x48
-	KEY_UNK, KEY_DOT, KEY_SLASH, KEY_L, KEY_SEMICOLON, KEY_P, KEY_HYPEN, KEY_UNK,
-	// 0x50
-	KEY_UNK, KEY_UNK, KEY_SQUOTE, KEY_UNK, KEY_LBRACKET, KEY_EQUAL, KEY_UNK, KEY_UNK,
-	// 0x58
-	KEY_CAPS, KEY_RSHIFT, KEY_ENTER, KEY_RBRACKET, KEY_UNK, KEY_BKSLASH, KEY_UNK, KEY_UNK,
-	// 0x60
-	KEY_UNK, KEY_LT, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK, KEY_BKSP, KEY_UNK,
-	// 0x68
-	KEY_UNK, KEY_KP_1, KEY_UNK, KEY_KP_4, KEY_KP_7, KEY_UNK, KEY_UNK, KEY_UNK,
-	// 0x70
-	KEY_KP_0, KEY_KP_DOT, KEY_KP_2, KEY_KP_5, KEY_KP_6, KEY_KP_8, KEY_ESC, KEY_NUM,
-	// 0x78
-	KEY_F11, KEY_KP_PLUS, KEY_KP_3, KEY_KP_HYPHEN, KEY_KP_STAR, KEY_KP_9, KEY_SCROLL, KEY_UNK,
-	// 0x80
-	KEY_UNK, KEY_UNK, KEY_UNK, KEY_F7, KEY_UNK, KEY_UNK, KEY_UNK, KEY_UNK,
-};
-
-static void strcpy(char *dst, char *src) // FIXME: temporary
-{
-	while (*src) {
-		*dst++ = *src++;
-	}
-}
-
-#include <string.h>
-
-static void keycode2str(enum keycode kc, char *buf, size_t buf_size)
-{
-	memset(buf, 0, buf_size);
-
-	if (kc >= KEY_A && kc <= KEY_Z) {
-		buf[0] = 'A' + (kc - KEY_A);
-	} else if (kc >= KEY_0 && kc <= KEY_9) {
-		buf[0] = '0' + (kc - KEY_0);
-	} else {
-		switch (kc) {
-		case KEY_BKQUOTE:	buf[0] = '`'; break;
-		case KEY_HYPEN:		buf[0] = '-'; break;
-		case KEY_EQUAL:		buf[0] = '='; break;
-		case KEY_BKSLASH:	buf[0] = '\\'; break;
-		case KEY_LBRACKET:	buf[0] = '['; break;
-		case KEY_RBRACKET:	buf[0] = ']'; break;
-		case KEY_SEMICOLON: buf[0] = ';'; break;
-		case KEY_SQUOTE:	buf[0] = '\''; break;
-		case KEY_COMMA:		buf[0] = ','; break;
-		case KEY_DOT:		buf[0] = '.'; break;
-		case KEY_SLASH:		buf[0] = '/'; break;
-		case KEY_SPACE:		buf[0] = ' '; break;
-		case KEY_LT:		buf[0] = '<'; break;
-		case KEY_BKSP:		strcpy(buf, "<BKSP>"); break;
-		case KEY_TAB:		strcpy(buf, "<TAB>"); break;
-		case KEY_CAPS:		strcpy(buf, "<CAPS>"); break;
-		case KEY_LSHIFT:	strcpy(buf, "<LSHIFT>"); break;
-		case KEY_RSHIFT:	strcpy(buf, "<RSHIFT>"); break;
-		case KEY_LCTRL:		strcpy(buf, "<LCTRL>"); break;
-		case KEY_LALT:		strcpy(buf, "<LALT>"); break;
-		case KEY_ENTER:		strcpy(buf, "<ENTER>"); break;
-		case KEY_ESC:		strcpy(buf, "<ESC>"); break;
-		case KEY_F1:		strcpy(buf, "<F1>"); break;
-		case KEY_F2:		strcpy(buf, "<F2>"); break;
-		case KEY_F3:		strcpy(buf, "<F3>"); break;
-		case KEY_F4:		strcpy(buf, "<F4>"); break;
-		case KEY_F5:		strcpy(buf, "<F5>"); break;
-		case KEY_F6:		strcpy(buf, "<F6>"); break;
-		case KEY_F7:		strcpy(buf, "<F7>"); break;
-		case KEY_F8:		strcpy(buf, "<F8>"); break;
-		case KEY_F9:		strcpy(buf, "<F9>"); break;
-		case KEY_F10:		strcpy(buf, "<F10>"); break;
-		case KEY_F11:		strcpy(buf, "<F11>"); break;
-		case KEY_F12:		strcpy(buf, "<F12>"); break;
-		case KEY_SCROLL:	strcpy(buf, "<SCROLL>"); break;
-		case KEY_NUM:		strcpy(buf, "<NUM>"); break;
-		case KEY_KP_STAR:	strcpy(buf, "<KP_STAR>"); break;
-		case KEY_KP_HYPHEN:	strcpy(buf, "<KP_HYPHEN>"); break;
-		case KEY_KP_MINUS:	strcpy(buf, "<KP_MINUS>"); break;
-		case KEY_KP_PLUS:	strcpy(buf, "<KP_PLUS>"); break;
-		case KEY_KP_DOT:	strcpy(buf, "<KP_DOT>"); break;
-		case KEY_KP_0:		strcpy(buf, "<KP_0>"); break;
-		case KEY_KP_1:		strcpy(buf, "<KP_1>"); break;
-		case KEY_KP_2:		strcpy(buf, "<KP_2>"); break;
-		case KEY_KP_3:		strcpy(buf, "<KP_3>"); break;
-		case KEY_KP_4:		strcpy(buf, "<KP_4>"); break;
-		case KEY_KP_5:		strcpy(buf, "<KP_5>"); break;
-		case KEY_KP_6:		strcpy(buf, "<KP_6>"); break;
-		case KEY_KP_7:		strcpy(buf, "<KP_7>"); break;
-		case KEY_KP_8:		strcpy(buf, "<KP_8>"); break;
-		case KEY_KP_9:		strcpy(buf, "<KP_9>"); break;
-
-		// 2 bytes keycodes
-		case KEY_LGUI:		strcpy(buf, "<LGUI>"); break;
-		case KEY_RCTRL:		strcpy(buf, "<RCTRL>"); break;
-		case KEY_RGUI:		strcpy(buf, "<RGUI>"); break;
-		case KEY_RALT:		strcpy(buf, "<RALT>"); break;
-		case KEY_APPS:		strcpy(buf, "<APPS>"); break;
-		case KEY_INSERT:	strcpy(buf, "<INSERT>"); break;
-		case KEY_HOME:		strcpy(buf, "<HOME>"); break;
-		case KEY_PGUP:		strcpy(buf, "<PGUP>"); break;
-		case KEY_DEL:		strcpy(buf, "<DEL>"); break;
-		case KEY_END:		strcpy(buf, "<END>"); break;
-		case KEY_PGDOWN:	strcpy(buf, "<PGDOWN>"); break;
-		case KEY_UP:		strcpy(buf, "<UP>"); break;
-		case KEY_LEFT:		strcpy(buf, "<LEFT>"); break;
-		case KEY_DOWN:		strcpy(buf, "<DOWN>"); break;
-		case KEY_RIGHT:		strcpy(buf, "<RIGHT>"); break;
-		case KEY_KP_DIV:	strcpy(buf, "<KP_DIV>"); break;
-		case KEY_KP_EN:		strcpy(buf, "<KP_EN>"); break;
-
-		// extra long keycode
-		case KEY_PRNT_SCRN:	strcpy(buf, "<PRNT_SCRN>"); break;
-		case KEY_PAUSE:		strcpy(buf, "<PAUSE>"); break;
-
-		default:			strcpy(buf, "<UNKNOWN>"); break;
-		}
-	}
-}
-
-static void keyboard_translate(void)
-{
-	uint8_t scancode = last_scancode;
-	enum keycode kc = KEY_UNK;
-
-	if (nb_scancodes == 1) {
-		kc = scan_to_key[scancode];
-	} else if (nb_scancodes == 2) {
-		switch (last_scancode) {
-			case 0x1f: kc = KEY_LGUI; break;
-			case 0x14: kc = KEY_RCTRL; break;
-			case 0x27: kc = KEY_RGUI; break;
-			case 0x11: kc = KEY_RALT; break;
-			case 0x2f: kc = KEY_APPS; break;
-			case 0x70: kc = KEY_INSERT; break;
-			case 0x6c: kc = KEY_HOME; break;
-			case 0x7d: kc = KEY_PGUP; break;
-			case 0x71: kc = KEY_DEL; break;
-			case 0x69: kc = KEY_END; break;
-			case 0x7a: kc = KEY_PGDOWN; break;
-			case 0x75: kc = KEY_UP; break;
-			case 0x6b: kc = KEY_LEFT; break;
-			case 0x72: kc = KEY_DOWN; break;
-			case 0x74: kc = KEY_RIGHT; break;
-			case 0x4a: kc = KEY_KP_DIV; break;
-			case 0x5a: kc = KEY_KP_EN; break;
-			default: {
-				warn("unknown 2 bytes scan code");
-				kc = KEY_UNK;
-			} break;
-		}
-	} else if (nb_scancodes == 4) {
-		// scan codes have already been validated, this is PRINT SCREEN
-		kc = KEY_PRNT_SCRN;
-	} else if (nb_scancodes == 8) {
-		// scan codes have already been validated, this is PAUSE
-		kc = KEY_PAUSE;
-	}
-
-	dbg("scancode = 0x%x", scancode);
-
-	char buf[16];
-	keycode2str(kc, buf, sizeof(buf));
-	info("key detected '%s'", buf);
-
-	kbd_state = KBD_STATE_WAIT_SCAN; // process a new sequence
-}
-
-// ============================================================================
-// ----------------------------------------------------------------------------
-// ============================================================================
-
 /*
  * Initializes the keyboard driver.
  *
@@ -943,8 +1014,6 @@ static bool keyboard_start(uint8_t irq_line)
 
 	driver->irq_line = irq_line;
 	dbg("driver uses IRQ line %u", irq_line);
-
-	// TODO: starting sequence
 
 	ps2driver_flush_recv_queue(driver);
 
@@ -1046,27 +1115,29 @@ fail:
  * often in order to give the scheduler opportunity to run another task.
  */
 
+
 void keyboard_task(void)
 {
-	struct ps2driver *driver = &keyboard_driver;
+	struct keycode_res kc_res;
+	char buf[16];
 
-	for (size_t loop = 0; loop < 2; ++loop) {
-		switch (kbd_state) {
-			case KBD_STATE_RESET:
-				ps2driver_flush_recv_queue(driver);
-				kbd_state = KBD_STATE_WAIT_SCAN;
-				break;
-			case KBD_STATE_WAIT_SCAN:
-				keyboard_wait_scan();
-				break;
-			case KBD_STATE_TRANSLATE:
-				keyboard_translate();
-				break;
-			default:
-				warn("unknown keyboard state, switching to RESET state");
-				kbd_state = KBD_STATE_RESET;
-				break;
-		}
+	switch (kbd_state) {
+		case KBD_STATE_RESET:
+			keyboard_state_reset();
+			break;
+		case KBD_STATE_WAIT_SCAN:
+			keyboard_state_wait_scan();
+			break;
+		case KBD_STATE_READ_MORE:
+			keyboard_state_read_more();
+			break;
+		case KBD_STATE_TRANSLATE:
+			kc_res = keyboard_state_translate();
+			// TODO: add the result into a queue
+			keycode2str(kc_res.kc, buf, sizeof(buf));
+			info("key <%s> %s",
+				buf, kc_res.type == KBD_KEYTYPE_MAKE ? "pressed" : "released");
+			break;
 	}
 }
 
