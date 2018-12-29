@@ -5,12 +5,13 @@
  */
 
 #include <kernel/types.h>
-#include <kernel/io.h>
 #include <kernel/interrupt.h>
 #include <kernel/log.h>
 
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "io.h"
 
 #undef LOG_MODULE
 #define LOG_MODULE "irq"

@@ -14,9 +14,11 @@
  * - error handling (LSR)
  */
 
+#include <arch/io.h>
+
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
-#include <kernel/io.h>
+
 #include <stdlib.h>
 
 #undef LOG_MODULE

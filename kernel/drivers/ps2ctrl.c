@@ -23,11 +23,10 @@
  * - handle second device (once we have one)
  */
 
-#include <stdlib.h>
-#include <string.h>
-
 #include <drivers/ps2ctrl.h>
 #include <drivers/ps2driver.h>
+
+#include <arch/io.h>
 
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
@@ -35,7 +34,8 @@
 #include <kernel/log.h>
 #include <kernel/clock.h>
 
-#include <kernel/io.h>
+#include <stdlib.h>
+#include <string.h>
 
 #undef LOG_MODULE
 #define LOG_MODULE "ps2ctrl"
