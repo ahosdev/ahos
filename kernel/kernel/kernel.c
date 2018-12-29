@@ -6,12 +6,13 @@
 
 #include <stdio.h>
 
+// TODO: clean unused headers
 #include <kernel/tty.h>
 #include <kernel/serial.h>
 #include <kernel/memman.h>
 #include <kernel/interrupt.h>
 #include <kernel/clock.h>
-#include <kernel/ps2ctrl.h>
+#include <drivers/ps2ctrl.h>
 #include <kernel/timeout.h>
 #include <kernel/keyboard.h>
 #include <kernel/log.h>

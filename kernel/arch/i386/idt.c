@@ -17,7 +17,7 @@
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
 #include <kernel/clock.h>
-#include <kernel/ps2ctrl.h>
+#include <drivers/ps2ctrl.h>
 #include <kernel/log.h>
 
 #include <stdlib.h> // uses abort

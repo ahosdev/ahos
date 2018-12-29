@@ -26,15 +26,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <kernel/ps2ctrl.h>
+#include <drivers/ps2ctrl.h>
+#include <drivers/ps2driver.h>
+
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
 #include <kernel/timeout.h>
-#include <kernel/ps2driver.h>
 #include <kernel/log.h>
 #include <kernel/clock.h>
 
-#include "io.h"
+#include <kernel/io.h>
 
 #undef LOG_MODULE
 #define LOG_MODULE "ps2ctrl"

@@ -4,7 +4,7 @@
  * Generic PS/2 driver.
  */
 
-#include <kernel/ps2driver.h>
+#include <drivers/ps2driver.h>
 #include <kernel/log.h>
 #include <kernel/interrupt.h>
 #include <kernel/timeout.h>

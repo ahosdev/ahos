@@ -19,8 +19,10 @@ LDFLAGS:=$(LDFLAGS)
 LIBS:=$(LIBS) -nostdlib -lk -lgcc
 
 ARCHDIR=arch/$(HOSTARCH)
+DRIVERSDIR=drivers/
 
 include $(ARCHDIR)/make.config
+include $(DRIVERSDIR)/make.config
 
 CFLAGS:=$(CFLAGS) $(KERNEL_ARCH_CFLAGS)
 CPPFLAGS:=$(CPPFLAGS) $(KERNEL_ARCH_CPPFLAGS)
@@ -29,11 +31,11 @@ LIBS:=$(LIBS) $(KERNEL_ARCH_LIBS)
 
 KERNEL_OBJS=\
 $(KERNEL_ARCH_OBJS) \
+$(KERNEL_DRIVERS_OBJS) \
 kernel/kernel.o \
 kernel/serial.o \
 kernel/timeout.o \
 kernel/keyboard.o \
-kernel/ps2driver.o \
 kernel/log.o \
 
 OBJS=\

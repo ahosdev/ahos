@@ -26,8 +26,8 @@
  */
 
 #include <kernel/keyboard.h>
-#include <kernel/ps2driver.h>
-#include <kernel/ps2ctrl.h>
+#include <drivers/ps2driver.h>
+#include <drivers/ps2ctrl.h>
 #include <kernel/log.h>
 
 #include <stdlib.h>

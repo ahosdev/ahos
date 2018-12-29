@@ -8,7 +8,7 @@
 #define KERNEL_PS2CTRL_H_
 
 #include <kernel/types.h>
-#include <kernel/ps2driver.h>
+#include <drivers/ps2driver.h>
 
 // ============================================================================
 // ----------------------------------------------------------------------------
