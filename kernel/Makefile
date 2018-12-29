@@ -34,7 +34,6 @@ $(KERNEL_ARCH_OBJS) \
 $(KERNEL_DRIVERS_OBJS) \
 kernel/kernel.o \
 kernel/timeout.o \
-kernel/keyboard.o \
 kernel/log.o \
 
 OBJS=\

@@ -14,7 +14,7 @@
 #include <kernel/clock.h>
 #include <drivers/ps2ctrl.h>
 #include <kernel/timeout.h>
-#include <kernel/keyboard.h>
+#include <drivers/keyboard.h>
 #include <kernel/log.h>
 #include <kernel/scheduler.h>
 

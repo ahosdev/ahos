@@ -25,7 +25,7 @@
  * - handle scan code set 1 and 3
  */
 
-#include <kernel/keyboard.h>
+#include <drivers/keyboard.h>
 #include <drivers/ps2driver.h>
 #include <drivers/ps2ctrl.h>
 #include <kernel/log.h>
