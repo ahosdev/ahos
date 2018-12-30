@@ -6,9 +6,10 @@
  */
 
 #include <kernel/types.h>
-#include <kernel/vga.h>
 
-#include "io.h"
+#include <drivers/vga.h>
+
+#include <arch/io.h>
 
 #undef LOG_MODULE
 #define LOG_MODULE "vga"

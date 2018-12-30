@@ -2,7 +2,8 @@
 #define _KERNEL_TTY_H
 
 #include <kernel/types.h>
-#include <kernel/vga.h> // we include it here to ease the color function usage
+
+#include <drivers/vga.h> // we include it here to ease the color function usage
 
 // ============================================================================
 // ----------------------------------------------------------------------------

@@ -1,10 +1,18 @@
+/*
+ * tty.c
+ *
+ * TODO: rename it to 'terminal'
+ */
+
+#include <kernel/tty.h>
+
+#include <drivers/vga.h>
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
-#include <kernel/tty.h>
-#include <kernel/vga.h>
 
 #undef LOG_MODULE
 #define LOG_MODULE "tty"
