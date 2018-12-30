@@ -37,6 +37,7 @@ kernel/timeout.o \
 kernel/log.o \
 kernel/memory.o \
 kernel/page_frame_allocator.o \
+kernel/kmalloc.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \
