@@ -1232,8 +1232,7 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 		} else if (driver == drivers[slot]) {
 			warn("this driver is already registered");
 			return false;
-		} else if (!memcmp(driver->name, drivers[slot]->name, sizeof(drivers[slot]->name))) {
-			// FIXME: use strcmp() instead of memcmp()
+		} else if (!strcmp(driver->name, drivers[slot]->name)) {
 			warn("a driver with that name is already registred");
 			return false;
 		}
