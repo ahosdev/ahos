@@ -7,11 +7,12 @@
 #include <stdio.h>
 
 // TODO: clean unused headers
+
 #include <drivers/serial.h>
 #include <drivers/clock.h>
 #include <drivers/ps2ctrl.h>
+#include <drivers/tty.h>
 
-#include <kernel/tty.h>
 #include <kernel/memman.h>
 #include <kernel/interrupt.h>
 #include <kernel/timeout.h>

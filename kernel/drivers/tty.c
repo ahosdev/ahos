@@ -4,13 +4,11 @@
  * TODO: rename it to 'terminal'
  */
 
-#include <kernel/tty.h>
-
+#include <drivers/tty.h>
 #include <drivers/vga.h>
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
+#include <kernel/types.h>
+
 #include <string.h>
 
 
