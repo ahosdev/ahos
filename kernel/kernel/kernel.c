@@ -72,6 +72,9 @@ static void ps2_init(void)
 
 static void kernel_init(void)
 {
+	disable_irq();
+	disable_nmi();
+
 	memman_init();
 
 	// initialise output early for debugging
