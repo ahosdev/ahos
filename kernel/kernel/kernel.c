@@ -16,6 +16,7 @@
 #include <kernel/interrupt.h>
 #include <kernel/log.h>
 #include <kernel/scheduler.h>
+#include <kernel/memory.h>
 
 #include <multiboot.h>
 
@@ -88,8 +89,20 @@ static void ps2_init(void)
 
 // ----------------------------------------------------------------------------
 
-static void kernel_init(void)
+static void kernel_init(multiboot_info_t *mbi)
 {
+	if (mbi->flags & MULTIBOOT_INFO_MEM_MAP) {
+		if (memory_map_init((multiboot_memory_map_t*)mbi->mmap_addr,
+							mbi->mmap_length) == false)
+		{
+			error("failed to initialize memory map");
+			abort();
+		}
+	} else {
+		error("no memory map from multiboot info, cannot initialize memory");
+		abort();
+	}
+
 	setup_idt();
 	info("IDT setup");
 
@@ -145,7 +158,7 @@ void kernel_main(uint32_t magic, multiboot_info_t *multiboot_info)
 		success("kernel booted from a MULTIBOOT (v1) compliant boot loader");
 	}
 
-	kernel_init();
+	kernel_init(multiboot_info);
 	print_banner();
 
 	// it only accounts from the clock initialization

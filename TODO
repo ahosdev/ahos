@@ -58,8 +58,7 @@
 	- use an error value (integer) instead of 'boolean'
 
 - libc:
-	- str[n]cpy()
-	- strcmp()
+	- strncpy()
 
 - compilation
 	- userland toolchain (hosted)

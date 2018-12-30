@@ -35,6 +35,7 @@ $(KERNEL_DRIVERS_OBJS) \
 kernel/kernel.o \
 kernel/timeout.o \
 kernel/log.o \
+kernel/memory.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \
