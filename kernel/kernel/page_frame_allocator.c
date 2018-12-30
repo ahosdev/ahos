@@ -121,20 +121,57 @@ bool pfa_init(void)
 
 // ----------------------------------------------------------------------------
 
+/*
+ * Allocates a single page frame.
+ *
+ * Returns the physical address of the allocated page frame, or NULL on error.
+ */
+
 pgframe_t pfa_alloc(void)
 {
-	// TODO
+	for (size_t page = 0; page < pfa->nb_pages; ++page) {
+		if (pfa->pagemap[page] == PAGE_FREE) {
+			pfa->pagemap[page] = PAGE_USED;
+			return (pfa->first_page + page * PAGE_SIZE);
+		}
+	}
 
+	warn("no memory available");
 	return BAD_PAGE;
 }
 
 // ----------------------------------------------------------------------------
 
+/*
+ * Frees a single page frame.
+ *
+ * NOTE: The page frame must has been previously allocated with pfa_alloc()
+ * otherwise this will lead to a double-free -> panic.
+ */
+
 void pfa_free(pgframe_t pgf)
 {
-	pgf = pgf;
+	const uint32_t max_pgf = pfa->first_page + pfa->nb_pages*PAGE_SIZE;
+	size_t index = 0;
 
-	// TODO
+	if (pgf < pfa->first_page || pgf >= max_pgf) {
+		error("invalid page (out-of-bound)");
+		abort();
+	}
+
+	if (PAGE_OFFSET(pgf)) {
+		error("pgf is not aligned on a page boundary");
+		abort();
+	}
+
+	index = (pgf - pfa->first_page) / PAGE_SIZE;
+
+	if (pfa->pagemap[index] != PAGE_USED) {
+		error("double-free detected!");
+		abort();
+	}
+
+	pfa->pagemap[index] = PAGE_FREE;
 }
 
 // ============================================================================

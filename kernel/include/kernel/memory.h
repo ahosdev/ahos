@@ -17,11 +17,11 @@
 #define PAGE_MASK	(~(PAGE_SIZE - 1))
 #define PAGE_OFFSET(x) ((x) & (~PAGE_MASK))
 
-#define BAD_PAGE ((uint32_t) -1)
+#define BAD_PAGE ((uint32_t) 0)
 
 // ----------------------------------------------------------------------------
 
-typedef uint32_t pgframe_t;
+typedef uint32_t pgframe_t; // represent a 32-bit physical address of a page
 
 // ============================================================================
 // ----------------------------------------------------------------------------

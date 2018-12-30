@@ -13,6 +13,7 @@
 - memory:
 	- setup paging / virtual memory
 	- basic physical allocator
+	- rename 'memory' to 'phys_mmap'
 
 - serial:
 	- handle asynchronous printing
