@@ -41,6 +41,25 @@ static void print_banner(void)
 
 // ----------------------------------------------------------------------------
 
+/*
+ * Setup early subsystems (gdt, serial driver, terminal driver) which provides
+ * a minimal environment to access physical memory and print debug/boot
+ * information.
+ */
+
+static void kernel_early_init(void)
+{
+	// XXX: interrupts are already disabled by the bootloader
+
+	memman_init();
+
+	// initialise output early for debugging
+	serial_init();
+	terminal_initialize();
+}
+
+// ----------------------------------------------------------------------------
+
 static void ps2_init(void)
 {
 	info("starting PS/2 subsystem initialization...");
@@ -69,20 +88,10 @@ static void ps2_init(void)
 
 static void kernel_init(void)
 {
-	disable_irq();
-	disable_nmi();
-
-	memman_init();
-
-	// initialise output early for debugging
-	serial_init();
-	terminal_initialize();
-	info("kernel booting...");
-
 	setup_idt();
 	info("IDT setup");
 
-	irq_init(IRQ0_INT, IRQ7_INT);
+	irq_init(IRQ0_INT, IRQ7_INT); // TODO: move it into setup_idt()
 	info("IRQ initialized");
 
 	clock_init(CLOCK_FREQ);
@@ -124,6 +133,9 @@ static void kernel_main_loop(void)
 
 void kernel_main(void)
 {
+	kernel_early_init();
+	// we can use log printing now
+
 	kernel_init();
 	print_banner();
 
