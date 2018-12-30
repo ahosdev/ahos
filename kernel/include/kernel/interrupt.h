@@ -44,8 +44,8 @@
 
 void setup_idt();
 
-void enable_irq(void);
-void disable_irq(void);
+void enable_interrupts(void);
+void disable_interrupts(void);
 
 // NMI: Non Maskable Interrupts
 void enable_nmi(void);

@@ -102,7 +102,7 @@ static void kernel_init(void)
 	// we can re-enable interrupts now
 	info("enabling interrupts now");
 	enable_nmi();
-	enable_irq();
+	enable_interrupts();
 
 	ps2_init();
 

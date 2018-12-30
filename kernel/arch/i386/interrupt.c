@@ -15,14 +15,14 @@
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-inline void enable_irq(void)
+inline void enable_interrupts(void)
 {
 	asm volatile("sti" : :);
 }
 
 // ----------------------------------------------------------------------------
 
-inline void disable_irq(void)
+inline void disable_interrupts(void)
 {
 	asm volatile("cli" : : );
 }
