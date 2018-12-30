@@ -17,6 +17,8 @@
 #include <kernel/log.h>
 #include <kernel/scheduler.h>
 
+#include <multiboot.h>
+
 #undef LOG_MODULE
 #define LOG_MODULE "main"
 
@@ -131,10 +133,17 @@ static void kernel_main_loop(void)
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-void kernel_main(void)
+void kernel_main(uint32_t magic, multiboot_info_t *multiboot_info)
 {
 	kernel_early_init();
 	// we can use log printing now
+
+	if (magic != MULTIBOOT_BOOTLOADER_MAGIC) {
+		error("kernel NOT booted from a MULTIBOOT (v1) compliant boot loader");
+		return;
+	} else {
+		success("kernel booted from a MULTIBOOT (v1) compliant boot loader");
+	}
 
 	kernel_init();
 	print_banner();
