@@ -50,7 +50,6 @@
 	- fixe: printing from IRQ can breaks the current line
 
 - kernel:
-	- parse multiboot information
 	- implement a basic synchronisation primitives (mutex/semaphore/spinlock?)
 	- tasks / process
 	- system call

@@ -92,8 +92,7 @@ static void ps2_init(void)
 static void kernel_init(multiboot_info_t *mbi)
 {
 	if (mbi->flags & MULTIBOOT_INFO_MEM_MAP) {
-		if (memory_map_init((multiboot_memory_map_t*)mbi->mmap_addr,
-							mbi->mmap_length) == false)
+		if (memory_map_init(mbi->mmap_addr,	mbi->mmap_length) == false)
 		{
 			error("failed to initialize memory map");
 			abort();
@@ -102,6 +101,7 @@ static void kernel_init(multiboot_info_t *mbi)
 		error("no memory map from multiboot info, cannot initialize memory");
 		abort();
 	}
+	// we cannot use 'mbi' past this point (it is sitting in available memory)
 
 	setup_idt();
 	info("IDT setup");
