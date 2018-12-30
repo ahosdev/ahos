@@ -4,8 +4,8 @@
  * PS/2 Keyboard driver implementation.
  */
 
-#ifndef KERNEL_KEYBOARD_H_
-#define KERNEL_KEYBOARD_H_
+#ifndef DRIVERS_KEYBOARD_H_
+#define DRIVERS_KEYBOARD_H_
 
 #include <kernel/types.h>
 
@@ -20,4 +20,4 @@ void keyboard_task(void); // not a real task
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-#endif /* !KERNEL_KEYBOARD_H_ */
+#endif /* !DRIVERS_KEYBOARD_H_ */

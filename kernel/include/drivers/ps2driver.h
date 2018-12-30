@@ -4,8 +4,8 @@
  * Generic PS/2 driver.
  */
 
-#ifndef KERNEL_PS2DRIVER_H_
-#define KERNEL_PS2DRIVER_H_
+#ifndef DRIVERS_PS2DRIVER_H_
+#define DRIVERS_PS2DRIVER_H_
 
 #include <kernel/types.h>
 
@@ -53,4 +53,4 @@ bool ps2driver_read(struct ps2driver *driver, uint8_t *data, size_t timeout);
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-#endif /* !KERNEL_PS2DRIVER_H_ */
+#endif /* !DRIVERS_PS2DRIVER_H_ */

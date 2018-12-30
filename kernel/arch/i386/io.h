@@ -4,8 +4,8 @@
  * Helpers for in/out instructions.
  */
 
-#ifndef I386_IO_H_
-#define I386_IO_H_
+#ifndef ARCH_I386_IO_H_
+#define ARCH_I386_IO_H_
 
 #include <kernel/types.h>
 
@@ -48,4 +48,4 @@ inline uint8_t inb(uint16_t port)
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-#endif /* I386_IO_H_ */
+#endif /* ARCH_I386_IO_H_ */

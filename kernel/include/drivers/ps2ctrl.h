@@ -4,8 +4,8 @@
  * Header for 8042 PS/2 Controller.
  */
 
-#ifndef KERNEL_PS2CTRL_H_
-#define KERNEL_PS2CTRL_H_
+#ifndef DRIVERS_PS2CTRL_H_
+#define DRIVERS_PS2CTRL_H_
 
 #include <kernel/types.h>
 #include <drivers/ps2driver.h>
@@ -27,4 +27,4 @@ bool ps2ctrl_start_drivers(void);
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-#endif /* !KERNEL_PS2CTRL_H_ */
+#endif /* !DRIVERS_PS2CTRL_H_ */

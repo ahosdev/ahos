@@ -2,8 +2,8 @@
  * vga.h
  */
 
-#ifndef KERNEL_VGA_H_
-#define KERNEL_VGA_H_
+#ifndef DRIVERS_VGA_H_
+#define DRIVERS_VGA_H_
 
 #include <kernel/types.h>
 
@@ -64,4 +64,4 @@ void vga_update_cursor(int x, int y);
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-#endif
+#endif /* !DRIVERS_VGA_H_*/

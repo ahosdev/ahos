@@ -2,8 +2,8 @@
  * clock.h
  */
 
-#ifndef KERNEL_CLOCK_H_
-#define KERNEL_CLOCK_H_
+#ifndef DRIVERS_CLOCK_H_
+#define DRIVERS_CLOCK_H_
 
 #include <kernel/types.h>
 
@@ -24,4 +24,4 @@ void clock_irq_handler(void);
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-#endif /* KERNEL_CLOCK_H_ */
+#endif /* DRIVERS_CLOCK_H_ */

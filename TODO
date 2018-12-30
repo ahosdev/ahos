@@ -7,6 +7,8 @@
 - bootloader (stage-3):
 	- parsing and loading kernel ELF binary
 	- filling multiboot header using BIOS interruptions (unreal mode)
+		- detect memory
+		- detect hardware
 
 - memory:
 	- setup paging / virtual memory
@@ -24,7 +26,6 @@
 	- PS/2 mouse can be tested with BOCHS (?)
 
 - keyboard:
-	- implement command state machine
 	- export keyboard commands
 	- protect keyboard commands against unstarted driver
 	- handle US QWERTY key mapping
@@ -65,8 +66,6 @@
 
 - build
 	- make a top-level Makefile and remove unnecessary scripts
-
-- re-order source code hierarchy (e.g. drivers/*)
 
 # =============================================================================
 # -----------------------------------------------------------------------------

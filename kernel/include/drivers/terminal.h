@@ -1,5 +1,5 @@
-#ifndef _KERNEL_TERMINAL_H
-#define _KERNEL_TERMINAL_H
+#ifndef DRIVERS_TERMINAL_H
+#define DRIVERS_TERMINAL_H
 
 #include <kernel/types.h>
 
@@ -21,4 +21,4 @@ void terminal_reset_color(void);
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-#endif
+#endif /* !DRIVERS_TERMINAL_H_ */

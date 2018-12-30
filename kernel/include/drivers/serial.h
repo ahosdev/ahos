@@ -1,5 +1,5 @@
-#ifndef _KERNEL_SERIAL_H_
-#define _KERNEL_SERIAL_H_
+#ifndef DRIVERS_SERIAL_H_
+#define DRIVERS_SERIAL_H_
 
 #include <stddef.h>
 
@@ -14,4 +14,4 @@ void serial_write(const char *data, size_t size);
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-#endif /* _KERNEL_SERIAL_H_ */
+#endif /* DRIVERS_SERIAL_H_ */

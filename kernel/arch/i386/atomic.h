@@ -6,8 +6,8 @@
  * Mostly stolen from Linux (shame on me!).
  */
 
-#ifndef ARCH_ATOMIC_H_
-#define ARCH_ATOMIC_H_
+#ifndef ARCH_I386_ATOMIC_H_
+#define ARCH_I386_ATOMIC_H_
 
 #include <kernel/types.h>
 
@@ -105,4 +105,4 @@ static inline void atomic_dec(atomic_t *v)
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-#endif /* !ARCH_ATOMIC_H_ */
+#endif /* !ARCH_I386_ATOMIC_H_ */
