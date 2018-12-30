@@ -56,6 +56,10 @@
 	- userland
 	- use an error value (integer) instead of 'boolean'
 
+- filesystem:
+	- ISO driver [read-only]
+	- FAT12 / FAT16 drivers [read-only]
+
 - libc:
 	- strncpy()
 
