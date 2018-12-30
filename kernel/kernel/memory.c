@@ -321,6 +321,49 @@ found:
 	return true;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Find the largest available contiguous memory region starting after
+ * @from_addr (typically, after kernel image) and reserve it.
+ *
+ * On success, @addr and @len are set and true is returned. Otherwise, @addr
+ * and @len are untouched and false is returned.
+ */
+
+bool memory_reserve(uint32_t from_addr, uint32_t *addr, size_t *len)
+{
+	dbg("reserving memory after 0x%x", from_addr);
+
+	if (addr == NULL || len == NULL) {
+		error("invalid argument");
+		return false;
+	}
+
+	dump_phys_mem_map();
+
+	for (size_t entry = 0; entry < phys_mem_map->len; ++entry) {
+		struct phys_mmap_entry *pmme = &phys_mem_map->entries[entry];
+
+		if (pmme->type != MMAP_TYPE_AVAILABLE || pmme->addr < from_addr) {
+			continue;
+		}
+
+		// we found one
+		dbg("found an available memory region at 0x%x", pmme->addr);
+		pmme->type = MMAP_TYPE_RESERVED; // reserve the whole region
+		*addr = pmme->addr;
+		*len = pmme->len;
+
+		dump_phys_mem_map();
+
+		return true;
+	}
+
+	dbg("failed to find a memory region");
+	return false;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
