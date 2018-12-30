@@ -1,0 +1,37 @@
+# CHANGELOG
+
+# =============================================================================
+# -----------------------------------------------------------------------------
+# =============================================================================
+
+@@ v0.1 :
+~~~~~~~~~
+- build system system
+- libc:
+	- stdio: printf, putchar, puts
+	- string: memcpy, memmove, strcpy, strnlen, memset, strcmp, memcmp, strlen
+	- stdlib: abort
+- kernel:
+	- timeout API
+	- logging system (with colors)
+	- scheduler: basic cooperative scheduler
+- drivers:
+	- clock: PIT 8254 controller
+	- serial: 8250 UART first implementation
+	- vga: cursor control
+	- terminal: output to VGA memory (text mode 3) + scrolling
+	- 8042 PS/2 controller handling a single channel (dual is in progress),
+	  device identification, basic driver model (registration, callbacks)
+	- ps2driver: recv/send abstraction + basic locking (IRQ line based)
+	- keyboard: translate all scancode (make/break) from SCS-2 into keycode,
+	  state machine implementation
+- arch:
+	- atomic type implementation
+	- I/O (in/out) abstraction
+	- GDT setup
+	- IDT setup + ISR wrappers
+	- interrupt/irq handling
+
+# =============================================================================
+# -----------------------------------------------------------------------------
+# =============================================================================
