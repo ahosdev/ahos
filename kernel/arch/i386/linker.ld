@@ -27,20 +27,26 @@ SECTIONS
 	/* Read-only data. */
 	.rodata BLOCK(4K) : ALIGN(4K)
 	{
+		kernel_rodata_start = . ;
 		*(.rodata)
+		kernel_rodata_end = . ;
 	}
 
 	/* Read-write data (initialized) */
 	.data BLOCK(4K) : ALIGN(4K)
 	{
+		kernel_data_start = . ;
 		*(.data)
+		kernel_data_end = . ;
 	}
 
 	/* Read-write data (uninitialized) and stack */
 	.bss BLOCK(4K) : ALIGN(4K)
 	{
+		kernel_bss_start = . ;
 		*(COMMON)
 		*(.bss)
+		kernel_bss_end = . ;
 	}
 
 	kernel_end = . ;
