@@ -103,6 +103,11 @@ static void kernel_init(multiboot_info_t *mbi)
 	}
 	// we cannot use 'mbi' past this point (it is sitting in available memory)
 
+	if (pfa_init() == false) {
+		error("failed to init the page frame allocator");
+		abort();
+	}
+
 	setup_idt();
 	info("IDT setup");
 

@@ -1,41 +1,47 @@
 /*
- * memory.h
+ * page_frame_allocator.c
+ *
+ * The first implementation of a dummy page frame allocator.
  */
 
-#ifndef KERNEL_MEMORY_H_
-#define KERNEL_MEMORY_H_
-
 #include <kernel/types.h>
-
-#include <multiboot.h>
-
-// ============================================================================
-// ----------------------------------------------------------------------------
-// ============================================================================
-
-#define PAGE_SIZE (4096)
-#define BAD_PAGE ((uint32_t) -1)
-
-// ----------------------------------------------------------------------------
-
-typedef uint32_t pgframe_t;
+#include <kernel/memory.h>
 
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
 
+/*
+ * Initializes the Page Frame Allocator.
+ *
+ * Returns true on success, false otherwise.
+ */
 
-bool memory_map_init(multiboot_uint32_t mmap_addr, multiboot_uint32_t mmap_length);
-bool memory_reserve(uint32_t from_addr, uint32_t *addr, size_t *len);
+bool pfa_init(void)
+{
+	// TODO
+
+	return false;
+}
 
 // ----------------------------------------------------------------------------
 
-bool pfa_init(void);
-pgframe_t pfa_alloc(void);
-void pfa_free(pgframe_t pgf);
+pgframe_t pfa_alloc(void)
+{
+	// TODO
+
+	return BAD_PAGE;
+}
+
+// ----------------------------------------------------------------------------
+
+void pfa_free(pgframe_t pgf)
+{
+	pgf = pgf;
+
+	// TODO
+}
 
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
-
-#endif /* !KERNEL_MEMORY_H_ */
