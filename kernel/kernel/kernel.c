@@ -11,7 +11,7 @@
 #include <drivers/serial.h>
 #include <drivers/clock.h>
 #include <drivers/ps2ctrl.h>
-#include <drivers/tty.h>
+#include <drivers/terminal.h>
 
 #include <kernel/memman.h>
 #include <kernel/interrupt.h>

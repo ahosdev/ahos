@@ -1,10 +1,10 @@
 /*
- * tty.c
+ * terminal.c
  *
- * TODO: rename it to 'terminal'
+ * Terminal driver using VGA text mode.
  */
 
-#include <drivers/tty.h>
+#include <drivers/terminal.h>
 #include <drivers/vga.h>
 
 #include <kernel/types.h>
@@ -13,7 +13,7 @@
 
 
 #undef LOG_MODULE
-#define LOG_MODULE "tty"
+#define LOG_MODULE "terminal"
 
 // ============================================================================
 // ----------------------------------------------------------------------------

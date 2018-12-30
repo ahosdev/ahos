@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #if defined(__is_libk)
-#include <drivers/tty.h>
+#include <drivers/terminal.h>
 #include <drivers/serial.h>
 #endif
 
