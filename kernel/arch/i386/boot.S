@@ -42,10 +42,19 @@ stack_top:
 _start:
 	movl $stack_top, %esp
 
+	# Preserve EAX and EBX from _init call
+	pushl %ebx
+	pushl %eax
+
+	# Reset EFLAGS
+	pushl $0
+	popf
+
 	# Call the global constructors.
 	call _init
 
 	# Transfer control to the main kernel.
+	# EAX/EBX are still on the stack
 	call kernel_main
 
 	# Hang if kernel_main unexpectedly returns.
