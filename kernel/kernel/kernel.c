@@ -21,7 +21,6 @@
 
 #include <multiboot.h>
 
-#undef LOG_MODULE
 #define LOG_MODULE "main"
 
 #if defined(__linux__)

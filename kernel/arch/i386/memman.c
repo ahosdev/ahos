@@ -11,7 +11,6 @@
 
 #include <stdio.h>
 
-#undef LOG_MODULE
 #define LOG_MODULE "memman"
 
 // ============================================================================

@@ -8,7 +8,6 @@
 
 #include <mem/memory.h>
 
-#undef LOG_MODULE
 #define LOG_MODULE "pfa"
 
 // ============================================================================

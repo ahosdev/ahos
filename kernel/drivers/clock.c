@@ -19,7 +19,6 @@
 
 #include <stdlib.h>
 
-#undef LOG_MODULE
 #define LOG_MODULE "clock"
 
 // ============================================================================

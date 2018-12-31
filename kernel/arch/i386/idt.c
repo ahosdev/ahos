@@ -24,7 +24,6 @@
 
 #include <stdlib.h> // uses abort
 
-#undef LOG_MODULE
 #define LOG_MODULE "idt"
 
 // ============================================================================

@@ -11,7 +11,6 @@
 
 #include <string.h>
 
-#undef LOG_MODULE
 #define LOG_MODULE "memory"
 
 // ============================================================================

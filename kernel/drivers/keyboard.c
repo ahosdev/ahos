@@ -33,7 +33,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#undef LOG_MODULE
 #define LOG_MODULE "keyboard"
 
 // ============================================================================

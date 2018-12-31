@@ -14,7 +14,6 @@
 
 #include <drivers/clock.h>
 
-#undef LOG_MODULE
 #define LOG_MODULE "sched"
 
 // ============================================================================
@@ -45,5 +44,7 @@ static inline void run_task(int32_t quantum, char *name, void (*task)(void))
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
+
+#undef LOG_MODULE // FIXME: LOG_MODULE should only be def'ed in .c files
 
 #endif /* !KERNEL_SCHEDULER_H_ */
