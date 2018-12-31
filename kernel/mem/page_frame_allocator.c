@@ -17,7 +17,10 @@
 typedef unsigned char page_state_t;
 
 #define PAGE_FREE ((page_state_t) 0)
-#define PAGE_USED ((page_state_t) 1)
+#define PAGE_USED ((page_state_t) 1) // single page frame
+#define PAGE_USED_HEAD ((page_state_t) 2) // head of page frame block
+#define PAGE_USED_TAIL ((page_state_t) 3) // tail of page frame block
+#define PAGE_USED_PART ((page_state_t) 4) // part of page frame block
 
 // ----------------------------------------------------------------------------
 
@@ -67,6 +70,8 @@ static inline uint32_t page_align(uint32_t addr)
 
 static pgframe_t pfa_alloc_single(void)
 {
+	dbg("allocating a single page frame");
+
 	for (size_t page = 0; page < pfa->nb_pages; ++page) {
 		if (pfa->pagemap[page] == PAGE_FREE) {
 			pfa->pagemap[page] = PAGE_USED;
@@ -74,7 +79,7 @@ static pgframe_t pfa_alloc_single(void)
 		}
 	}
 
-	warn("no memory available");
+	warn("not enough memory");
 	return BAD_PAGE;
 }
 
@@ -88,11 +93,61 @@ static pgframe_t pfa_alloc_single(void)
 
 pgframe_t pfa_alloc_multiple(size_t nb_pages)
 {
-	nb_pages = nb_pages;
+	size_t start_page = 0;
 
-	NOT_IMPLEMENTED();
+	dbg("allocating %u page frames", nb_pages);
 
+	if (nb_pages > pfa->nb_pages) {
+		error("total page available is lesser than %u", nb_pages);
+		return BAD_PAGE;
+	}
+
+	dbg("pfa->nb_pages = %u", pfa->nb_pages);
+
+	/*
+	 * This is a greedy algorithm. We start from a free page and see how many
+	 * free pages we can get until we fulfill the request.
+	 */
+
+	while (start_page <= (pfa->nb_pages - nb_pages)) {
+		if (pfa->pagemap[start_page] == PAGE_FREE) {
+			size_t block_size = 0; // number of free pages so far
+			size_t page = start_page;
+
+			while ((block_size < nb_pages) && (pfa->pagemap[page] == PAGE_FREE)) {
+				block_size++;
+				page++;
+				//dbg("page = %u", page);
+			}
+
+			if (block_size == nb_pages) {
+				goto found;
+			} else {
+				// XXX: start_page is incremented below
+				start_page = page; // skip this block (not big enough)
+			}
+		}
+
+		start_page++;
+	}
+
+	// cannot find @nb_pages contiguous free page frames
+	error("not enough memory");
 	return BAD_PAGE;
+
+found:
+
+	for (size_t page = start_page; page < (start_page + nb_pages); ++page) {
+		if (page == start_page) {
+			pfa->pagemap[page] = PAGE_USED_HEAD;
+		} else if (page == (start_page + nb_pages - 1)) {
+			pfa->pagemap[page] = PAGE_USED_TAIL;
+		} else {
+			pfa->pagemap[page] = PAGE_USED_PART;
+		}
+	}
+
+	return (pfa->first_page + start_page * PAGE_SIZE);
 }
 
 // ============================================================================
@@ -167,6 +222,11 @@ bool pfa_init(void)
 
 pgframe_t pfa_alloc(size_t nb_pages)
 {
+	if (nb_pages == 0) {
+		error("invalid argument");
+		return BAD_PAGE;
+	}
+
 	if (nb_pages == 1) {
 		return pfa_alloc_single();
 	} else {
@@ -200,12 +260,35 @@ void pfa_free(pgframe_t pgf)
 
 	index = (pgf - pfa->first_page) / PAGE_SIZE;
 
-	if (pfa->pagemap[index] != PAGE_USED) {
+	if (pfa->pagemap[index] == PAGE_FREE) {
 		error("double-free detected!");
 		abort();
-	}
+	} else if (pfa->pagemap[index] == PAGE_USED) {
+		// freeing a single page frame
+		pfa->pagemap[index] = PAGE_FREE;
+	} else if (pfa->pagemap[index] != PAGE_USED_HEAD) {
+		error("freeing a non head page frame block");
+		abort();
+	} else {
+		// this is the head of a page frame block (i.e. contiguous pages)
+		while (pfa->pagemap[index] != PAGE_USED_TAIL) {
+			// sanity (debug) checks
+			if (index >= pfa->nb_pages) {
+				error("index out-of-bound");
+				abort();
+			} else if ((pfa->pagemap[index] != PAGE_USED_HEAD) &&
+					   (pfa->pagemap[index] != PAGE_USED_PART)) {
+				error("unexpected page state");
+				abort();
+			} else {
+				pfa->pagemap[index] = PAGE_FREE;
+			}
+			index++;
+		}
 
-	pfa->pagemap[index] = PAGE_FREE;
+		// release the tail page
+		pfa->pagemap[index] = PAGE_FREE;
+	}
 }
 
 // ============================================================================
