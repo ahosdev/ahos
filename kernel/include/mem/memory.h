@@ -27,8 +27,8 @@ typedef uint32_t pgframe_t; // represent a 32-bit physical address of a page
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-bool memory_map_init(multiboot_uint32_t mmap_addr, multiboot_uint32_t mmap_length);
-bool memory_reserve(uint32_t from_addr, uint32_t *addr, size_t *len);
+bool phys_mem_map_init(multiboot_uint32_t mmap_addr, multiboot_uint32_t mmap_length);
+bool phys_mem_map_reserve(uint32_t from_addr, uint32_t *addr, size_t *len);
 
 // ----------------------------------------------------------------------------
 

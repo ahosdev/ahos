@@ -78,7 +78,7 @@ bool pfa_init(void)
 	info("page frame allocator initialization...");
 
 	// we reserve all memory past kernel image
-	if (memory_reserve((uint32_t)&kernel_end, &addr, &len) == false) {
+	if (phys_mem_map_reserve((uint32_t)&kernel_end, &addr, &len) == false) {
 		error("failed to reserved region after 0x%x", &kernel_end);
 		return false;
 	}

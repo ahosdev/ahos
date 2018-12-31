@@ -93,7 +93,7 @@ static void ps2_init(void)
 static void kernel_init(multiboot_info_t *mbi)
 {
 	if (mbi->flags & MULTIBOOT_INFO_MEM_MAP) {
-		if (memory_map_init(mbi->mmap_addr,	mbi->mmap_length) == false)
+		if (phys_mem_map_init(mbi->mmap_addr, mbi->mmap_length) == false)
 		{
 			error("failed to initialize memory map");
 			abort();

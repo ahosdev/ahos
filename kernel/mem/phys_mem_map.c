@@ -1,7 +1,7 @@
 /*
- * memory.c
+ * phys_mem_map.c
  *
- * Memory subsystem.
+ * Physical Memory Mapping handling.
  *
  * Documentation:
  * - https://wiki.osdev.org/Memory_Map_(x86)
@@ -215,7 +215,7 @@ found:
  * the kernel image, is is currently sitting in "available" memory.
  */
 
-bool memory_map_init(multiboot_uint32_t mmap_addr, multiboot_uint32_t mmap_length)
+bool phys_mem_map_init(multiboot_uint32_t mmap_addr, multiboot_uint32_t mmap_length)
 {
 	multiboot_memory_map_t *mmap = NULL;
 	size_t nb_regions = 0;
@@ -331,7 +331,7 @@ found:
  * and @len are untouched and false is returned.
  */
 
-bool memory_reserve(uint32_t from_addr, uint32_t *addr, size_t *len)
+bool phys_mem_map_reserve(uint32_t from_addr, uint32_t *addr, size_t *len)
 {
 	dbg("reserving memory after 0x%x", from_addr);
 
