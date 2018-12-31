@@ -33,7 +33,7 @@ bool phys_mem_map_reserve(uint32_t from_addr, uint32_t *addr, size_t *len);
 // ----------------------------------------------------------------------------
 
 bool pfa_init(void);
-pgframe_t pfa_alloc(void);
+pgframe_t pfa_alloc(size_t nb_pages);
 void pfa_free(pgframe_t pgf);
 
 // ----------------------------------------------------------------------------

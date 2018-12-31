@@ -3,6 +3,9 @@
  *
  * A (very basic) fine-grained memory allocator called "Ah! allocator".
  *
+ * NOTE: as we don't handle paging nor virtual memory yet, this is a physical
+ * memory allocator.
+ *
  * DESIGN:
  *
  * The allocator basic unit is called a "block". A block is a page frame which
@@ -88,7 +91,7 @@ static struct aha_block* new_block(size_t elt_size)
 		abort();
 	}
 
-	if ((block = (struct aha_block*) pfa_alloc()) == NULL) {
+	if ((block = (struct aha_block*) pfa_alloc(1)) == NULL) {
 		error("not enough memory");
 		return NULL;
 	}

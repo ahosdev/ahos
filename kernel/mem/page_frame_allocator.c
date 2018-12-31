@@ -57,6 +57,44 @@ static inline uint32_t page_align(uint32_t addr)
 	}
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Allocates a single page frame.
+ *
+ * Returns the physical address of the allocated page frame, or NULL on error.
+ */
+
+static pgframe_t pfa_alloc_single(void)
+{
+	for (size_t page = 0; page < pfa->nb_pages; ++page) {
+		if (pfa->pagemap[page] == PAGE_FREE) {
+			pfa->pagemap[page] = PAGE_USED;
+			return (pfa->first_page + page * PAGE_SIZE);
+		}
+	}
+
+	warn("no memory available");
+	return BAD_PAGE;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Allocates @nb_pages contiguous page frames.
+ *
+ * Returns the physical address of the first page frame, or NULL on error.
+ */
+
+pgframe_t pfa_alloc_multiple(size_t nb_pages)
+{
+	nb_pages = nb_pages;
+
+	NOT_IMPLEMENTED();
+
+	return BAD_PAGE;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -122,22 +160,18 @@ bool pfa_init(void)
 // ----------------------------------------------------------------------------
 
 /*
- * Allocates a single page frame.
+ * Allocates @nb_pages contiguous page frames.
  *
- * Returns the physical address of the allocated page frame, or NULL on error.
+ * Returns the physical address of the first page frame, or NULL on error.
  */
 
-pgframe_t pfa_alloc(void)
+pgframe_t pfa_alloc(size_t nb_pages)
 {
-	for (size_t page = 0; page < pfa->nb_pages; ++page) {
-		if (pfa->pagemap[page] == PAGE_FREE) {
-			pfa->pagemap[page] = PAGE_USED;
-			return (pfa->first_page + page * PAGE_SIZE);
-		}
+	if (nb_pages == 1) {
+		return pfa_alloc_single();
+	} else {
+		return pfa_alloc_multiple(nb_pages);
 	}
-
-	warn("no memory available");
-	return BAD_PAGE;
 }
 
 // ----------------------------------------------------------------------------
