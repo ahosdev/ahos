@@ -141,7 +141,7 @@ static void kernel_main_loop(void)
 	info("starting kernel main loop");
 
 	for (;;) {
-		run_task(100, "keyboard", &keyboard_task);
+		sched_run_task(100, "keyboard", &keyboard_task);
 	}
 
 	info("kernel main loop stopped");
