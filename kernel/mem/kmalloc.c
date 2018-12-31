@@ -43,10 +43,9 @@
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-enum chunk_type {
-	CHUNK_FREE,
-	CHUNK_USED,
-};
+typedef unsigned char chunk_type_t;
+#define CHUNK_FREE ((chunk_type_t) 0)
+#define CHUNK_USED ((chunk_type_t) 1)
 
 // ----------------------------------------------------------------------------
 
@@ -58,7 +57,7 @@ struct aha_block {
 	uint32_t first_ptr; // pointer to the first chunk
 	struct aha_block *prev; // pointer to the previous block
 	struct aha_block *next; // pointer to the next block
-	enum chunk_type chunkmap[0]; // mark chunks as free/used (variable size)
+	chunk_type_t chunkmap[0]; // mark chunks as free/used (variable size)
 };
 
 // ============================================================================
