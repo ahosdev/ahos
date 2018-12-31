@@ -12,12 +12,13 @@
 #include <drivers/terminal.h>
 #include <drivers/keyboard.h>
 
-#include <kernel/gdt.h>
 #include <kernel/interrupt.h>
 #include <kernel/log.h>
 #include <kernel/scheduler.h>
 
 #include <mem/memory.h>
+
+#include <arch/gdt.h>
 
 #include <multiboot.h>
 
