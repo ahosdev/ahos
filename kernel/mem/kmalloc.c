@@ -167,6 +167,11 @@ void* kmalloc(size_t size)
 	if (size == 0) {
 		error("invalid argument");
 		return NULL;
+	} else if (size < 8) {
+		// is it worth calling kmalloc() in those case ? Warn the caller.
+		warn("very small allocation detected");
+		// this is the minimal size
+		size = 8;
 	}
 
 	// TODO: compute the closest power-of-two to reduce external fragmentation
