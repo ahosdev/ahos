@@ -20,9 +20,11 @@ LIBS:=$(LIBS) -nostdlib -lk -lgcc
 
 ARCHDIR=arch/$(HOSTARCH)
 DRIVERSDIR=drivers
+MEMDIR=mem
 
 include $(ARCHDIR)/make.config
 include $(DRIVERSDIR)/make.config
+include $(MEMDIR)/make.config
 
 CFLAGS:=$(CFLAGS) $(KERNEL_ARCH_CFLAGS)
 CPPFLAGS:=$(CPPFLAGS) $(KERNEL_ARCH_CPPFLAGS)
@@ -32,12 +34,10 @@ LIBS:=$(LIBS) $(KERNEL_ARCH_LIBS)
 KERNEL_OBJS=\
 $(KERNEL_ARCH_OBJS) \
 $(KERNEL_DRIVERS_OBJS) \
+$(KERNEL_MEM_OBJS) \
 kernel/kernel.o \
 kernel/timeout.o \
 kernel/log.o \
-kernel/memory.o \
-kernel/page_frame_allocator.o \
-kernel/kmalloc.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \

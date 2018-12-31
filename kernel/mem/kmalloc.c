@@ -33,7 +33,7 @@
  * - maybe a single circular list is enough
  */
 
-#include <kernel/memory.h>
+#include <mem/memory.h>
 
 #undef LOG_MODULE
 #define LOG_MODULE "kmalloc"

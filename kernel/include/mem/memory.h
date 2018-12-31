@@ -2,8 +2,8 @@
  * memory.h
  */
 
-#ifndef KERNEL_MEMORY_H_
-#define KERNEL_MEMORY_H_
+#ifndef MEM_MEMORY_H_
+#define MEM_MEMORY_H_
 
 #include <kernel/types.h>
 

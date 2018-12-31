@@ -16,7 +16,8 @@
 #include <kernel/interrupt.h>
 #include <kernel/log.h>
 #include <kernel/scheduler.h>
-#include <kernel/memory.h>
+
+#include <mem/memory.h>
 
 #include <multiboot.h>
 

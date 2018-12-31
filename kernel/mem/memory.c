@@ -7,7 +7,7 @@
  * - https://wiki.osdev.org/Memory_Map_(x86)
  */
 
-#include <kernel/memory.h>
+#include <mem/memory.h>
 
 #include <string.h>
 
