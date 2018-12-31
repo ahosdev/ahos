@@ -14,17 +14,17 @@
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-enum page_status {
-	PAGE_FREE,
-	PAGE_USED,
-};
+typedef unsigned char page_state_t;
+
+#define PAGE_FREE ((page_state_t) 0)
+#define PAGE_USED ((page_state_t) 1)
 
 // ----------------------------------------------------------------------------
 
 struct pfa_info {
 	uint32_t first_page; // first allocatable page
 	size_t nb_pages;
-	enum page_status pagemap[0]; // XXX: we can use bitmap to reduce footprint
+	page_state_t pagemap[0];
 	// pagemap goes here
 };
 
@@ -135,7 +135,7 @@ bool pfa_init(void)
 	 */
 
 	pfa_metadata_size = sizeof(struct pfa_info) +
-		(physmem_region_len / PAGE_SIZE) * sizeof(enum page_status);
+		(physmem_region_len / PAGE_SIZE) * sizeof(page_state_t);
 	dbg("page frame allocator needs %u bytes", pfa_metadata_size);
 
 	reserved_pages = page_align(pfa_metadata_size) / PAGE_SIZE;
