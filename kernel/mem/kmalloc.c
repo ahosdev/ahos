@@ -148,6 +148,25 @@ static struct aha_block* find_block(size_t size)
 	return NULL;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Returns the next highest power of two (e.g. 127 -> 128, 129 -> 256).
+ */
+
+static size_t next_highest_power_of_two(size_t size)
+{
+	size--;
+	size |= size >> 1;
+	size |= size >> 2;
+	size |= size >> 4;
+	size |= size >> 8;
+	size |= size >> 16;
+	size++;
+
+	return size;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -174,7 +193,22 @@ void* kmalloc(size_t size)
 		size = 8;
 	}
 
-	// TODO: compute the closest power-of-two to reduce external fragmentation
+	/*
+     * Round up to the next highest power-of-two.
+     *
+     * This has two benefits and one drawback. First, it reduces the external
+     * fragmentation since less blocks will be created to handle every size
+     * (thus reducing page frame allocation). Secondly, it guarantess that the
+     * internal fragmentation will always be lesser than 50% (minus metadata
+     * slack space).
+     *
+     * However, it means more memory will be wasted especially when allocating
+     * an object which size is not close to its higher power-of-two (e.g. 130
+     * bytes). Those objects should have *dedicated* blocks.
+     */
+
+	size = next_highest_power_of_two(size);
+	dbg("new size %u", size);
 
 	if (size >= PAGE_SIZE) {
 		NOT_IMPLEMENTED();
