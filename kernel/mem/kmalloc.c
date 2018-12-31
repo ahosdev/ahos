@@ -25,10 +25,7 @@
  * Why designing such a bad allocator? Hmm... ask Denis!
  *
  * TODO:
- * - handle missing cases (small allocs!)
  * - handle big allocations
- * - align pointers to 4 bytes boundary
- * - uses power-of-two sizes
  * - use two trees: one for alloc (sort by size), one for free (sort by addr)
  * - maybe a single circular list is enough
  */
@@ -101,8 +98,14 @@ static struct aha_block* new_block(size_t elt_size)
 	block->elt_size = elt_size;
 	block->tot_elts = nb_elts;
 	block->nb_frees = nb_elts;
-	// TODO: align first ptr to 4 bytes boundary
+	// align first ptr to pointer boundary
 	block->first_ptr = (uint32_t)block->chunkmap + nb_elts;
+	//dbg("[before] first_ptr = 0x%p", block->first_ptr);
+	if (block->first_ptr & (sizeof(void*) - 1)) {
+		// align first_ptr to the next pointer boundary
+		block->first_ptr +=
+			sizeof(void*) - (block->first_ptr & (sizeof(void*) - 1));
+	}
 	dbg("first_ptr = 0x%p", block->first_ptr);
 	block->prev = block;
 	block->next = block;

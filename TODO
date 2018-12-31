@@ -12,8 +12,7 @@
 
 - memory:
 	- setup paging / virtual memory
-	- basic physical allocator
-	- rename 'memory' to 'phys_mmap'
+	- kmalloc: handle "big" sizes
 
 - serial:
 	- handle asynchronous printing
@@ -45,7 +44,7 @@
 	- enable stack cookie
 	- disallow first page access to detect NULL pointer deref
 
-- tty:
+- terminal:
 	- buffering
 	- scrolling with keyboard
 	- fixe: printing from IRQ can breaks the current line
