@@ -12,7 +12,7 @@
 #include <drivers/terminal.h>
 #include <drivers/keyboard.h>
 
-#include <kernel/memman.h>
+#include <kernel/gdt.h>
 #include <kernel/interrupt.h>
 #include <kernel/log.h>
 #include <kernel/scheduler.h>
@@ -54,7 +54,7 @@ static void kernel_early_init(void)
 {
 	// XXX: interrupts are already disabled by the bootloader
 
-	memman_init();
+	gdt_setup();
 
 	// initialise output early for debugging
 	serial_init();
