@@ -35,6 +35,8 @@
 
 #include <mem/memory.h>
 
+#include <string.h>
+
 #define LOG_MODULE "kmalloc"
 
 // ============================================================================
@@ -69,47 +71,97 @@ static struct aha_block *first_block = NULL;
 // ----------------------------------------------------------------------------
 // ============================================================================
 
+/*
+ * Returns the maximum number of elements a block can hold while leaving
+ * enough space for the metadata (and the variable sized chunkmap).
+ *
+ * It feels like this is a very inefficient way to solve an equation, but I'm
+ * not in the mood to "do the math" right now... In addition, we waste some
+ * memory here. For instance, kmalloc(16)
+ *
+ * TODO: use a lookup table
+ */
+
+static size_t max_elts_per_block(size_t elt_size)
+{
+	size_t size_nometa = 0;
+	size_t nb_elts_without_chunkmap = 0;
+	size_t remaining = 0;
+
+	//dbg("computing max_elts_per_block for size %u", elt_size);
+
+	// first we substract the metadata size (chunkmap excluded)
+	// we reserve 4 extra bytes to guarantee 'first_ptr' 4 bytes alignment
+	size_nometa = PAGE_SIZE - sizeof(struct aha_block) - sizeof(uint32_t);
+	//dbg("size_nometa = %u", size_nometa);
+
+	// next we compute the number of elements we could have if there is no
+	// chunkmap
+	nb_elts_without_chunkmap = size_nometa / elt_size;
+	//dbg("nb_elts_without_chunkmap = %u", nb_elts_without_chunkmap);
+
+	// do we have enough space to have a chunk map with such number of elts
+	remaining = size_nometa - (nb_elts_without_chunkmap * elt_size);
+	//dbg("remaining = %u", remaining);
+
+	if (remaining >= nb_elts_without_chunkmap) {
+		// perfect, we can store the chunkmap is slack space
+		return nb_elts_without_chunkmap;
+	}
+
+	// we don't have enough space for chunkmap, we need to reduce the number of
+	// elements
+	size_t reduced_elts = (size_nometa - nb_elts_without_chunkmap) / elt_size;
+	//dbg("reduced_elts = %u", reduced_elts);
+
+#if 0 // DEBUG ONLY
+	size_t total_size = sizeof(struct aha_block) + reduced_elts + reduced_elts*elt_size;
+	dbg("total_size = %u", total_size);
+
+	if (total_size > PAGE_SIZE) {
+		error("block exceeed PAGE_SIZE");
+		abort();
+	}
+
+	size_t wasted = (PAGE_SIZE - total_size);
+	dbg("wasted memory: %u bytes", wasted);
+#endif
+
+	return reduced_elts;
+}
+
+// ----------------------------------------------------------------------------
+
 static struct aha_block* new_block(size_t elt_size)
 {
-	struct aha_block *block = (struct aha_block*) pfa_alloc();
+	size_t nb_elts = max_elts_per_block(elt_size);
+	struct aha_block *block = NULL;
 
 	dbg("allocating new block");
 
-	if (block == NULL) {
+	if (nb_elts == 0) {
+		error("block cannot even hold a single element");
+		abort();
+	}
+
+	if ((block = (struct aha_block*) pfa_alloc()) == NULL) {
 		error("not enough memory");
 		return NULL;
 	}
 
-	// TODO: align size to 4 bytes
+	dbg("new_block: elt_size = %u (nb_elts=%u)", elt_size, nb_elts);
 
-	dbg("new_block: elt_size = %d", elt_size);
+	block->elt_size = elt_size;
+	block->tot_elts = nb_elts;
+	block->nb_frees = nb_elts;
+	// TODO: align first ptr to 4 bytes boundary
+	block->first_ptr = (uint32_t)block->chunkmap + nb_elts;
+	dbg("first_ptr = 0x%p", block->first_ptr);
+	block->prev = block;
+	block->next = block;
 
-	size_t block_size = PAGE_SIZE - sizeof(struct aha_block);
-	//dbg("block_size = %d", block_size);
-
-	size_t max_elt_per_block_size = block_size / elt_size;
-	dbg("max_elt_per_block_size = %d", max_elt_per_block_size);
-
-	size_t remaining = block_size - (max_elt_per_block_size * elt_size);
-	//dbg("remaining = %d", remaining);
-
-	if (remaining >= max_elt_per_block_size) {
-		// all fine, we can store chunks in slack space
-		block->elt_size = elt_size;
-		block->tot_elts = max_elt_per_block_size;
-		block->nb_frees = max_elt_per_block_size;
-		// TODO: align first_ptr to 4 bytes boundary
-		block->first_ptr = (uint32_t)block->chunkmap + block->tot_elts;
-		block->prev = block;
-		block->next = block;
-		for (size_t elt = 0; elt < block->tot_elts; ++elt) {
-			block->chunkmap[elt] = CHUNK_FREE;
-		}
-	} else {
-		// we need to reduce the number of element per block until we can
-		// store the chunkmap
-		NOT_IMPLEMENTED();
-	}
+	// chunkmap element are guaranteed to have 1 byte size.
+	memset(block->chunkmap, CHUNK_FREE, nb_elts);
 
 	return block;
 }
