@@ -90,7 +90,7 @@ static inline void atomic_write(atomic_t *v, int32_t new_val)
 __attribute__((always_inline))
 static inline void atomic_inc(atomic_t *v)
 {
-	asm volatile ("lock; incl %0" : "+m" (v->value));
+	asm volatile ("lock incl %0" : "+m" (v->value));
 }
 
 // ----------------------------------------------------------------------------
@@ -98,7 +98,7 @@ static inline void atomic_inc(atomic_t *v)
 __attribute__((always_inline))
 static inline void atomic_dec(atomic_t *v)
 {
-	asm volatile ("lock; decl %0" : "+m" (v->value));
+	asm volatile ("lock decl %0" : "+m" (v->value));
 }
 
 // ============================================================================
