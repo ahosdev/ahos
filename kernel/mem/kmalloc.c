@@ -55,9 +55,7 @@ struct aha_block {
 	size_t nb_frees;
 	// XXX: can we actually get rid of 'first_ptr' and save some memory?
 	uint32_t first_ptr; // pointer to the first chunk
-	// XXX: maybe a single circular list is enough?
-	struct aha_block *prev; // pointer to the previous block
-	struct aha_block *next; // pointer to the next block
+	struct list list; // pointer in 'aha_block_list'
 	chunk_type_t chunkmap[0]; // mark chunks as free/used (variable size)
 };
 
@@ -66,14 +64,14 @@ struct aha_block {
 struct aha_big_meta {
 	size_t size; // a power-of-two size
 	uint32_t ptr; // point to the data
-	struct list list; // pointer in the 'aha_big_list'
+	struct list list; // pointer in 'aha_big_list'
 };
 
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-static struct aha_block *first_block = NULL;
+LIST_DECLARE(aha_block_list); // list of small allocation
 LIST_DECLARE(aha_big_list); // list of big allocation metadata
 
 // ============================================================================
@@ -167,8 +165,7 @@ static struct aha_block* new_block(size_t elt_size)
 	}
 	dbg("first_ptr = 0x%p", block->first_ptr);
 
-	block->prev = block;
-	block->next = block;
+	list_add(&block->list, &aha_block_list);
 
 	// chunkmap element are guaranteed to have 1 byte size.
 	memset(block->chunkmap, CHUNK_FREE, nb_elts*sizeof(chunk_type_t));
@@ -178,34 +175,23 @@ static struct aha_block* new_block(size_t elt_size)
 
 // ----------------------------------------------------------------------------
 
-static struct aha_block* find_block(size_t size)
+static struct aha_block* find_non_full_block(size_t size)
 {
-	struct aha_block *block = first_block;
+	struct aha_block *block = NULL;
 
-	if (first_block == NULL) {
+	if (list_empty(&aha_block_list)) {
 		return NULL;
 	}
 
-#if 0
-	dbg("dumping block list");
-	do {
-		dbg("[0x%p] size=%d, free=%d, next=%p", block, block->elt_size, block->nb_frees, block->next);
-		block = block->next;
-	} while (block != first_block);
-#endif
-
-	//dbg("size=%d, free=%d, next=%p", block->elt_size, block->nb_frees, block->next);
-	while ((block->elt_size != size || (block->nb_frees == 0))
-			&& block->next != first_block)
-	{
-		block = block->next;
-		//dbg("size=%d, free=%d, next=%p", block->elt_size, block->nb_frees, block->next);
+	list_for_each_entry(block, &aha_block_list, list) {
+		dbg("block = 0x%p", block);
+		if ((block->elt_size == size) && (block->nb_frees > 0)) {
+			dbg("found block with free chunks (%d remain)", block->nb_frees);
+			return block;
+		}
 	}
 
-	if ((block->elt_size == size) && (block->nb_frees > 0)) {
-		dbg("found block with free chunks (%d remain)", block->nb_frees);
-		return block;
-	}
+	dbg("no block found");
 
 	return NULL;
 }
@@ -277,23 +263,14 @@ void* kmalloc(size_t size)
 	}
 
 	dbg("searching block...");
-	if ((block = find_block(size)) == NULL) {
+	if ((block = find_non_full_block(size)) == NULL) {
 		// we didn't find any block, create a new one
 		dbg("no block found");
+
 		if ((block = new_block(size)) == NULL) {
 			error("failed to create new block");
 			return NULL;
 		}
-
-		// insert it into the linked list
-		if (first_block != NULL) {
-			block->next = first_block;
-			block->prev = first_block->prev;
-			first_block->prev = block;
-			block->prev->next = block;
-		}
-		first_block = block;
-
 		dbg("new block created");
 	}
 
@@ -334,24 +311,21 @@ void kfree(void *ptr)
 	}
 
 	// search which block this @ptr might belong to
-	if (first_block) {
-		block = first_block;
-		do {
+	if (!list_empty(&aha_block_list)) {
+		list_for_each_entry(block, &aha_block_list, list) {
 			if (((uint32_t)ptr >= block->first_ptr) &&
 				((uint32_t)ptr < ((uint32_t)block + PAGE_SIZE)))
 			{
 				dbg("block found 0x%p", block);
 				goto found;
 			}
-			block = block->next;
-		} while (block != first_block);
+		}
 	}
 
 	// we didn't find a matching block, is this a big alloc?
 	if (!list_empty(&aha_big_list)) {
 		struct aha_big_meta *meta = NULL;
-		struct aha_big_meta *next = NULL;
-		list_for_each_entry_safe(meta, next, &aha_big_list, list) {
+		list_for_each_entry(meta, &aha_big_list, list) {
 			if (meta->ptr == (uint32_t)ptr) {
 				dbg("big alloc found");
 				pfa_free(meta->ptr);

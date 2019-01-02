@@ -12,7 +12,6 @@
 
 - memory:
 	- setup paging / virtual memory
-	- kmalloc: handle "big" sizes
 	- get rid of bss allocated memory and uses kmalloc() when applicable
 
 - serial:
@@ -71,7 +70,6 @@
 	- make a top-level Makefile and remove unnecessary scripts
 
 - type
-	- linked list
 	- queue
 
 # =============================================================================
