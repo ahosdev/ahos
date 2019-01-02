@@ -66,9 +66,7 @@ struct aha_block {
 struct aha_big_meta {
 	size_t size; // a power-of-two size
 	uint32_t ptr; // point to the data
-	bool free; // TODO: remove it once we have proper list support
-	struct aha_big_meta *prev;
-	struct aha_big_meta *next;
+	struct list list; // pointer in the 'aha_big_list'
 };
 
 // ============================================================================
@@ -76,7 +74,7 @@ struct aha_big_meta {
 // ============================================================================
 
 static struct aha_block *first_block = NULL;
-static struct aha_big_meta *first_big_meta = NULL;
+LIST_DECLARE(aha_big_list); // list of big allocation metadata
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -120,19 +118,8 @@ static void* big_alloc(size_t size)
 	// fills the metadata
 	meta->size = size;
 	meta->ptr = (uint32_t) head_page;
-	meta->free = false;
 
-	// insert it in the list
-	if (first_big_meta == NULL) {
-		meta->prev = meta;
-		meta->next = meta;
-	} else {
-		meta->next = first_big_meta;
-		meta->prev = first_big_meta->prev;
-		first_big_meta->prev = meta;
-		meta->prev->next = meta;
-	}
-	first_big_meta = meta;
+	list_add(&meta->list, &aha_big_list);
 
 	return (void*)head_page;
 }
@@ -338,7 +325,6 @@ void* kmalloc(size_t size)
 void kfree(void *ptr)
 {
 	struct aha_block *block = NULL;
-	struct aha_big_meta *meta = NULL;
 
 	dbg("freeing 0x%p", ptr);
 
@@ -362,22 +348,17 @@ void kfree(void *ptr)
 	}
 
 	// we didn't find a matching block, is this a big alloc?
-	if (first_big_meta) {
-		meta = first_big_meta;
-		do {
+	if (!list_empty(&aha_big_list)) {
+		struct aha_big_meta *meta = NULL;
+		struct aha_big_meta *next = NULL;
+		list_for_each_entry_safe(meta, next, &aha_big_list, list) {
 			if (meta->ptr == (uint32_t)ptr) {
-				if (meta->free == true) {
-					error("double-free detected!");
-					abort();
-				}
 				dbg("big alloc found");
-				pfa_free(meta->ptr); // give the page(s) back to the pfa
-				meta->free = true;
-				// TODO: remove it from the list
+				pfa_free(meta->ptr);
+				list_del(&meta->list);
 				return;
 			}
-			meta = meta->next;
-		} while (meta != first_big_meta);
+		}
 	}
 
 	error("ptr (0x%p) does not belong to any block or big alloc", ptr);
