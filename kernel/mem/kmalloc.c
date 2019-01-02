@@ -299,15 +299,13 @@ void* kmalloc(size_t size)
 		}
 
 		// insert it into the linked list
-		if (first_block == NULL) {
-			first_block = block; // TODO: this can be put out of branch
-		} else {
+		if (first_block != NULL) {
 			block->next = first_block;
 			block->prev = first_block->prev;
 			first_block->prev = block;
 			block->prev->next = block;
-			first_block = block; // TODO: this can be put out of branch
 		}
+		first_block = block;
 
 		dbg("new block created");
 	}
@@ -373,7 +371,7 @@ void kfree(void *ptr)
 					abort();
 				}
 				dbg("big alloc found");
-				pfa_free(meta->ptr); // give the pages back to the pfa
+				pfa_free(meta->ptr); // give the page(s) back to the pfa
 				meta->free = true;
 				// TODO: remove it from the list
 				return;
