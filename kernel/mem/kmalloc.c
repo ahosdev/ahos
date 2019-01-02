@@ -339,7 +339,7 @@ void* kmalloc(size_t size)
 
 void kfree(void *ptr)
 {
-	struct aha_block *block = first_block;
+	struct aha_block *block = NULL;
 	struct aha_big_meta *meta = NULL;
 
 	dbg("freeing 0x%p", ptr);
@@ -350,16 +350,18 @@ void kfree(void *ptr)
 	}
 
 	// search which block this @ptr might belong to
-	// FIXME: first_block might be NULL
-	do {
-		if (((uint32_t)ptr >= block->first_ptr) &&
-			((uint32_t)ptr < ((uint32_t)block + PAGE_SIZE)))
-		{
-			dbg("block found 0x%p", block);
-			goto found;
-		}
-		block = block->next;
-	} while (block != first_block);
+	if (first_block) {
+		block = first_block;
+		do {
+			if (((uint32_t)ptr >= block->first_ptr) &&
+				((uint32_t)ptr < ((uint32_t)block + PAGE_SIZE)))
+			{
+				dbg("block found 0x%p", block);
+				goto found;
+			}
+			block = block->next;
+		} while (block != first_block);
+	}
 
 	// we didn't find a matching block, is this a big alloc?
 	if (first_big_meta) {
