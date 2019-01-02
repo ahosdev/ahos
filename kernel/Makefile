@@ -64,6 +64,7 @@ all: ahos.kernel
 
 ahos.kernel: $(OBJS) $(ARCHDIR)/linker.ld
 	@$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(LINK_LIST)
+	@$(NM) -f posix --numeric-sort $@ | egrep -i " t " > symbols.map
 	@grub-file --is-x86-multiboot ahos.kernel
 
 $(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o:
@@ -77,6 +78,7 @@ $(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o:
 
 clean:
 	rm -f ahos.kernel
+	rm -f symbols.map
 	rm -f $(OBJS) *.o */*.o */*/*.o
 	rm -f $(OBJS:.o=.d) *.d */*.d */*/*.d
 
