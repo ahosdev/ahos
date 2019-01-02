@@ -27,10 +27,9 @@
  *
  * Why designing such a bad allocator? Hmm... ask Denis!
  *
- * TODO:
- * - handle big allocations
+ * Possible improvements:
+ * - keep track of the last block for a given size
  * - use two trees: one for alloc (sort by size), one for free (sort by addr)
- * - maybe a single circular list is enough
  */
 
 #include <mem/memory.h>
@@ -50,15 +49,26 @@ typedef unsigned char chunk_type_t;
 
 // ----------------------------------------------------------------------------
 
-// XXX: can we actually get rid of 'first_ptr' and save some memory?
 struct aha_block {
 	size_t elt_size;
 	size_t tot_elts; // maxmimum number of elements
 	size_t nb_frees;
+	// XXX: can we actually get rid of 'first_ptr' and save some memory?
 	uint32_t first_ptr; // pointer to the first chunk
+	// XXX: maybe a single circular list is enough?
 	struct aha_block *prev; // pointer to the previous block
 	struct aha_block *next; // pointer to the next block
 	chunk_type_t chunkmap[0]; // mark chunks as free/used (variable size)
+};
+
+// ----------------------------------------------------------------------------
+
+struct aha_big_meta {
+	size_t size; // a power-of-two size
+	uint32_t ptr; // point to the data
+	bool free; // TODO: remove it once we have proper list support
+	struct aha_big_meta *prev;
+	struct aha_big_meta *next;
 };
 
 // ============================================================================
@@ -66,10 +76,68 @@ struct aha_block {
 // ============================================================================
 
 static struct aha_block *first_block = NULL;
+static struct aha_big_meta *first_big_meta = NULL;
 
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
+
+/*
+ * This is the "big alloc" case.
+ *
+ * Big allocation doesn't use block. Instead, the data area is provided
+ * by the page frame allocator (one or more page frames). The metadata
+ * are kept in a separate linked list used to track allocation (required
+ * by kfree()).
+ *
+ * Ironically, it also uses the allocator itself to get memory for the
+ * metadata.
+ */
+
+static void* big_alloc(size_t size)
+{
+	struct aha_big_meta *meta = NULL;
+	size_t nb_pages = 0;
+	pgframe_t head_page = 0;
+
+	dbg("big allocation for size %u", size);
+
+	// first, allocates the page frames
+	nb_pages = size / PAGE_SIZE;
+	if ((head_page = pfa_alloc(nb_pages)) == BAD_PAGE) {
+		error("not enough memory");
+		return NULL;
+	}
+
+	// next, allocates the metadata
+	meta = (struct aha_big_meta*) kmalloc(sizeof(struct aha_big_meta));
+	if (meta == NULL) {
+		error("not enough memory for metadata");
+		pfa_free(head_page); // release the just allocated page frames
+		return NULL;
+	}
+
+	// fills the metadata
+	meta->size = size;
+	meta->ptr = (uint32_t) head_page;
+	meta->free = false;
+
+	// insert it in the list
+	if (first_big_meta == NULL) {
+		meta->prev = meta;
+		meta->next = meta;
+	} else {
+		meta->next = first_big_meta;
+		meta->prev = first_big_meta->prev;
+		first_big_meta->prev = meta;
+		meta->prev->next = meta;
+	}
+	first_big_meta = meta;
+
+	return (void*)head_page;
+}
+
+// ----------------------------------------------------------------------------
 
 static struct aha_block* new_block(size_t elt_size)
 {
@@ -101,6 +169,7 @@ static struct aha_block* new_block(size_t elt_size)
 	block->elt_size = elt_size;
 	block->tot_elts = nb_elts;
 	block->nb_frees = nb_elts;
+
 	// align first ptr to pointer boundary
 	block->first_ptr = (uint32_t)block->chunkmap + nb_elts;
 	//dbg("[before] first_ptr = 0x%p", block->first_ptr);
@@ -110,6 +179,7 @@ static struct aha_block* new_block(size_t elt_size)
 			sizeof(void*) - (block->first_ptr & (sizeof(void*) - 1));
 	}
 	dbg("first_ptr = 0x%p", block->first_ptr);
+
 	block->prev = block;
 	block->next = block;
 
@@ -216,7 +286,7 @@ void* kmalloc(size_t size)
 	dbg("new size %u", size);
 
 	if (size >= PAGE_SIZE) {
-		NOT_IMPLEMENTED();
+		return big_alloc(size);
 	}
 
 	dbg("searching block...");
@@ -230,13 +300,13 @@ void* kmalloc(size_t size)
 
 		// insert it into the linked list
 		if (first_block == NULL) {
-			first_block = block;
+			first_block = block; // TODO: this can be put out of branch
 		} else {
 			block->next = first_block;
 			block->prev = first_block->prev;
 			first_block->prev = block;
 			block->prev->next = block;
-			first_block = block;
+			first_block = block; // TODO: this can be put out of branch
 		}
 
 		dbg("new block created");
@@ -270,6 +340,7 @@ void* kmalloc(size_t size)
 void kfree(void *ptr)
 {
 	struct aha_block *block = first_block;
+	struct aha_big_meta *meta = NULL;
 
 	dbg("freeing 0x%p", ptr);
 
@@ -279,6 +350,7 @@ void kfree(void *ptr)
 	}
 
 	// search which block this @ptr might belong to
+	// FIXME: first_block might be NULL
 	do {
 		if (((uint32_t)ptr >= block->first_ptr) &&
 			((uint32_t)ptr < ((uint32_t)block + PAGE_SIZE)))
@@ -289,7 +361,26 @@ void kfree(void *ptr)
 		block = block->next;
 	} while (block != first_block);
 
-	error("ptr (0x%p) does not belong to any block", ptr);
+	// we didn't find a matching block, is this a big alloc?
+	if (first_big_meta) {
+		meta = first_big_meta;
+		do {
+			if (meta->ptr == (uint32_t)ptr) {
+				if (meta->free == true) {
+					error("double-free detected!");
+					abort();
+				}
+				dbg("big alloc found");
+				pfa_free(meta->ptr); // give the pages back to the pfa
+				meta->free = true;
+				// TODO: remove it from the list
+				return;
+			}
+			meta = meta->next;
+		} while (meta != first_big_meta);
+	}
+
+	error("ptr (0x%p) does not belong to any block or big alloc", ptr);
 	abort();
 
 found:
