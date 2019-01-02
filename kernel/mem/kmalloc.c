@@ -238,6 +238,8 @@ void* kmalloc(size_t size)
 			block->prev->next = block;
 			first_block = block;
 		}
+
+		dbg("new block created");
 	}
 
 	dbg("found block 0x%p", block);
@@ -285,7 +287,7 @@ void kfree(void *ptr)
 			goto found;
 		}
 		block = block->next;
-	} while (block->next != first_block);
+	} while (block != first_block);
 
 	error("ptr (0x%p) does not belong to any block", ptr);
 	abort();
@@ -293,7 +295,7 @@ void kfree(void *ptr)
 found:
 	// find the chunk
 	for (size_t chunk = 0; chunk < block->tot_elts; ++chunk) {
-		uint32_t chunk_ptr = block->first_ptr + chunk*block->elt_size;
+		uint32_t chunk_ptr = block->first_ptr + chunk * block->elt_size;
 		if (chunk_ptr == (uint32_t)ptr) {
 			if (block->chunkmap[chunk] == CHUNK_FREE) {
 				error("double-free detected!");
