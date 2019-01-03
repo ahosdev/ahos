@@ -91,5 +91,6 @@ install-headers:
 install-kernel: ahos.kernel
 	@mkdir -p $(DESTDIR)$(BOOTDIR)
 	@cp ahos.kernel $(DESTDIR)$(BOOTDIR)
+	@cp symbols.map $(DESTDIR)$(BOOTDIR)
 
 -include $(OBJS:.o=.d)
