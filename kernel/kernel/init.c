@@ -71,6 +71,9 @@ static void mem_init(multiboot_info_t *mbi)
 		abort();
 	}
 
+	// the page frame allocator is ready, we can now setup paging
+	paging_setup();
+
 	success("memory initialization complete");
 }
 
