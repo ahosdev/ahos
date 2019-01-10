@@ -4,9 +4,33 @@
 # -----------------------------------------------------------------------------
 # =============================================================================
 
+@@ v0.2 :
+~~~~~~~~~
+- boot:
+	- multiboot magic value and header address pass to kernel_main()
+- build:
+	- add start/end symbols (kernel_rodata, kernel_data, kernel_bss)
+- init:
+	- initialization code splitted
+- libc:
+	- string: strchr() implementation
+- mem:
+	- extract physical memory map from multiboot
+	- reserve physical pages for kernel, phys_mem_map and PFA
+	- page frame allocator implementation (single and multiple page frames)
+	- kmalloc/kfree: first version of the Ah!allocator (aha)
+- type:
+	- doubly linked circular list implementation
+- fixe:
+	- atomic: lock prefixe wasn't used as a prefix
+
+# =============================================================================
+# -----------------------------------------------------------------------------
+# =============================================================================
+
 @@ v0.1 :
 ~~~~~~~~~
-- build system system
+- build system
 - libc:
 	- stdio: printf, putchar, puts
 	- string: memcpy, memmove, strcpy, strnlen, memset, strcmp, memcmp, strlen
