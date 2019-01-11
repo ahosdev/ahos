@@ -33,9 +33,6 @@
 #define PDE_MASK_GLOBAL_PAGE		(1 << 8) // ignored if point to page table
 #define PDE_MASK_ADDR				(0xfffff000) // Page-Table Base Address
 
-typedef uint32_t pde_t;
-
-
 // Page-Table Entry masks
 #define PTE_MASK_PRESENT			(1 << 0) // 1=page is in physical memory,
 											 // 0=attempt to access generates
@@ -50,7 +47,22 @@ typedef uint32_t pde_t;
 #define PTE_MASK_GLOBAL_PAGE		(1 << 8) // 1=not invalidated by TLB (see doc)
 #define PTE_MASK_ADDR				(0xfffff000) // Page Base Address
 
+// ----------------------------------------------------------------------------
+
+// common flags for supervisor page-directory entry (read/write, not present)
+#define PDE_RW_KERNEL_NOCACHE ((pde_t) (PDE_MASK_READWRITE | \
+							   PDE_MASK_WRITE_THROUGH | \
+							   PDE_MASK_CACHE_DISABLED))
+
+// common flags for supervisor page-table entry (read/write, not present)
+#define PTE_RW_KERNEL_NOCACHE ((pte_t) (PTE_MASK_READWRITE | \
+							   PTE_MASK_WRITE_THROUGH | \
+							   PTE_MASK_CACHE_DISABLED))
+
+// ----------------------------------------------------------------------------
+
 typedef uint32_t pte_t;
+typedef uint32_t pde_t;
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -78,32 +90,17 @@ void paging_setup(void)
 
 	// first clear the whole page directory
 	for (i = 0; i < 1024; ++i) {
-		pde_t flags = 0;
-
-		// supervisor + page table not present/accessed and...
-		// ...page size is 4096.
-		flags |= PDE_MASK_READWRITE;
-		flags |= PDE_MASK_WRITE_THROUGH; // TODO: deal with cache
-		flags |= PDE_MASK_CACHE_DISABLED; // TODO: deal with cache
-
-		page_directory[i] = flags;
+		page_directory[i] = PDE_RW_KERNEL_NOCACHE;
 	}
 
 	// map the very first 4MB
 	for (i = 0; i < 1024; ++i) {
-		pte_t flags = 0;
-
-		flags |= PTE_MASK_PRESENT;
-		flags |= PTE_MASK_READWRITE;
-		flags |= PDE_MASK_WRITE_THROUGH; // TODO: deal with cache
-		flags |= PDE_MASK_CACHE_DISABLED; // TODO: deal with cache
-
+		pte_t flags = PTE_RW_KERNEL_NOCACHE | PTE_MASK_PRESENT;
 		first_page_table[i] = (i * 0x1000) | flags;
 	}
 
-	// make the first entry of page directory present + read/write-able
-	page_directory[0] =
-		((uint32_t) first_page_table) | PDE_MASK_PRESENT | PDE_MASK_READWRITE;
+	// make the first entry of page directory present
+	page_directory[0] = ((uint32_t) first_page_table) | PDE_MASK_PRESENT;
 
 	// load page directory into cr3
 	asm volatile("mov %0, %%eax\n"
