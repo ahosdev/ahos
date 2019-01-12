@@ -6,6 +6,8 @@
 
 @@ v0.2 :
 ~~~~~~~~~
+- arch:
+	- helpers to read/write control registers
 - boot:
 	- multiboot magic value and header address pass to kernel_main()
 - build:
