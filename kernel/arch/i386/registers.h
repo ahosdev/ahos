@@ -24,7 +24,7 @@ typedef union
 	uint32_t val;
 
 	// cr0 definition
-	struct {
+	struct reg_cr0 {
 		uint32_t pe:1; // Protection Enable (0=real mode, 1=protected mode)
 		uint32_t mp:1; // Monitor Coprocessor
 		uint32_t em:1; // Emulation
@@ -44,12 +44,12 @@ typedef union
 	// cr1 is reserved by intel
 
 	// cr2 definition
-	struct {
+	struct reg_cr2 {
 		uint32_t pf_addr; // hold the faulty (virtual) address on page fault
 	} __attribute__((packed)) cr2;
 
 	// cr3 definition
-	struct {
+	struct reg_cr3 {
 		uint32_t pad0:3; // unused
 		uint32_t pwt:1; // Page-level Writes Transparent
 		uint32_t pcd:1; // Page-level Cache Disable
@@ -58,7 +58,7 @@ typedef union
 	} __attribute__((packed)) cr3;
 
 	// cr4 definition
-	struct {
+	struct reg_cr4 {
 		uint32_t vme:1; // Virtual-8086 Mode Extensions
 		uint32_t pvi:1; // Protected-Mode Virtual Interrupts
 		uint32_t tsd:1; // Time Stamp Disable
