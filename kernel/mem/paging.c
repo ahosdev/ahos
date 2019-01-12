@@ -44,19 +44,18 @@ static pde_t *page_directory = NULL;
  * Returns true on success, or false on failure.
  */
 
-static bool load_page_directory(pde_t *pg_dir)
+static bool load_page_directory(uint32_t pgd_phys_addr)
 {
-	const uint32_t pg_dir_addr = (uint32_t) pg_dir;
 	reg_t reg;
 
-	if (PAGE_OFFSET(pg_dir_addr) != 0) {
+	if (PAGE_OFFSET(pgd_phys_addr) != 0) {
 		error("page directory address is not page-aligned");
 		return false;
 	}
 
 	reg = read_cr3();
 
-	reg.cr3.pdb = ((uint32_t)pg_dir_addr) >> 12;
+	reg.cr3.pdb = pgd_phys_addr >> 12;
 
 	write_cr3(reg);
 
@@ -252,26 +251,56 @@ bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags)
 void paging_setup(void)
 {
 	reg_t reg;
-	size_t i = 0;
+	pgframe_t pgd_phys_addr = 0;
+	pde_t *pde = 0;
 
 	info("paging setup...");
 
-	if ((page_directory = (pde_t*)pfa_alloc(1)) == NULL) {
+	if ((pgd_phys_addr = pfa_alloc(1)) == 0) {
 		error("cannot allocate page_directory");
 		abort();
 	}
+	dbg("pgd_phys_addr = 0x%p", pgd_phys_addr);
 
 	// first clear the whole page directory
-	for (i = 0; i < 1024; ++i) {
-		page_directory[i] = PDE_RW_KERNEL_NOCACHE;
+	for (size_t entry = 0; entry < (PAGE_SIZE/sizeof(pde_t)); ++entry) {
+		pde = (pde_t*)(pgd_phys_addr + entry * sizeof(*pde));
+		*pde = PDE_RW_KERNEL_NOCACHE;
 	}
 
-	if (load_page_directory(page_directory) == false) {
+	/*
+	 * Here comes the first trick.
+	 *
+	 * We map the page-directory itself into the last page-directory entry
+	 * so it can be manipulated as a page table from virtual address space.
+	 *
+	 * That is, (virtual) 0xfffff000 points in the same time to the first
+	 * page-table entry of the last page table which is also the first
+	 * page-directory entry of the page-directory itself (got it?).
+	 *
+	 * NOTE: This is the only PDE that is not "identity mapped" so far.
+	 */
+
+	// get the last entry physical address
+	uint32_t last_pde_offset = ((PAGE_SIZE/sizeof(pde_t)) - 1) * sizeof(pde_t);
+	pde = (pde_t*)(pgd_phys_addr + last_pde_offset);
+	dbg("pgd's pde = 0x%p", pde);
+
+	// make it point to the page-directory itself
+	*pde = pgd_phys_addr | PDE_RW_KERNEL_NOCACHE | PDE_MASK_PRESENT;
+
+	// here we lie to map_page() because paging is actually not enabled yet.
+	page_directory = (pde_t*) pgd_phys_addr;
+	bootstrap_mapping();
+
+	// loads the physical address of page-directory into CR3
+	if (load_page_directory(pgd_phys_addr) == false) {
 		error("failed to load the new page directory");
 		abort();
 	}
 
-	bootstrap_mapping();
+	// finally, update page_directory to its correct virtual address
+	page_directory = (pde_t*) 0xfffff000; // the very last virtual page
 
 	// enable paging
 	reg = read_cr0();
