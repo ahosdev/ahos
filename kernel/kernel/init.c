@@ -31,19 +31,19 @@ static void ps2_init(void)
 	ps2ctrl_init();
 	keyboard_init();
 
-	info("starting PS/2 device identification...");
+	dbg("starting PS/2 device identification...");
 	if (ps2ctrl_identify_devices() == false) {
 		error("failed to identify PS/2 devices");
 		return;
 	}
-	success("PS/2 devices identification succeed");
+	dbg("PS/2 devices identification succeed");
 
-	info("starting PS/2 drivers...");
+	dbg("starting PS/2 drivers...");
 	if (ps2ctrl_start_drivers() == false) {
 		error("failed to start PS/2 device drivers");
 		return;
 	}
-	success("PS/2 device drivers started");
+	dbg("PS/2 device drivers started");
 
 	success("PS/2 subsystem initialization complete");
 }

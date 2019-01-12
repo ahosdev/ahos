@@ -200,8 +200,8 @@ bool pfa_init(void)
 	pfa = (struct pfa_info*) physmem_region_addr;
 	pfa->first_page = physmem_region_addr + reserved_pages * PAGE_SIZE;
 	pfa->nb_pages = (physmem_region_len / PAGE_SIZE) - reserved_pages;
-	info("PFA first page is: 0x%x", pfa->first_page);
-	info("PFA has %u available pages", pfa->nb_pages);
+	dbg("PFA first page is: 0x%x", pfa->first_page);
+	dbg("PFA has %u available pages", pfa->nb_pages);
 
 	// mark all pages as free
 	for (size_t page = 0; page < pfa->nb_pages; ++page) {

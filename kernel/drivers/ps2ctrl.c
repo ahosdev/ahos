@@ -1100,7 +1100,7 @@ bool ps2ctrl_identify_devices(void)
 		error("failed to identify device type from identification code");
 		return false;
 	}
-	info("device on port 0 has been identified (type = 0x%u)", device_type);
+	dbg("device on port 0 has been identified (type = 0x%u)", device_type);
 
 	if ((driver = find_driver(device_type)) == NULL) {
 		error("no driver found for device type (0x%x)", device_type);
@@ -1112,7 +1112,7 @@ bool ps2ctrl_identify_devices(void)
 		error("failed to install driver <%s> on port 0", driver->name);
 		return false;
 	}
-	info("driver <%s> successfully installed", driver->name);
+	dbg("driver <%s> successfully installed", driver->name);
 
 	if (!ps2ctrl_single_channel) {
 		// TODO: identify second port device (if any)
@@ -1253,7 +1253,7 @@ bool ps2ctrl_register_driver(struct ps2driver *driver)
 	drivers[slot] = driver;
 	registered_drivers[slot] = true;
 
-	success("driver <%s> registered at slot %u", driver->name, slot);
+	dbg("driver <%s> registered at slot %u", driver->name, slot);
 
 	return true;
 }
@@ -1283,7 +1283,7 @@ bool ps2ctrl_start_drivers(void)
 		struct ps2driver *driver = ps2_drivers[port];
 
 		if (driver == NULL) {
-			info("no driver installed on port %u, skipping...", port);
+			dbg("no driver installed on port %u, skipping...", port);
 			continue;
 		}
 
@@ -1293,7 +1293,7 @@ bool ps2ctrl_start_drivers(void)
 		} else {
 			ps2_irq_handlers[port] = driver->recv;
 		}
-		info("enabling IRQ line %u...", irq_line);
+		dbg("enabling IRQ line %u...", irq_line);
 		irq_clear_mask(irq_line);
 
 		// route the send() callback to the proper port
