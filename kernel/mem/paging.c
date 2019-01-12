@@ -116,6 +116,9 @@ static void bootstrap_mapping(void)
 		}
 	}
 
+	// TODO: PFA should regiser to a bootstrap_range
+	pfa_map_metadata();
+
 	dbg("bootstrap mapping succeed");
 }
 

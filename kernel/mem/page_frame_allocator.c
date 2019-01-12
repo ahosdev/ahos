@@ -35,7 +35,7 @@ struct pfa_info {
 
 static uint32_t physmem_region_addr = 0;
 static uint32_t physmem_region_len = 0;
-
+static uint32_t pfa_info_reserved_pages = 0;
 static struct pfa_info *pfa = NULL; // allocated at the very first pages
 
 // ============================================================================
@@ -135,6 +135,31 @@ found:
 // ============================================================================
 
 /*
+ * Maps the Page Frame Allocator meta-data.
+ *
+ * This must never failed.
+ */
+
+void pfa_map_metadata(void)
+{
+	info("mapping %d PFA metadata pages at 0x%p",
+		pfa_info_reserved_pages, pfa);
+
+	for (size_t i = 0; i < pfa_info_reserved_pages; ++i) {
+		uint32_t addr = (uint32_t)pfa + i*PAGE_SIZE;
+		if (map_page(addr, addr, PTE_RW_KERNEL_NOCACHE) == false) {
+			// unrecoverable error
+			error("failed to map page 0x%p", addr);
+			abort();
+		}
+	}
+
+	success("mapping PFA metadata succeed");
+}
+
+// ----------------------------------------------------------------------------
+
+/*
  * Initializes the Page Frame Allocator.
  *
  * Returns true on success, false otherwise.
@@ -182,6 +207,9 @@ bool pfa_init(void)
 	pfa->nb_pages = (physmem_region_len / PAGE_SIZE) - reserved_pages;
 	info("PFA first page is: 0x%x", pfa->first_page);
 	info("PFA has %u available pages", pfa->nb_pages);
+
+	// keep the number of reserved pages for bootstrapping (paging)
+	pfa_info_reserved_pages = reserved_pages;
 
 	// mark all pages as free
 	for (size_t page = 0; page < pfa->nb_pages; ++page) {
