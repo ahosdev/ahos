@@ -119,6 +119,15 @@ static void* big_alloc(size_t size)
 
 	list_add(&meta->list, &aha_big_list);
 
+	// identity map the pages (no lazy loading)
+	dbg("mapping pages");
+	for (size_t i = 0; i < nb_pages; ++i) {
+		uint32_t addr = head_page + i*PAGE_SIZE;
+		if (map_page(addr, addr, PTE_RW_KERNEL_NOCACHE) == false) {
+			NOT_IMPLEMENTED(); // FIXME: handle it and rollback
+		}
+	}
+
 	return (void*)head_page;
 }
 
@@ -144,12 +153,19 @@ static struct aha_block* new_block(size_t elt_size)
 		abort();
 	}
 
+	dbg("new_block: elt_size = %u (nb_elts=%u)", elt_size, nb_elts);
+
 	if ((block = (struct aha_block*) pfa_alloc(1)) == NULL) {
 		error("not enough memory");
 		return NULL;
 	}
 
-	dbg("new_block: elt_size = %u (nb_elts=%u)", elt_size, nb_elts);
+	// identity map the page (no lazy loading)
+	if (map_page((uint32_t)block, (uint32_t)block,
+				 PTE_RW_KERNEL_NOCACHE) == false)
+	{
+		NOT_IMPLEMENTED(); // FIXME: handle it and rollback
+	}
 
 	block->elt_size = elt_size;
 	block->tot_elts = nb_elts;
