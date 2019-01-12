@@ -75,8 +75,7 @@ typedef uint32_t pde_t;
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-// TODO: use the pfa once transitionned into higher-half kernel
-static pde_t page_directory[1024] __attribute__((aligned(PAGE_SIZE)));
+static pde_t *page_directory = NULL;
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -114,7 +113,7 @@ static bool load_page_directory(pde_t *pg_dir)
 // ============================================================================
 
 /*
- * Maps a single page for @phys_addr to @virt_addr using @flags flags.
+ * Maps a single page for @phys_addr to @virt_addr using @flags PTE flags.
  *
  * If a PDE entry is present, it is expected that @flag is consistent with it
  * (both read/write, both supervisor, etc.). If not, a new page table is
@@ -219,6 +218,11 @@ void paging_setup(void)
 	size_t i = 0;
 
 	info("paging setup...");
+
+	if ((page_directory = (pde_t*)pfa_alloc(1)) == NULL) {
+		error("cannot allocate page_directory");
+		abort();
+	}
 
 	// first clear the whole page directory
 	for (i = 0; i < 1024; ++i) {
