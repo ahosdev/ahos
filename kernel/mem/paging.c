@@ -118,6 +118,31 @@ static void bootstrap_mapping(void)
 // ============================================================================
 
 /*
+ * Handle Page Fault (#PF) exception.
+ *
+ * The fault can be either resolved or the kernel panic.
+ */
+
+void page_fault_handler(int error)
+{
+	reg_t cr2;
+
+	info("\"Page Fault\" exception detected!");
+
+	info("error code: %d", error);
+
+	// retrieve the faulty address
+	cr2 = read_cr2();
+	info("faulty address: 0x%p", cr2.val);
+
+	// TODO: page table walking
+
+	NOT_IMPLEMENTED();
+}
+
+// ----------------------------------------------------------------------------
+
+/*
  * Maps a single page for @phys_addr to @virt_addr using @flags PTE flags.
  *
  * If a PDE entry is present, it is expected that @flag is consistent with it

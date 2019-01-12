@@ -22,7 +22,7 @@
 #include <drivers/ps2ctrl.h>
 #include <drivers/clock.h>
 
-#include <arch/registers.h>
+#include <mem/memory.h>
 
 #include <stdlib.h> // uses abort
 
@@ -156,25 +156,6 @@ static void general_protection_fault_handler(void)
 {
 	info("\"General Protection Fault\" exception detected!");
 	// TODO
-	unhandled_exception();
-}
-
-// ----------------------------------------------------------------------------
-
-static void page_fault_handler(int error)
-{
-	reg_t cr2;
-
-	info("\"Page Fault\" exception detected!");
-
-	info("error code: %d", error);
-
-	// retrieve the faulty address
-	cr2 = read_cr2();
-	info("faulty address: 0x%p", cr2.val);
-
-	// TODO: page table walking
-
 	unhandled_exception();
 }
 
