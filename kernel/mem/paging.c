@@ -23,6 +23,13 @@
 // ----------------------------------------------------------------------------
 // ============================================================================
 
+#define PD_INDEX(virt_addr) (virt_addr >> 22) // highest 10-bits
+#define PT_INDEX(virt_addr) ((virt_addr >> 12) & 0x3ff) // middle 10-bits
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
 static pde_t *page_directory = NULL;
 
 // ============================================================================
@@ -178,8 +185,8 @@ bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags)
 	}
 
 	// compute page-directory and page-table index from virtual address
-	pd_index = virt_addr >> 22; // The "highest" 10-bits
-	pt_index = virt_addr >> 12 & 0x03ff; // the "middle" 10-bits
+	pd_index = PD_INDEX(virt_addr);
+	pt_index = PT_INDEX(virt_addr);
 
 	// is the PDE present ?
 	if ((page_directory[pd_index] & PDE_MASK_PRESENT) == 0) {
