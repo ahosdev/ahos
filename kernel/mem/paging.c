@@ -13,6 +13,8 @@
 
 #include <kernel/log.h>
 
+#include <arch/registers.h>
+
 #define LOG_MODULE "paging"
 
 // ============================================================================
@@ -79,6 +81,37 @@ static pte_t first_page_table[1024]  __attribute__((aligned(PAGE_SIZE)));
 // ============================================================================
 
 /*
+ * Loads a new page_directory located at @pg_dir (physical address) into CR3.
+ *
+ * It left the CR3's flags untouched.
+ *
+ * Returns true on success, or false on failure.
+ */
+
+static bool load_page_directory(pde_t *pg_dir)
+{
+	const uint32_t pg_dir_addr = (uint32_t) pg_dir;
+	reg_t reg;
+
+	if (PAGE_OFFSET(pg_dir_addr) != 0) {
+		error("page directory address is not page-aligned");
+		return false;
+	}
+
+	reg = read_cr3();
+
+	reg.cr3.pdb = ((uint32_t)pg_dir_addr) >> 12;
+
+	write_cr3(reg);
+
+	return true;
+}
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
+/*
  * Setup an Identity Mapping for the first 4MB of memory and enable paging.
  */
 
@@ -102,12 +135,10 @@ void paging_setup(void)
 	// make the first entry of page directory present
 	page_directory[0] = ((uint32_t) first_page_table) | PDE_MASK_PRESENT;
 
-	// load page directory into cr3
-	asm volatile("mov %0, %%eax\n"
-				 "mov %%eax, %%cr3"
-				 : /* no output */
-				 : "a"(page_directory) /* input */
-				 );
+	if (load_page_directory(page_directory) == false) {
+		error("failed to load the new page directory");
+		abort();
+	}
 
 	// enable paging
 	asm volatile("mov %%cr0, %%eax\n"
