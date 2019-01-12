@@ -117,6 +117,7 @@ static bool load_page_directory(pde_t *pg_dir)
 
 void paging_setup(void)
 {
+	reg_t reg;
 	size_t i = 0;
 
 	info("paging setup...");
@@ -141,9 +142,9 @@ void paging_setup(void)
 	}
 
 	// enable paging
-	asm volatile("mov %%cr0, %%eax\n"
-				 "or $0x80000000, %%eax\n"
-				 "mov %%eax, %%cr0" : : );
+	reg = read_cr0();
+	reg.cr0.pg = 1;
+	write_cr0(reg);
 
 	success("paging setup succeed");
 }
