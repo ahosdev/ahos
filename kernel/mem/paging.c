@@ -21,60 +21,6 @@
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-// Page-Directory Entry masks
-#define PDE_MASK_PRESENT			(1 << 0) // 1=page is in physical memory,
-											 // 0=attempt to access generates
-											 //	a page-fault exception (#PF)
-#define PDE_MASK_READWRITE			(1 << 1) // 0=readonly, 1=read/write
-#define PDE_MASK_SUPERVISOR			(1 << 2) // 0=supervisor, 1=user
-#define PDE_MASK_WRITE_THROUGH		(1 << 3) // 0=write-back, 1=write-through
-#define PDE_MASK_CACHE_DISABLED		(1 << 4) // 0=cached, 1=cache disabled
-#define PDE_MASK_ACCESSED			(1 << 5) // set by processor at first access
-#define PDE_MASK_RESERVED			(1 << 6) // unused (set to 0)
-#define PDE_MASK_PAGE_SIZE			(1 << 7) // 0=4kb, 1=4Mb
-#define PDE_MASK_GLOBAL_PAGE		(1 << 8) // ignored if point to page table
-#define PDE_MASK_ADDR				(0xfffff000) // Page-Table Base Address
-
-// Page-Table Entry masks
-#define PTE_MASK_PRESENT			(1 << 0) // 1=page is in physical memory,
-											 // 0=attempt to access generates
-											 //	a page-fault exception (#PF)
-#define PTE_MASK_READWRITE			(1 << 1) // 0=readonly, 1=read/write
-#define PTE_MASK_SUPERVISOR			(1 << 2) // 0=supervisor, 1=user
-#define PTE_MASK_WRITE_THROUGH		(1 << 3) // 0=write-back, 1=write-through
-#define PTE_MASK_CACHE_DISABLED		(1 << 4) // 0=cached, 1=cache disabled
-#define PTE_MASK_ACCESSED			(1 << 5) // set by processor at first access
-#define PTE_MASK_DIRTY				(1 << 6) // 1=page has been written to
-#define PTE_MASK_PT_ATTRIBUTE_INDEX	(1 << 7) // PAT enabled, otherwise reversed (=0)
-#define PTE_MASK_GLOBAL_PAGE		(1 << 8) // 1=not invalidated by TLB (see doc)
-#define PTE_MASK_ADDR				(0xfffff000) // Page Base Address
-
-// ----------------------------------------------------------------------------
-
-// common flags for supervisor page-directory entry (read/write, not present)
-#define PDE_RW_KERNEL_NOCACHE ((pde_t) (PDE_MASK_READWRITE | \
-							   PDE_MASK_WRITE_THROUGH | \
-							   PDE_MASK_CACHE_DISABLED))
-
-// common flags for supervisor page-table entry (read/write, not present)
-#define PTE_RW_KERNEL_NOCACHE ((pte_t) (PTE_MASK_READWRITE | \
-							   PTE_MASK_WRITE_THROUGH | \
-							   PTE_MASK_CACHE_DISABLED))
-
-// flags to check for consistenty between a pte flag and its pde. We want it to
-// be sync for now (until copy-on-write implementation?)
-#define PG_CONSISTENT_MASK (PTE_MASK_READWRITE | PTE_MASK_SUPERVISOR | \
-						   PTE_MASK_WRITE_THROUGH | PTE_MASK_CACHE_DISABLED)
-
-// ----------------------------------------------------------------------------
-
-typedef uint32_t pte_t;
-typedef uint32_t pde_t;
-
-// ============================================================================
-// ----------------------------------------------------------------------------
-// ============================================================================
-
 static pde_t *page_directory = NULL;
 
 // ============================================================================
