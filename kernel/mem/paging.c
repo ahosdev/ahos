@@ -132,7 +132,7 @@ static void dump_pde(pde_t pde)
 {
 	dbg("---[ dumping PDE: 0x%x ]---", pde);
 
-	dbg("page table addr (phys) = 0x%x", pde & PDE_MASK_ADDR);
+	dbg("page table addr (phys) = 0x%p", pde & PDE_MASK_ADDR);
 	dbg("flags = 0x%x", pde & ~PDE_MASK_ADDR);
 
 	dbg("- present: %s", pde & PDE_MASK_PRESENT ? "yes" : "no");
@@ -145,6 +145,34 @@ static void dump_pde(pde_t pde)
 	dbg("- accessed: %s", pde & PDE_MASK_ACCESSED ? "yes" : "no");
 	dbg("- page size: %s", pde & PDE_MASK_PAGE_SIZE ? "4MB" : "4KB");
 	dbg("- global: %s", pde & PDE_MASK_GLOBAL_PAGE ? "yes" : "no");
+
+	dbg("---[ end of dump ]---");
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Pretty print a Page-Table Entry.
+ */
+
+static void dump_pte(pte_t pte)
+{
+	dbg("---[ dumping PTE: 0x%x ]---", pte);
+
+	dbg("page addr (phys) = 0x%p", pte & PTE_MASK_ADDR);
+	dbg("flags = 0x%x", pte & ~PTE_MASK_ADDR);
+
+	dbg("- present: %s", pte & PTE_MASK_PRESENT ? "yes" : "no");
+	dbg("- ro/rw: %s", pte & PTE_MASK_READWRITE ? "read/write" : "read-only");
+	dbg("- user/supervisor: %s",
+		pte & PTE_MASK_SUPERVISOR ? "user" : "supervisor");
+	dbg("- wt/wb: %s",
+		pte & PTE_MASK_WRITE_THROUGH ? "write-through" : "write-back");
+	dbg("- cache: %s", pte & PTE_MASK_CACHE_DISABLED ? "disabled" : "enabled");
+	dbg("- accessed: %s", pte & PTE_MASK_ACCESSED ? "yes" : "no");
+	dbg("- dirty: %s", pte & PTE_MASK_DIRTY ? "yes" : "no");
+	dbg("- PAT: %s", pte & PTE_MASK_PT_ATTRIBUTE_INDEX ? "enabled" : "disabled");
+	dbg("- global: %sTLB invalidation", pte & PTE_MASK_GLOBAL_PAGE?"no ":"");
 
 	dbg("---[ end of dump ]---");
 }
@@ -162,7 +190,7 @@ void dump_page_table(uint32_t pd_index)
 	// is it present ?
 	if ((page_directory[pd_index] & PDE_MASK_PRESENT) == 0) {
 		warn("no page table at this index");
-		return;
+		goto out;
 	}
 
 	page_table = (pte_t*)(page_directory[pd_index] & PDE_MASK_ADDR);
@@ -174,6 +202,7 @@ void dump_page_table(uint32_t pd_index)
 		}
 	}
 
+out:
 	info("end of dumping!");
 }
 

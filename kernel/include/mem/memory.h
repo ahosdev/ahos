@@ -70,7 +70,7 @@ void kfree(void *ptr);
 #define PTE_MASK_CACHE_DISABLED		(1 << 4) // 0=cached, 1=cache disabled
 #define PTE_MASK_ACCESSED			(1 << 5) // set by processor at first access
 #define PTE_MASK_DIRTY				(1 << 6) // 1=page has been written to
-#define PTE_MASK_PT_ATTRIBUTE_INDEX	(1 << 7) // PAT enabled, otherwise reversed (=0)
+#define PTE_MASK_PT_ATTRIBUTE_INDEX	(1 << 7) // PAT enabled, otherwise reserved (=0)
 #define PTE_MASK_GLOBAL_PAGE		(1 << 8) // 1=not invalidated by TLB (see doc)
 #define PTE_MASK_ADDR				(0xfffff000) // Page Base Address
 
