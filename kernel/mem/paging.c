@@ -78,9 +78,6 @@ typedef uint32_t pde_t;
 // TODO: use the pfa once transitionned into higher-half kernel
 static pde_t page_directory[1024] __attribute__((aligned(PAGE_SIZE)));
 
-// TODO: use the pfa once transitionned into higher-half kernel
-static pte_t first_page_table[1024]  __attribute__((aligned(PAGE_SIZE)));
-
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -230,12 +227,13 @@ void paging_setup(void)
 
 	// map the very first 4MB
 	for (i = 0; i < 1024; ++i) {
-		pte_t flags = PTE_RW_KERNEL_NOCACHE | PTE_MASK_PRESENT;
-		first_page_table[i] = (i * 0x1000) | flags;
+		bool ret = map_page(i*PAGE_SIZE, i*PAGE_SIZE, PTE_RW_KERNEL_NOCACHE);
+		if (ret == false) {
+			error("failed to map page number %u", i);
+			abort();
+		}
 	}
-
-	// make the first entry of page directory present
-	page_directory[0] = ((uint32_t) first_page_table) | PDE_MASK_PRESENT;
+	success("first 4MB mapped");
 
 	if (load_page_directory(page_directory) == false) {
 		error("failed to load the new page directory");
