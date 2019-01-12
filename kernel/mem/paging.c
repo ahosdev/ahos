@@ -119,6 +119,33 @@ static void bootstrap_mapping(void)
 	dbg("bootstrap mapping succeed");
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Pretty print a Page-Directory Entry.
+ */
+
+static void dump_pde(pde_t pde)
+{
+	dbg("---[ dumping PDE: 0x%x ]---", pde);
+
+	dbg("addr (phys) = 0x%x", pde & PDE_MASK_ADDR);
+	dbg("flags = 0x%x", pde & ~PDE_MASK_ADDR);
+
+	dbg("- present: %s", pde & PDE_MASK_PRESENT ? "yes" : "no");
+	dbg("- ro/rw: %s", pde & PDE_MASK_READWRITE ? "read/write" : "read-only");
+	dbg("- user/supervisor: %s",
+		pde & PDE_MASK_SUPERVISOR ? "user" : "supervisor");
+	dbg("- wt/wb: %s",
+		pde & PDE_MASK_WRITE_THROUGH ? "write-through" : "write-back");
+	dbg("- cache: %s", pde & PDE_MASK_CACHE_DISABLED ? "disabled" : "enabled");
+	dbg("- accessed: %s", pde & PDE_MASK_ACCESSED ? "yes" : "no");
+	dbg("- page size: %s", pde & PDE_MASK_PAGE_SIZE ? "4MB" : "4KB");
+	dbg("- global: %s", pde & PDE_MASK_GLOBAL_PAGE ? "yes" : "no");
+
+	dbg("---[ end of dump ]---");
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
