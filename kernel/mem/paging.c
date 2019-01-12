@@ -3,6 +3,8 @@
  *
  * Paging Memory management with a single level.
  *
+ * For now, we use an Identity Paging policy.
+ *
  * Documentation:
  * - Intel (chapter 3)
  * - https://wiki.osdev.org/Paging
@@ -52,6 +54,63 @@ static bool load_page_directory(pde_t *pg_dir)
 	write_cr3(reg);
 
 	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Identity maps critical memory region (kernel, VRAM, etc.) before enabling
+ * paging, otherwise the kernel will instant crash.
+ *
+ * This must NEVER failed.
+ */
+
+static void bootstrap_mapping(void)
+{
+	struct bootstrap_range {
+		char name[16];
+		uint32_t start; // must be page aligned
+		uint32_t end;
+	};
+
+	struct bootstrap_range maps[] = {
+		{
+			.name	= "kernel",
+			.start	= (uint32_t) &kernel_start,
+			.end	= (uint32_t) &kernel_end,
+		},
+		{
+			.name	= "vram",
+			.start	= 0xa0000,
+			.end	= 0xfffff,
+		},
+	};
+
+	dbg("starting bootstrap mapping...");
+
+	for (size_t i = 0; i < (sizeof(maps) / sizeof(maps[0])); ++i) {
+		struct bootstrap_range *range = &maps[i];
+		uint32_t end = 0;
+
+		if (PAGE_OFFSET(range->start)) {
+			error("starting range is not page-aligned");
+			abort();
+		}
+
+		end = page_align(range->end + 1); // XXX: is this correct?
+
+		dbg("mapping [%p - %p] %s", range->start, end - 1, range->name);
+
+		for (size_t addr = range->start; addr < end; addr += PAGE_SIZE) {
+			if (map_page(addr, addr, PTE_RW_KERNEL_NOCACHE) == false) {
+				// unrecoverable
+				error("failed to map 0x%p", addr);
+				abort();
+			}
+		}
+	}
+
+	dbg("bootstrap mapping succeed");
 }
 
 // ============================================================================
@@ -175,20 +234,12 @@ void paging_setup(void)
 		page_directory[i] = PDE_RW_KERNEL_NOCACHE;
 	}
 
-	// map the very first 4MB
-	for (i = 0; i < 1024; ++i) {
-		bool ret = map_page(i*PAGE_SIZE, i*PAGE_SIZE, PTE_RW_KERNEL_NOCACHE);
-		if (ret == false) {
-			error("failed to map page number %u", i);
-			abort();
-		}
-	}
-	success("first 4MB mapped");
-
 	if (load_page_directory(page_directory) == false) {
 		error("failed to load the new page directory");
 		abort();
 	}
+
+	bootstrap_mapping();
 
 	// enable paging
 	reg = read_cr0();
