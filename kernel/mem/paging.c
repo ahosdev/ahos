@@ -271,6 +271,12 @@ bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags)
 
 		dbg("new page table created");
 
+		// map the page table (don't forget this one!)
+		if (map_page(new_page_table, new_page_table, PTE_RW_KERNEL_NOCACHE) == false) {
+			error("cannot map the new page table");
+			abort();
+		}
+
 		page_table = new_page_table;
 	} else {
 		// check for consistency between @flags and PDE's flags
