@@ -129,7 +129,7 @@ static void dump_pde(pde_t pde)
 {
 	dbg("---[ dumping PDE: 0x%x ]---", pde);
 
-	dbg("addr (phys) = 0x%x", pde & PDE_MASK_ADDR);
+	dbg("page table addr (phys) = 0x%x", pde & PDE_MASK_ADDR);
 	dbg("flags = 0x%x", pde & ~PDE_MASK_ADDR);
 
 	dbg("- present: %s", pde & PDE_MASK_PRESENT ? "yes" : "no");
@@ -149,6 +149,32 @@ static void dump_pde(pde_t pde)
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
+
+void dump_page_table(uint32_t pd_index)
+{
+	pte_t *page_table = NULL;
+
+	info("dumping page table %u (0x%x)", pd_index, pd_index);
+
+	// is it present ?
+	if ((page_directory[pd_index] & PDE_MASK_PRESENT) == 0) {
+		warn("no page table at this index");
+		return;
+	}
+
+	page_table = (pte_t*)(page_directory[pd_index] & PDE_MASK_ADDR);
+	info("page_table = 0x%p", page_table);
+
+	for (size_t i = 0; i < 1024; ++i) {
+		if (page_table[i] != 0x1a) {
+			info("  pt[%d] = 0x%x", i, page_table[i]);
+		}
+	}
+
+	info("end of dumping!");
+}
+
+// ----------------------------------------------------------------------------
 
 /*
  * Handle Page Fault (#PF) exception.
