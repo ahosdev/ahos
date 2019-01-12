@@ -43,26 +43,6 @@ static struct pfa_info *pfa = NULL; // allocated at the very first pages
 // ============================================================================
 
 /*
- * Aligns @addr on a PAGE_SIZE boundary.
- *
- * Returns the next page aligned address, or @addr if it was already aligned.
- */
-
-static inline uint32_t page_align(uint32_t addr)
-{
-	if (PAGE_OFFSET(addr)) {
-		// not aligned
-		addr += PAGE_SIZE;
-		return (addr & PAGE_MASK);
-	} else {
-		// already aligned
-		return addr;
-	}
-}
-
-// ----------------------------------------------------------------------------
-
-/*
  * Allocates a single page frame.
  *
  * Returns the physical address of the allocated page frame, or NULL on error.

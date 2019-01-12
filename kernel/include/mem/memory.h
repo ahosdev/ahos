@@ -97,6 +97,26 @@ typedef uint32_t pde_t;
 
 // ----------------------------------------------------------------------------
 
+/*
+ * Aligns @addr on a PAGE_SIZE boundary.
+ *
+ * Returns the next page aligned address, or @addr if it was already aligned.
+ */
+
+inline uint32_t page_align(uint32_t addr)
+{
+	if (PAGE_OFFSET(addr)) {
+		// not aligned
+		addr += PAGE_SIZE;
+		return (addr & PAGE_MASK);
+	} else {
+		// already aligned
+		return addr;
+	}
+}
+
+// ----------------------------------------------------------------------------
+
 void paging_setup(void);
 bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags);
 
