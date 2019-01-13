@@ -268,8 +268,9 @@ static void big_free(struct aha_big_meta *meta)
 	// free the 'head' page frame (ptr=virt=phys because of identity mapping)
 	pfa_free(meta->ptr);
 
-	// FIXME: release meta (memory leak right now!)
 	list_del(&meta->list);
+
+	kfree(meta);
 }
 
 // ============================================================================
