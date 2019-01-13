@@ -252,12 +252,17 @@ pgframe_t pfa_alloc(size_t nb_pages)
  *
  * NOTE: The page frame must has been previously allocated with pfa_alloc()
  * otherwise this will lead to a double-free -> panic.
+ *
+ * WARNING: if the page frame has been mapped, it is the caller responsability
+ * to unmapped it (otherwise expect use-after-free / double-mapping issue).
  */
 
 void pfa_free(pgframe_t pgf)
 {
 	const uint32_t max_pgf = pfa->first_page + pfa->nb_pages*PAGE_SIZE;
 	size_t index = 0;
+
+	dbg("freeing 0x%p", pgf);
 
 	if (pgf < pfa->first_page || pgf >= max_pgf) {
 		error("invalid page (out-of-bound)");

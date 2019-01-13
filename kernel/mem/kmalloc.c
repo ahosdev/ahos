@@ -343,9 +343,19 @@ void kfree(void *ptr)
 		struct aha_big_meta *meta = NULL;
 		list_for_each_entry(meta, &aha_big_list, list) {
 			if (meta->ptr == (uint32_t)ptr) {
-				dbg("big alloc found");
+				dbg("big alloc found (meta = 0x%p)", meta);
+
+				if (unmap_page(meta->ptr) == false) {
+					// this must not failed
+					error("failed to unmap 0x%p", meta->ptr);
+					abort();
+				}
+
 				pfa_free(meta->ptr);
+
+				// FIXME: release meta (memory leak right now!)
 				list_del(&meta->list);
+
 				return;
 			}
 		}
