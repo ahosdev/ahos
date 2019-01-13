@@ -63,7 +63,7 @@ struct aha_block {
 
 struct aha_big_meta {
 	size_t size; // a power-of-two size
-	uint32_t ptr; // point to the data
+	uint32_t ptr; // point to data (virt) and head page (phys)
 	struct list list; // pointer in 'aha_big_list'
 };
 
@@ -79,7 +79,8 @@ LIST_DECLARE(aha_big_list); // list of big allocation metadata
 // ============================================================================
 
 /*
- * This is the "big alloc" case.
+ * This is the "big alloc" case. Param @size is expected to be a page-aligned
+ * power-of-two.
  *
  * Big allocation doesn't use block. Instead, the data area is provided
  * by the page frame allocator (one or more page frames). The metadata
@@ -112,6 +113,7 @@ static void* big_alloc(size_t size)
 		pfa_free(head_page); // release the just allocated page frames
 		return NULL;
 	}
+	dbg("meta = %p", meta);
 
 	// fills the metadata
 	meta->size = size;
@@ -242,13 +244,28 @@ static size_t next_highest_power_of_two(size_t size)
 
 static void big_free(struct aha_big_meta *meta)
 {
-	// FIXME: unmap ALL pages!
-	if (unmap_page(meta->ptr) == false) {
-		// this must not failed
-		error("failed to unmap 0x%p", meta->ptr);
+	dbg("freeing big allocation (meta = 0x%p)", meta);
+
+	if (meta == NULL) {
+		error("invalid argument");
 		abort();
 	}
 
+	if (meta->size % PAGE_SIZE) {
+		warn("meta->size is not a PAGE_SIZE multiple");
+	}
+
+	// unmap all pages
+	for (size_t i = 0; i < (meta->size / PAGE_SIZE); ++i) {
+		uint32_t addr = meta->ptr + i*PAGE_SIZE;
+		if (unmap_page(addr) == false) {
+			// this must not failed
+			error("failed to unmap 0x%p", addr);
+			abort();
+		}
+	}
+
+	// free the 'head' page frame (ptr=virt=phys because of identity mapping)
 	pfa_free(meta->ptr);
 
 	// FIXME: release meta (memory leak right now!)
