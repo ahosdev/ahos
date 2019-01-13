@@ -119,10 +119,10 @@ inline uint32_t page_align(uint32_t addr)
 // ----------------------------------------------------------------------------
 
 void paging_setup(void);
+
 bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags);
 void page_fault_handler(int error);
 
-void dump_page_table(uint32_t pd_index);
 
 // ============================================================================
 // ----------------------------------------------------------------------------

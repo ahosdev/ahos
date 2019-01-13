@@ -191,6 +191,39 @@ static void dump_pte(pte_t pte)
 // ----------------------------------------------------------------------------
 
 /*
+ * Dumps Page-Table Entries of @pg_table.
+ *
+ * If @only_present is set, non present PTE are not shown.
+ */
+
+static void dump_page_table(pte_t *pg_table, bool only_present)
+{
+	size_t nb_presents = 0;
+
+	dbg("---[ dumping page table 0x%p ]---", pg_table);
+
+	if (pg_table == NULL) {
+		error("invalid argument");
+		return;
+	}
+
+	for (size_t i = 0; i < 1024; ++i) {
+		if (!only_present || (pg_table[i] & PTE_MASK_PRESENT)) {
+			dbg("  pt[%d] = 0x%x", i, pg_table[i]);
+			nb_presents++;
+		}
+	}
+
+	if (nb_presents == 0) {
+		dbg("page table is empty");
+	}
+
+	dbg("---[ end of dumping ]---");
+}
+
+// ----------------------------------------------------------------------------
+
+/*
  * Allocates a new page table, marks all PTE non present and maps it.
  *
  * Returns the created page table on success, NULL otherwise.
@@ -243,33 +276,6 @@ static pte_t* new_page_table(uint32_t pd_index, uint32_t flags)
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-void dump_page_table(uint32_t pd_index)
-{
-	pte_t *page_table = NULL;
-
-	info("dumping page table %u (0x%x)", pd_index, pd_index);
-
-	// is it present ?
-	if ((page_directory[pd_index] & PDE_MASK_PRESENT) == 0) {
-		warn("no page table at this index");
-		goto out;
-	}
-
-	page_table = (pte_t*)(page_directory[pd_index] & PDE_MASK_ADDR);
-	info("page_table = 0x%p", page_table);
-
-	for (size_t i = 0; i < 1024; ++i) {
-		if (page_table[i] != 0x1a) {
-			info("  pt[%d] = 0x%x", i, page_table[i]);
-		}
-	}
-
-out:
-	info("end of dumping!");
-}
-
-// ----------------------------------------------------------------------------
-
 /*
  * Handles Page Fault (#PF) exception.
  *
@@ -313,7 +319,7 @@ void page_fault_handler(int error)
 	// TODO: print EIP and (eventually) EFLAGS
 
 	if (PDE_PRESENT(pd_index) == false) {
-		error("faulty's page directory entry NOT PRESENT");
+		error("page directory entry NOT PRESENT");
 		abort();
 	}
 	dump_pde(page_directory[pd_index]);
@@ -330,7 +336,7 @@ void page_fault_handler(int error)
 	info("");
 
 	if ((page_table[pt_index] & PTE_MASK_PRESENT) == 0) {
-		error("faulty's page table entry NOT PRESENT");
+		error("page table entry NOT PRESENT");
 		abort();
 	}
 	dump_pte(page_table[pt_index]);
