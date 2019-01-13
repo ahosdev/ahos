@@ -209,26 +209,77 @@ out:
 // ----------------------------------------------------------------------------
 
 /*
- * Handle Page Fault (#PF) exception.
+ * Handles Page Fault (#PF) exception.
  *
- * The fault can be either resolved or the kernel panic.
+ * As there is no userland, no demand paging nor copy-on-write right now, page
+ * faulting always crash the kernel.
  */
 
 void page_fault_handler(int error)
 {
 	reg_t cr2;
+	uint32_t pd_index;
+	uint32_t pt_index;
+	pte_t *page_table = NULL; // virtual address
+	uint32_t page_table_pgd_index;
 
 	info("\"Page Fault\" exception detected!");
+	info("");
 
-	info("error code: %d", error);
+	// pretty print error code
+	info("error code: %d (page %s, %s access)", error,
+		(error & 0x1) ? "present" : "not present",
+		(error & 0x2) ? "write" : "read");
+	info("origin: %s mode", (error & 0x4) ? "user" : "supervisor");
+	// TODO: handle others error code when supporting PSE/PSA/NX
+	info("");
+
+	if (error & 0x1) {
+		error("protection violation");
+		NOT_IMPLEMENTED();
+	}
 
 	// retrieve the faulty address
 	cr2 = read_cr2();
+	pd_index = PD_INDEX(cr2.val);
+	pt_index = PT_INDEX(cr2.val);
+
 	info("faulty address: 0x%p", cr2.val);
+	info("PD index: %d (0x%x)", pd_index, pd_index);
+	info("PT index: %d (0x%x)", pt_index, pt_index);
+	info("");
 
-	// TODO: page table walking
+	// TODO: print EIP and (eventually) EFLAGS
 
-	NOT_IMPLEMENTED();
+	if ((page_directory[pd_index] & PDE_MASK_PRESENT) == 0) {
+		error("faulty's page directory entry NOT PRESENT");
+		abort();
+	}
+	dump_pde(page_directory[pd_index]);
+	dbg("");
+
+	// retrieve the corresponding page table
+	// XXX: convert it to virtual once we move to higher-half kernel
+	page_table = (pte_t*) (page_directory[pd_index] & PDE_MASK_ADDR);
+	page_table_pgd_index = PD_INDEX(page_table);
+	info("page-table address: 0x%p", page_table);
+	dbg("page-table's PD index: %d (0x%x)",
+		page_table_pgd_index, page_table_pgd_index);
+	info("");
+
+	// we assume the page table is mapped, otherwise the page mapping code
+	// is seriously flawed
+	info("PTE: 0x%x", page_table[page_table_pgd_index]);
+	info("");
+	dump_pte(page_table[page_table_pgd_index]);
+	dbg("");
+
+	if ((page_table[page_table_pgd_index] & PTE_MASK_PRESENT) == 0) {
+		error("faulty's page table entry NOT PRESENT");
+		abort();
+	}
+
+	NOT_IMPLEMENTED(); // mostly protection fault or new feature (nx/pae/pse)
 }
 
 // ----------------------------------------------------------------------------
