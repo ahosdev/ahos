@@ -121,7 +121,7 @@ inline uint32_t page_align(uint32_t addr)
 void paging_setup(void);
 
 bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags);
-bool unmap_page(void *virt_addr);
+bool unmap_page(uint32_t virt_addr);
 
 void page_fault_handler(int error);
 

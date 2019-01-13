@@ -492,7 +492,7 @@ bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags)
  * Returns true on success, false otherwise.
  */
 
-bool unmap_page(void *virt_addr)
+bool unmap_page(uint32_t virt_addr)
 {
 	uint32_t pd_index = PD_INDEX(virt_addr);
 	uint32_t pt_index = PT_INDEX(virt_addr);
