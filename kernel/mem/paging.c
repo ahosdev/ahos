@@ -139,6 +139,7 @@ static void bootstrap_mapping(void)
  * Pretty print a Page-Directory Entry.
  */
 
+__attribute__((unused)) /* debugging function */
 static void dump_pde(pde_t pde)
 {
 	dbg("---[ dumping PDE: 0x%x ]---", pde);
@@ -166,6 +167,7 @@ static void dump_pde(pde_t pde)
  * Pretty print a Page-Table Entry.
  */
 
+__attribute__((unused)) /* debugging function */
 static void dump_pte(pte_t pte)
 {
 	dbg("---[ dumping PTE: 0x%x ]---", pte);
@@ -196,6 +198,7 @@ static void dump_pte(pte_t pte)
  * If @only_present is set, non present PTE are not shown.
  */
 
+__attribute__((unused)) /* debugging function */
 static void dump_page_table(pte_t *pg_table, bool only_present)
 {
 	size_t nb_presents = 0;
