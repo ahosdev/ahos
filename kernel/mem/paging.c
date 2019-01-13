@@ -275,6 +275,55 @@ static pte_t* new_page_table(uint32_t pd_index, uint32_t flags)
 	return page_table;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Invalidates the whole TLB cache.
+ *
+ * NOTE: This is an EXPENSIVE operation and must be avoided if possible.
+ *
+ * In addition, this won't works on SMP as it only flush a single CPU TLB
+ * cache. In SMP, this is more complexe, requires to send IPI, etc.
+ */
+
+inline static void invalidate_tlb(void)
+{
+	asm volatile("mov %%cr3, %%eax\n"
+				 "mov %%eax, %%cr3"
+				 : );
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Invalidates a single TLB page table entry for virtual address @virt_addr.
+ *
+ * The CPU automatically retrieves the TLB PTE from the virtual address.
+ *
+ * Uses this version instead of invalidate_tlb() whenever possible.
+ *
+ * The TLB cache must be invalidated on page table operations (creation,
+ * modification, deletion).
+ *
+ * NOTE: The "invlpg" only exists since i486 processors. For older cpu, it
+ * falls back to a full TLB cache invalidation.
+ */
+
+inline static void invalidate_tlb_page(uint32_t virt_addr)
+{
+#if 0
+	// only for archictecture with a CPU lesser than i486 (not planned to
+	// support).
+	invalidate_tlb();
+#else
+	// we can use the 'invlpg' instruction
+	asm volatile("invlpg (%0)"
+				 : /* no output */
+				 :"r" (virt_addr)
+				 : "memory");
+#endif
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
