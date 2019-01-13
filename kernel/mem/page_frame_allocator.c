@@ -225,6 +225,9 @@ bool pfa_init(void)
 /*
  * Allocates @nb_pages contiguous page frames.
  *
+ * WARNING: once paging is enabled, returned page(s) frame MUST BE mapped
+ * before being deref'ed (expect a page fault otherwise).
+ *
  * Returns the physical address of the first page frame, or NULL on error.
  */
 

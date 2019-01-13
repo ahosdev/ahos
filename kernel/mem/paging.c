@@ -177,6 +177,50 @@ static void dump_pte(pte_t pte)
 	dbg("---[ end of dump ]---");
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Allocates a new page table, initializes and map it, update the page
+ * directory and returns it.
+ *
+ * FIXME: there is something wrong here with page table virtual addresses...
+ *
+ * Returns the created page table on success, NULL otherwise.
+ */
+
+static pte_t* new_page_table(uint32_t pd_index, uint32_t flags)
+{
+	pde_t pde_flags = 0;
+	pte_t *new_pt = NULL;
+
+	if ((new_pt = (pte_t*) pfa_alloc(1)) == NULL) {
+		error("not enough memory");
+		return NULL;
+	}
+
+	// mark all entries as "not present" but set the other flags
+	// FIXME: we shouldn't be able to deref before mapping it
+	for (size_t i = 0; i < 1024; ++i) {
+		new_pt[i] = flags & ~PDE_MASK_PRESENT;
+	}
+
+	// insert the new page directory entry (don't copy GLOBAL or PAT flags)
+	pde_flags  = flags & PG_CONSISTENT_MASK;
+	pde_flags |= PDE_MASK_PRESENT; // mark it present
+	page_directory[pd_index] = pde_flags | ((uint32_t) new_pt);
+
+	dbg("new page table created");
+
+	// map the page table (don't forget this one!)
+	// FIXME: we should map before dereferencing
+	if (map_page(new_pt, new_pt, PTE_RW_KERNEL_NOCACHE) == false) {
+		error("cannot map the new page table");
+		return NULL;
+	}
+
+	return new_pt;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -326,38 +370,10 @@ bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags)
 	// is the PDE present ?
 	if ((page_directory[pd_index] & PDE_MASK_PRESENT) == 0) {
 		// nope, we need to allocate a new page table and initialize it first
-		pte_t *new_page_table = (pte_t*) pfa_alloc(1);
-
-		if (new_page_table == NULL) {
-			error("not enough memory");
-			return false;
-		}
-
-		// paranoid check (should be debug only)
-		if ((uint32_t)new_page_table & ~PTE_MASK_ADDR) {
-			error("new page is not page-aligned");
-			return false;
-		}
-
-		// mark all entries as "not present" but set the other flags
-		for (size_t i = 0; i < 1024; ++i) {
-			new_page_table[i] = flags & ~PDE_MASK_PRESENT;
-		}
-
-		// insert the new page directory entry (don't copy GLOBAL or PAT flags)
-		pde_flags  = flags & PG_CONSISTENT_MASK;
-		pde_flags |= PDE_MASK_PRESENT; // mark it present
-		page_directory[pd_index] = pde_flags | ((uint32_t) new_page_table);
-
-		dbg("new page table created");
-
-		// map the page table (don't forget this one!)
-		if (map_page(new_page_table, new_page_table, PTE_RW_KERNEL_NOCACHE) == false) {
-			error("cannot map the new page table");
+		if ((page_table = new_page_table(pd_index, flags)) == NULL) {
+			error("failed to create new page table");
 			abort();
 		}
-
-		page_table = new_page_table;
 	} else {
 		// check for consistency between @flags and PDE's flags
 		pde_flags = page_directory[pd_index] & PG_CONSISTENT_MASK;
