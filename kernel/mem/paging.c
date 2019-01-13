@@ -3,12 +3,15 @@
  *
  * Paging Memory management with a single level.
  *
- * For now, we use an Identity Paging policy.
+ * For now, we use an Identity Paging policy. However, the page tables are
+ * linearly mapped to [0xfffc0000 - 0xfffff000] with the last one being the
+ * page directory itself (PDE self-mapping).
  *
  * Documentation:
  * - Intel (chapter 3)
  * - https://wiki.osdev.org/Paging
  * - https://wiki.osdev.org/Setting_Up_Paging
+ * - https://forum.osdev.org/viewtopic.php?f=15&t=19387 // PDE self-mapping
  */
 
 #include <mem/memory.h>
@@ -26,11 +29,16 @@
 #define PD_INDEX(virt_addr) ((uint32_t)virt_addr >> 22) // highest 10-bits
 #define PT_INDEX(virt_addr) (((uint32_t)virt_addr >> 12) & 0x3ff) // middle 10-bits
 
+#define PDE_PRESENT(pd_index) \
+	(!!((uint32_t)page_directory[pd_index] & PDE_MASK_PRESENT))
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
 
 static pde_t *page_directory = NULL;
+
+static bool paging_enabled = false;
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -180,10 +188,7 @@ static void dump_pte(pte_t pte)
 // ----------------------------------------------------------------------------
 
 /*
- * Allocates a new page table, initializes and map it, update the page
- * directory and returns it.
- *
- * FIXME: there is something wrong here with page table virtual addresses...
+ * Allocates a new page table, marks all PTE non present and maps it.
  *
  * Returns the created page table on success, NULL otherwise.
  */
@@ -191,34 +196,39 @@ static void dump_pte(pte_t pte)
 static pte_t* new_page_table(uint32_t pd_index, uint32_t flags)
 {
 	pde_t pde_flags = 0;
-	pte_t *new_pt = NULL;
+	uint32_t new_pt_phys = 0;
+	pte_t *page_table = NULL;
 
-	if ((new_pt = (pte_t*) pfa_alloc(1)) == NULL) {
+	dbg("creating new page table");
+
+	if ((new_pt_phys = pfa_alloc(1)) == 0) {
 		error("not enough memory");
 		return NULL;
-	}
-
-	// mark all entries as "not present" but set the other flags
-	// FIXME: we shouldn't be able to deref before mapping it
-	for (size_t i = 0; i < 1024; ++i) {
-		new_pt[i] = flags & ~PDE_MASK_PRESENT;
 	}
 
 	// insert the new page directory entry (don't copy GLOBAL or PAT flags)
 	pde_flags  = flags & PG_CONSISTENT_MASK;
 	pde_flags |= PDE_MASK_PRESENT; // mark it present
-	page_directory[pd_index] = pde_flags | ((uint32_t) new_pt);
+	page_directory[pd_index] = pde_flags | new_pt_phys;
+
+	// now let's retrieve its virtual address
+	if (paging_enabled) {
+		// using PDE self-mapping tricks
+		page_table = (pte_t*) (0xffc00000 + pd_index * PAGE_SIZE);
+	} else {
+		// identity mapping
+		page_table = (pte_t*) new_pt_phys;
+	}
+	dbg("page_table = %p", page_table);
+
+	// mark all entries as "not present" but set the other flags
+	for (size_t i = 0; i < 1024; ++i) {
+		page_table[i] = flags & ~PDE_MASK_PRESENT;
+	}
 
 	dbg("new page table created");
 
-	// map the page table (don't forget this one!)
-	// FIXME: we should map before dereferencing
-	if (map_page(new_pt, new_pt, PTE_RW_KERNEL_NOCACHE) == false) {
-		error("cannot map the new page table");
-		return NULL;
-	}
-
-	return new_pt;
+	return page_table;
 }
 
 // ============================================================================
@@ -304,9 +314,10 @@ void page_fault_handler(int error)
 
 	// retrieve the corresponding page table
 	// XXX: convert it to virtual once we move to higher-half kernel
+	// FIXME: get the proper page table
 	page_table = (pte_t*) (page_directory[pd_index] & PDE_MASK_ADDR);
 	page_table_pgd_index = PD_INDEX(page_table);
-	info("page-table address: 0x%p", page_table);
+	info("page-table address (phys): 0x%p", page_table);
 	dbg("page-table's PD index: %d (0x%x)",
 		page_table_pgd_index, page_table_pgd_index);
 	info("");
@@ -382,7 +393,12 @@ bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags)
 			return false;
 		}
 
-		page_table = (pte_t*) (page_directory[pd_index] & PDE_MASK_ADDR);
+		if (paging_enabled) {
+			page_table = (pte_t*) (0xffc00000 + pd_index * PAGE_SIZE);
+		} else {
+			// identity mapping
+			page_table = (pte_t*) (page_directory[pd_index] & PDE_MASK_ADDR);
+		}
 
 		// is there already a mapping present?
 		if (page_table[pt_index] & PTE_MASK_PRESENT) {
@@ -427,16 +443,25 @@ void paging_setup(void)
 	}
 
 	/*
-	 * Here comes the first trick.
+	 * Here comes the trick.
 	 *
 	 * We map the page-directory itself into the last page-directory entry
 	 * so it can be manipulated as a page table from virtual address space.
 	 *
-	 * That is, (virtual) 0xfffff000 points in the same time to the first
-	 * page-table entry of the last page table which is also the first
-	 * page-directory entry of the page-directory itself (got it?).
+	 * This is called "PDE self-mapping".
 	 *
-	 * NOTE: This is the only PDE that is not "identity mapped" so far.
+	 * That is, (virtual) 0xfffff000 points to the page directory's page
+	 * table. In other words, we can modify the page directory by
+	 * read/writing to 0xfffff000.
+	 *
+	 * Furthermore, because of this PDE self-mapping tricks, we can also
+	 * quickly retrieves ANY pagetable's virtual address. In order to do so,
+	 * we need to offset (virtual) address 0xfffc0000. That is, to get the
+	 * second pagetable virtual address, we need 0xfffc0000 + 1*PAGE_SIZE.
+	 *
+	 * The MMU will first see the pd_index number 1023 and the 1023 entry
+	 * is the last PDE which points to itself. Next, the pt_index will be
+	 * 2, which points to our page table.
 	 */
 
 	// get the last entry physical address
@@ -464,6 +489,8 @@ void paging_setup(void)
 	reg = read_cr0();
 	reg.cr0.pg = 1;
 	write_cr0(reg);
+
+	paging_enabled = true;
 
 	success("paging setup succeed");
 }
