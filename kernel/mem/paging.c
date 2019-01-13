@@ -38,6 +38,9 @@
 
 static pde_t *page_directory = NULL;
 
+// TODO: get rid of paging_enabled when we will have separates ".text" and
+// ".text.init" sections, with a dedicated allocator. We don't want this to
+// spread all-over the kernel.
 static bool paging_enabled = false;
 
 // ============================================================================
@@ -201,6 +204,11 @@ static pte_t* new_page_table(uint32_t pd_index, uint32_t flags)
 
 	dbg("creating new page table");
 
+	if (PDE_PRESENT(pd_index)) {
+		error("PDE is already set!");
+		return NULL;
+	}
+
 	if ((new_pt_phys = pfa_alloc(1)) == 0) {
 		error("not enough memory");
 		return NULL;
@@ -275,7 +283,6 @@ void page_fault_handler(int error)
 	uint32_t pd_index;
 	uint32_t pt_index;
 	pte_t *page_table = NULL; // virtual address
-	uint32_t page_table_pgd_index;
 
 	info("\"Page Fault\" exception detected!");
 	info("");
@@ -305,7 +312,7 @@ void page_fault_handler(int error)
 
 	// TODO: print EIP and (eventually) EFLAGS
 
-	if ((page_directory[pd_index] & PDE_MASK_PRESENT) == 0) {
+	if (PDE_PRESENT(pd_index) == false) {
 		error("faulty's page directory entry NOT PRESENT");
 		abort();
 	}
@@ -313,26 +320,21 @@ void page_fault_handler(int error)
 	dbg("");
 
 	// retrieve the corresponding page table
-	// XXX: convert it to virtual once we move to higher-half kernel
-	// FIXME: get the proper page table
-	page_table = (pte_t*) (page_directory[pd_index] & PDE_MASK_ADDR);
-	page_table_pgd_index = PD_INDEX(page_table);
-	info("page-table address (phys): 0x%p", page_table);
-	dbg("page-table's PD index: %d (0x%x)",
-		page_table_pgd_index, page_table_pgd_index);
+	page_table = (pte_t*) (0xffc00000 + pd_index * PAGE_SIZE);
+	info("page-table address (virt): 0x%p", page_table);
 	info("");
 
 	// we assume the page table is mapped, otherwise the page mapping code
 	// is seriously flawed
-	info("PTE: 0x%x", page_table[page_table_pgd_index]);
+	info("PTE: 0x%x", page_table[pt_index]);
 	info("");
-	dump_pte(page_table[page_table_pgd_index]);
-	dbg("");
 
-	if ((page_table[page_table_pgd_index] & PTE_MASK_PRESENT) == 0) {
+	if ((page_table[pt_index] & PTE_MASK_PRESENT) == 0) {
 		error("faulty's page table entry NOT PRESENT");
 		abort();
 	}
+	dump_pte(page_table[pt_index]);
+	dbg("");
 
 	NOT_IMPLEMENTED(); // mostly protection fault or new feature (nx/pae/pse)
 }
@@ -343,8 +345,10 @@ void page_fault_handler(int error)
  * Maps a single page for @phys_addr to @virt_addr using @flags PTE flags.
  *
  * If a PDE entry is present, it is expected that @flag is consistent with it
- * (both read/write, both supervisor, etc.). If not, a new page table is
- * allocated from the PFA and the PDE's flags is based on @flags.
+ * (both read/write, both supervisor, etc.).
+ *
+ * If there is no PDE, a new page table is allocated from the PFA and the PDE's
+ * flags is based on @flags.
  *
  * Rewriting an existing PTE (i.e. page present) is not allowed with map_page().
  *
