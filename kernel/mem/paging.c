@@ -432,6 +432,71 @@ bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags)
 // ----------------------------------------------------------------------------
 
 /*
+ * Unmaps the virtual page pointed by @virt_addr.
+ *
+ * If the page table hosting @virt_addr mapping becomes empty, the page table
+ * is released and its PDE is updated accordingly (TODO).
+ *
+ * NOTE: @virt_addr must be page-aligned and must NOT point to a page
+ * table/directory.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+bool unmap_page(void *virt_addr)
+{
+	uint32_t pd_index = PD_INDEX(virt_addr);
+	uint32_t pt_index = PT_INDEX(virt_addr);
+	pte_t *pg_table = NULL;
+
+	dbg("unmapping page 0x%p", virt_addr);
+
+	if (PAGE_OFFSET(virt_addr)) {
+		error("address is not page aligned");
+		return false;
+	}
+
+	if (pd_index == 1023) {
+		// this is a serious issue
+		error("cannot unmap page table/directory");
+		abort();
+	}
+
+	if (PDE_PRESENT(pd_index) == false) {
+		error("cannot unmap a page which has no page table");
+		return false;
+	}
+
+	// retrieve page table address
+	if (paging_enabled) {
+		pg_table = (pte_t*) (0xffc00000 + pd_index * PAGE_SIZE);
+	} else {
+		// identity mapping
+		pg_table = (pte_t*) (page_directory[pd_index] & PDE_MASK_ADDR);
+	}
+	dbg("pg_table = 0x%p", pg_table);
+
+	// is virt_addr actually mapped?
+	if ((pg_table[pt_index] & PTE_MASK_PRESENT) == false) {
+		error("cannot unmap a page that is not present");
+		return false;
+	}
+
+	// alright, everything is ok, unmap it
+	pg_table[pt_index] &= ~(PTE_MASK_PRESENT|PTE_MASK_ADDR);
+
+	// TODO: invalidates TLB (when caches are enabled)
+
+	// TODO: scan the page table and unmap it if empty
+
+	dbg("page 0x%p has been unmapped", virt_addr);
+
+	return true;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
  * Setup an Identity Mapping for the first 4MB of memory and enable paging.
  */
 
