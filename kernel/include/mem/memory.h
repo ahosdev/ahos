@@ -15,7 +15,7 @@
 
 #define PAGE_SIZE	(4096)
 #define PAGE_MASK	(~(PAGE_SIZE - 1))
-#define PAGE_OFFSET(x) ((x) & (~PAGE_MASK))
+#define PAGE_OFFSET(x) (((uint32_t)x) & (~PAGE_MASK))
 
 #define BAD_PAGE ((uint32_t) 0)
 
