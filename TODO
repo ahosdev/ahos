@@ -11,7 +11,11 @@
 		- detect hardware
 
 - memory:
-	- setup paging / virtual memory
+	- map to a higher-half kernel
+	- null deref detection
+	- paging: page protection
+	- paging: release page table when empty
+	- paging: move the 'bootstrap' code into a special .text section
 	- get rid of bss allocated memory and uses kmalloc() when applicable
 
 - serial:

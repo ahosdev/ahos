@@ -12,6 +12,7 @@
 	- multiboot magic value and header address pass to kernel_main()
 - build:
 	- add start/end symbols (kernel_rodata, kernel_data, kernel_bss)
+	- qemu does not reboot on crash
 - init:
 	- initialization code splitted
 - libc:
@@ -21,6 +22,11 @@
 	- reserve physical pages for kernel, phys_mem_map and PFA
 	- page frame allocator implementation (single and multiple page frames)
 	- kmalloc/kfree: first version of the Ah!allocator (aha)
+	- paging: setup, identity mapping + PDE self-mapping
+	- paging: support map_page() and unmap_page()
+	- paging: add tlb flush primitives
+- event:
+	- page fault handler display more information
 - type:
 	- doubly linked circular list implementation
 - fixe:
