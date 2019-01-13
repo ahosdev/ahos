@@ -4,14 +4,16 @@
  * Paging Memory management with a single level.
  *
  * For now, we use an Identity Paging policy. However, the page tables are
- * linearly mapped to [0xfffc0000 - 0xfffff000] with the last one being the
- * page directory itself (PDE self-mapping).
+ * linearly mapped to [0xfffc0000 - 0xfffff000] (4MB) with the last one being
+ * the page directory itself (PDE self-mapping).
  *
  * Documentation:
- * - Intel (chapter 3)
+ * - Intel (chapter 3 and 9)
  * - https://wiki.osdev.org/Paging
  * - https://wiki.osdev.org/Setting_Up_Paging
  * - https://forum.osdev.org/viewtopic.php?f=15&t=19387 // PDE self-mapping
+ * - https://wiki.osdev.org/TLB
+ * - https://forum.osdev.org/viewtopic.php?f=1&t=18222 // TLB invalidation
  */
 
 #include <mem/memory.h>
@@ -31,6 +33,11 @@
 
 #define PDE_PRESENT(pd_index) \
 	(!!((uint32_t)page_directory[pd_index] & PDE_MASK_PRESENT))
+
+// ----------------------------------------------------------------------------
+
+inline static void invalidate_tlb(void);
+inline static void invalidate_tlb_page(uint32_t virt_addr);
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -68,7 +75,7 @@ static bool load_page_directory(uint32_t pgd_phys_addr)
 
 	reg.cr3.pdb = pgd_phys_addr >> 12;
 
-	write_cr3(reg);
+	write_cr3(reg); // writing to CR3 invalidates the whole TLB cache
 
 	return true;
 }
@@ -259,6 +266,7 @@ static pte_t* new_page_table(uint32_t pd_index, uint32_t flags)
 	if (paging_enabled) {
 		// using PDE self-mapping tricks
 		page_table = (pte_t*) (0xffc00000 + pd_index * PAGE_SIZE);
+		invalidate_tlb(); // XXX: faster to invalidate 1024 pages instead?
 	} else {
 		// identity mapping
 		page_table = (pte_t*) new_pt_phys;
@@ -268,6 +276,10 @@ static pte_t* new_page_table(uint32_t pd_index, uint32_t flags)
 	// mark all entries as "not present" but set the other flags
 	for (size_t i = 0; i < 1024; ++i) {
 		page_table[i] = flags & ~PDE_MASK_PRESENT;
+	}
+
+	if (paging_enabled) {
+		invalidate_tlb(); // XXX: faster to invalidate 1024 pages instead?
 	}
 
 	dbg("new page table created");
@@ -473,7 +485,7 @@ bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags)
 	page_table[pt_index] = phys_addr | flags | PTE_MASK_PRESENT;
 	dbg("page 0x%x (phys) mapped to 0x%x (virt)", phys_addr, virt_addr);
 
-	// TODO: flush TLB (when cache will be enables)
+	invalidate_tlb_page(virt_addr);
 
 	return true;
 }
@@ -534,7 +546,7 @@ bool unmap_page(uint32_t virt_addr)
 	// alright, everything is ok, unmap it
 	pg_table[pt_index] &= ~(PTE_MASK_PRESENT|PTE_MASK_ADDR);
 
-	// TODO: invalidates TLB (when caches are enabled)
+	invalidate_tlb_page((uint32_t)virt_addr);
 
 	// TODO: scan the page table and unmap it if empty
 
