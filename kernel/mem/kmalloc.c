@@ -231,6 +231,30 @@ static size_t next_highest_power_of_two(size_t size)
 	return size;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Frees a big allocation.
+ *
+ * Allocated pages are unmapped and given back to the PFA. The @meta structure
+ * is removed from the meta list and freed.
+ */
+
+static void big_free(struct aha_big_meta *meta)
+{
+	// FIXME: unmap ALL pages!
+	if (unmap_page(meta->ptr) == false) {
+		// this must not failed
+		error("failed to unmap 0x%p", meta->ptr);
+		abort();
+	}
+
+	pfa_free(meta->ptr);
+
+	// FIXME: release meta (memory leak right now!)
+	list_del(&meta->list);
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -344,18 +368,7 @@ void kfree(void *ptr)
 		list_for_each_entry(meta, &aha_big_list, list) {
 			if (meta->ptr == (uint32_t)ptr) {
 				dbg("big alloc found (meta = 0x%p)", meta);
-
-				if (unmap_page(meta->ptr) == false) {
-					// this must not failed
-					error("failed to unmap 0x%p", meta->ptr);
-					abort();
-				}
-
-				pfa_free(meta->ptr);
-
-				// FIXME: release meta (memory leak right now!)
-				list_del(&meta->list);
-
+				big_free(meta);
 				return;
 			}
 		}
