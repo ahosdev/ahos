@@ -35,32 +35,12 @@ struct pfa_info {
 
 static uint32_t physmem_region_addr = 0;
 static uint32_t physmem_region_len = 0;
-
+static uint32_t pfa_info_reserved_pages = 0;
 static struct pfa_info *pfa = NULL; // allocated at the very first pages
 
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
-
-/*
- * Aligns @addr on a PAGE_SIZE boundary.
- *
- * Returns the next page aligned address, or @addr if it was already aligned.
- */
-
-static inline uint32_t page_align(uint32_t addr)
-{
-	if (PAGE_OFFSET(addr)) {
-		// not aligned
-		addr += PAGE_SIZE;
-		return (addr & PAGE_MASK);
-	} else {
-		// already aligned
-		return addr;
-	}
-}
-
-// ----------------------------------------------------------------------------
 
 /*
  * Allocates a single page frame.
@@ -155,6 +135,31 @@ found:
 // ============================================================================
 
 /*
+ * Maps the Page Frame Allocator meta-data.
+ *
+ * This must never failed.
+ */
+
+void pfa_map_metadata(void)
+{
+	info("mapping %d PFA metadata pages at 0x%p",
+		pfa_info_reserved_pages, pfa);
+
+	for (size_t i = 0; i < pfa_info_reserved_pages; ++i) {
+		uint32_t addr = (uint32_t)pfa + i*PAGE_SIZE;
+		if (map_page(addr, addr, PTE_RW_KERNEL_NOCACHE) == false) {
+			// unrecoverable error
+			error("failed to map page 0x%p", addr);
+			abort();
+		}
+	}
+
+	success("mapping PFA metadata succeed");
+}
+
+// ----------------------------------------------------------------------------
+
+/*
  * Initializes the Page Frame Allocator.
  *
  * Returns true on success, false otherwise.
@@ -203,6 +208,9 @@ bool pfa_init(void)
 	dbg("PFA first page is: 0x%x", pfa->first_page);
 	dbg("PFA has %u available pages", pfa->nb_pages);
 
+	// keep the number of reserved pages for bootstrapping (paging)
+	pfa_info_reserved_pages = reserved_pages;
+
 	// mark all pages as free
 	for (size_t page = 0; page < pfa->nb_pages; ++page) {
 		pfa->pagemap[page] = PAGE_FREE;
@@ -216,6 +224,9 @@ bool pfa_init(void)
 
 /*
  * Allocates @nb_pages contiguous page frames.
+ *
+ * WARNING: once paging is enabled, returned page(s) frame MUST BE mapped
+ * before being deref'ed (expect a page fault otherwise).
  *
  * Returns the physical address of the first page frame, or NULL on error.
  */
@@ -241,12 +252,17 @@ pgframe_t pfa_alloc(size_t nb_pages)
  *
  * NOTE: The page frame must has been previously allocated with pfa_alloc()
  * otherwise this will lead to a double-free -> panic.
+ *
+ * WARNING: if the page frame has been mapped, it is the caller responsability
+ * to unmapped it (otherwise expect use-after-free / double-mapping issue).
  */
 
 void pfa_free(pgframe_t pgf)
 {
 	const uint32_t max_pgf = pfa->first_page + pfa->nb_pages*PAGE_SIZE;
 	size_t index = 0;
+
+	dbg("freeing 0x%p", pgf);
 
 	if (pgf < pfa->first_page || pgf >= max_pgf) {
 		error("invalid page (out-of-bound)");

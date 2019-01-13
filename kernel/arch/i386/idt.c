@@ -22,6 +22,8 @@
 #include <drivers/ps2ctrl.h>
 #include <drivers/clock.h>
 
+#include <mem/memory.h>
+
 #include <stdlib.h> // uses abort
 
 #define LOG_MODULE "idt"
@@ -159,15 +161,6 @@ static void general_protection_fault_handler(void)
 
 // ----------------------------------------------------------------------------
 
-static void page_fault_handler(void)
-{
-	info("\"Page Fault\" exception detected!");
-	// TODO
-	unhandled_exception();
-}
-
-// ----------------------------------------------------------------------------
-
 static void user_defined_interrupt_handler(void)
 {
 	info("\"User Defined\" interruption detected!");
@@ -181,15 +174,13 @@ static void user_defined_interrupt_handler(void)
 
 void isr_handler(int isr_num, int error_code)
 {
-	error_code = error_code; // fixe compilation warning (unused)
-
 	switch (isr_num)
 	{
 		case 0: divide_error_handler(); break;
 		case 6: invalid_opcode_handler(); break;
 		case 8: double_fault_handler(); break;
 		case 13: general_protection_fault_handler(); break;
-		case 14: page_fault_handler(); break;
+		case 14: page_fault_handler(error_code); break;
 		case 32: clock_irq_handler(); break;
 		case 33: ps2ctrl_irq1_handler(); break;
 		case 34: user_defined_interrupt_handler(); break;
