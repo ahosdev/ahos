@@ -63,6 +63,18 @@ static struct phys_mmap *phys_mem_map = NULL;
 // ----------------------------------------------------------------------------
 // ============================================================================
 
+/*
+ * Helper macro to iterate over multiboot memory map.
+ */
+
+#define mmap_for_each(mmap, mbi) \
+	for (mmap = (multiboot_memory_map_t *) mbi->mmap_addr; \
+		(unsigned long) mmap < mbi->mmap_addr + mbi->mmap_length; \
+		mmap = (multiboot_memory_map_t *) ((unsigned long) mmap \
+			+ mmap->size + sizeof (mmap->size)))
+
+// ----------------------------------------------------------------------------
+
 static bool collides(uint32_t src_addr, uint32_t src_len,
 					 uint32_t dst_addr, uint32_t dst_len)
 {
@@ -191,10 +203,7 @@ static uint32_t find_available_region(multiboot_info_t *mbi, size_t len)
 {
 	multiboot_memory_map_t *mmap = NULL;
 
-	for (mmap = (multiboot_memory_map_t *) mbi->mmap_addr;
-		(unsigned long) mmap < mbi->mmap_addr + mbi->mmap_length;
-		mmap = (multiboot_memory_map_t *) ((unsigned long) mmap
-			+ mmap->size + sizeof (mmap->size)))
+	mmap_for_each(mmap, mbi)
 	{
 		uint32_t cur_addr = mmap->addr & 0xffffffff;
 
@@ -294,15 +303,13 @@ bool phys_mem_map_init(multiboot_info_t *mbi)
 		phys_mem_map, nb_regions);
 
 	// fill the phys_mem_map
-	for (mmap = (multiboot_memory_map_t *) mbi->mmap_addr;
-		(unsigned long) mmap < mbi->mmap_addr + mbi->mmap_length;
-		mmap = (multiboot_memory_map_t *) ((unsigned long) mmap
-			+ mmap->size + sizeof (mmap->size)), entry++)
+	mmap_for_each(mmap, mbi)
 	{
 		struct phys_mmap_entry *pmme = &phys_mem_map->entries[entry];
 		pmme->addr = (uint32_t)(mmap->addr & 0xffffffff);
 		pmme->len = mmap->len & 0xffffffff;
 		pmme->type = mmap->type;
+		entry++;
 	}
 
 	dump_phys_mem_map();
