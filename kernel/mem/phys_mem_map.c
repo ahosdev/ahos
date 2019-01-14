@@ -214,7 +214,7 @@ found:
  * the kernel image, is is currently sitting in "available" memory.
  */
 
-bool phys_mem_map_init(multiboot_uint32_t mmap_addr, multiboot_uint32_t mmap_length)
+bool phys_mem_map_init(multiboot_info_t *mbi)
 {
 	multiboot_memory_map_t *mmap = NULL;
 	size_t nb_regions = 0;
@@ -225,7 +225,7 @@ bool phys_mem_map_init(multiboot_uint32_t mmap_addr, multiboot_uint32_t mmap_len
 	info("initializing memory map...");
 
 	// compute the number of region detected by boot loader
-	nb_regions = mmap_length / sizeof(*mmap);
+	nb_regions = mbi->mmap_length / sizeof(*mmap);
 	dbg("%u memory region detected", nb_regions);
 
 	// compute the memory needed to store those region information. We add two
@@ -234,8 +234,8 @@ bool phys_mem_map_init(multiboot_uint32_t mmap_addr, multiboot_uint32_t mmap_len
 	needed_mem = (nb_regions + MAX_RESERVED) * sizeof(struct phys_mmap_entry);
 	dbg("need %d bytes of memory", needed_mem);
 
-	for (mmap = (multiboot_memory_map_t *) mmap_addr;
-		(unsigned long) mmap < mmap_addr + mmap_length;
+	for (mmap = (multiboot_memory_map_t *) mbi->mmap_addr;
+		(unsigned long) mmap < mbi->mmap_addr + mbi->mmap_length;
 		mmap = (multiboot_memory_map_t *) ((unsigned long) mmap
 			+ mmap->size + sizeof (mmap->size)))
 	{
@@ -262,7 +262,7 @@ bool phys_mem_map_init(multiboot_uint32_t mmap_addr, multiboot_uint32_t mmap_len
 		}
 
 		// doesn't collides with multiboot or kernel image
-		if (collides(cur_addr, needed_mem, (uint32_t) mmap_addr, mmap_length) ||
+		if (collides(cur_addr, needed_mem, (uint32_t) mbi->mmap_addr, mbi->mmap_length) ||
 			collides(cur_addr, needed_mem, kernel_start, kernel_end))
 		{
 			dbg("phys_mmap cannot fit into this region (will collides)");
@@ -284,8 +284,8 @@ bool phys_mem_map_init(multiboot_uint32_t mmap_addr, multiboot_uint32_t mmap_len
 
 found:
 	// fill the phys_mem_map
-	for (mmap = (multiboot_memory_map_t *) mmap_addr;
-		(unsigned long) mmap < mmap_addr + mmap_length;
+	for (mmap = (multiboot_memory_map_t *) mbi->mmap_addr;
+		(unsigned long) mmap < mbi->mmap_addr + mbi->mmap_length;
 		mmap = (multiboot_memory_map_t *) ((unsigned long) mmap
 			+ mmap->size + sizeof (mmap->size)), entry++)
 	{

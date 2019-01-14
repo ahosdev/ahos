@@ -55,7 +55,7 @@ static void mem_init(multiboot_info_t *mbi)
 	info("initializing memory...");
 
 	if (mbi->flags & MULTIBOOT_INFO_MEM_MAP) {
-		if (phys_mem_map_init(mbi->mmap_addr, mbi->mmap_length) == false)
+		if (phys_mem_map_init(mbi) == false)
 		{
 			error("failed to initialize memory map");
 			abort();
