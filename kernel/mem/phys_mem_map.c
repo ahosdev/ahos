@@ -185,6 +185,53 @@ found:
 	return true;
 }
 
+// ----------------------------------------------------------------------------
+
+static uint32_t find_available_region(multiboot_info_t *mbi, size_t len)
+{
+	multiboot_memory_map_t *mmap = NULL;
+
+	for (mmap = (multiboot_memory_map_t *) mbi->mmap_addr;
+		(unsigned long) mmap < mbi->mmap_addr + mbi->mmap_length;
+		mmap = (multiboot_memory_map_t *) ((unsigned long) mmap
+			+ mmap->size + sizeof (mmap->size)))
+	{
+		uint32_t cur_addr = mmap->addr & 0xffffffff;
+
+		if ((mmap->addr + mmap->len - 1) >> 32) {
+			error("64-bits addresses not supported (too much memory)");
+			NOT_IMPLEMENTED();
+		}
+
+#if 0
+		dbg(" base_addr = 0x%x%08x,"
+			" length = 0x%x%08x, type = 0x%x",
+			(unsigned) (mmap->addr >> 32),
+			(unsigned) (mmap->addr & 0xffffffff),
+			(unsigned) (mmap->len >> 32),
+			(unsigned) (mmap->len & 0xffffffff),
+			(unsigned) mmap->type);
+#endif
+
+		if (len > (mmap->len & 0xffffffff)) {
+			dbg("not enough space in this region");
+			continue;
+		}
+
+		// doesn't collides with multiboot or kernel image
+		if (collides(cur_addr, len, (uint32_t) mbi->mmap_addr, mbi->mmap_length) ||
+			collides(cur_addr, len, kernel_start, kernel_end))
+		{
+			dbg("phys_mmap cannot fit into this region (will collides)");
+			continue;
+		}
+
+		return cur_addr;
+	}
+
+	return -1;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -234,55 +281,18 @@ bool phys_mem_map_init(multiboot_info_t *mbi)
 	needed_mem = (nb_regions + MAX_RESERVED) * sizeof(struct phys_mmap_entry);
 	dbg("need %d bytes of memory", needed_mem);
 
-	for (mmap = (multiboot_memory_map_t *) mbi->mmap_addr;
-		(unsigned long) mmap < mbi->mmap_addr + mbi->mmap_length;
-		mmap = (multiboot_memory_map_t *) ((unsigned long) mmap
-			+ mmap->size + sizeof (mmap->size)))
-	{
-		uint32_t cur_addr = mmap->addr & 0xffffffff;
-
-		if ((mmap->addr + mmap->len - 1) >> 32) {
-			error("64-bits addresses not supported (too much memory)");
-			NOT_IMPLEMENTED();
-		}
-
-#if 0
-		dbg(" base_addr = 0x%x%08x,"
-			" length = 0x%x%08x, type = 0x%x",
-			(unsigned) (mmap->addr >> 32),
-			(unsigned) (mmap->addr & 0xffffffff),
-			(unsigned) (mmap->len >> 32),
-			(unsigned) (mmap->len & 0xffffffff),
-			(unsigned) mmap->type);
-#endif
-
-		if (needed_mem > (mmap->len & 0xffffffff)) {
-			dbg("not enough space in this region");
-			continue;
-		}
-
-		// doesn't collides with multiboot or kernel image
-		if (collides(cur_addr, needed_mem, (uint32_t) mbi->mmap_addr, mbi->mmap_length) ||
-			collides(cur_addr, needed_mem, kernel_start, kernel_end))
-		{
-			dbg("phys_mmap cannot fit into this region (will collides)");
-			continue;
-		}
-
-		// we found a suitable place, fill the phys_mmap
-		phys_mem_map = (struct phys_mmap*) cur_addr;
-		// the phys_mem_map and kernel image region aren't marked yet
-		phys_mem_map->len = nb_regions;
-		dbg("initializing phys_mem_map at 0x%x (%u entries)",
-			phys_mem_map, nb_regions);
-		goto found;
+	phys_mem_map = (struct phys_mmap*) find_available_region(mbi, needed_mem);
+	if ((uint32_t)phys_mem_map == (uint32_t)-1) {
+		// we didn't find any region big enough (we've got a serious issue!)
+		error("failed to find an available region for %x bytes", needed_mem);
+		abort();
 	}
 
-	// we didn't find any region big enough (we've got a serious issue!)
-	error("cannot find a suitable memory region");
-	return false;
+	// the phys_mem_map and kernel image region aren't marked yet
+	phys_mem_map->len = nb_regions;
+	dbg("initializing phys_mem_map at 0x%x (%u entries)",
+		phys_mem_map, nb_regions);
 
-found:
 	// fill the phys_mem_map
 	for (mmap = (multiboot_memory_map_t *) mbi->mmap_addr;
 		(unsigned long) mmap < mbi->mmap_addr + mbi->mmap_length;
