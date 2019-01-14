@@ -100,8 +100,8 @@ static void bootstrap_mapping(void)
 	struct bootstrap_range maps[] = {
 		{
 			.name	= "kernel",
-			.start	= (uint32_t) &kernel_start,
-			.end	= (uint32_t) &kernel_end,
+			.start	= kernel_start,
+			.end	= kernel_end,
 		},
 		{
 			.name	= "vram",

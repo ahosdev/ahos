@@ -305,10 +305,10 @@ found:
 	}
 
 	//  mark the kernel image as reserved
-	//dbg("kernel_start = 0x%x", &kernel_start);
-	//dbg("kernel_end = 0x%x", &kernel_end);
-	len = (uint32_t)&kernel_end - (uint32_t)&kernel_start + 1;
-	if (reserve_region((uint32_t)&kernel_start, len) == false) {
+	//dbg("kernel_start = 0x%x", kernel_start);
+	//dbg("kernel_end = 0x%x", kernel_end);
+	len = kernel_end - kernel_start + 1;
+	if (reserve_region(kernel_start, len) == false) {
 		error("failed to reserve kernel image region");
 		abort();
 	}

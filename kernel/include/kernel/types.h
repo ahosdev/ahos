@@ -12,16 +12,27 @@
 // ============================================================================
 
 // exported by linker
-extern uint32_t kernel_start;
-extern uint32_t kernel_end;
-extern uint32_t kernel_code_start;
-extern uint32_t kernel_code_end;
-extern uint32_t kernel_rodata_start;
-extern uint32_t kernel_rodata_end;
-extern uint32_t kernel_data_start;
-extern uint32_t kernel_data_end;
-extern uint32_t kernel_bss_start;
-extern uint32_t kernel_bss_end;
+extern uint32_t kernel_start_ldsym;
+extern uint32_t kernel_end_ldsym;
+extern uint32_t kernel_code_start_ldsym;
+extern uint32_t kernel_code_end_ldsym;
+extern uint32_t kernel_rodata_start_ldsym;
+extern uint32_t kernel_rodata_end_ldsym;
+extern uint32_t kernel_data_start_ldsym;
+extern uint32_t kernel_data_end_ldsym;
+extern uint32_t kernel_bss_start_ldsym;
+extern uint32_t kernel_bss_end_ldsym;
+
+#define kernel_start ((uint32_t)&kernel_start_ldsym)
+#define kernel_end ((uint32_t)&kernel_end_ldsym)
+#define kernel_code_start ((uint32_t)&kernel_code_start_ldsym)
+#define kernel_code_end ((uint32_t)&kernel_code_end_ldsym)
+#define kernel_rodata_start ((uint32_t)&kernel_rodata_start_ldsym)
+#define kernel_rodata_end ((uint32_t)&kernel_rodata_end_ldsym)
+#define kernel_data_start ((uint32_t)&kernel_data_start_ldsym)
+#define kernel_data_end ((uint32_t)&kernel_data_end_ldsym)
+#define kernel_bss_start ((uint32_t)&kernel_bss_start_ldsym)
+#define kernel_bss_end ((uint32_t)&kernel_bss_end_ldsym)
 
 // ============================================================================
 // ----------------------------------------------------------------------------
