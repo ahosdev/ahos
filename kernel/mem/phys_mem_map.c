@@ -1,10 +1,50 @@
 /*
  * phys_mem_map.c
  *
- * Physical Memory Mapping handling.
+ * Physical Memory Map (layout) Handling.
+ *
+ * The goal here is to design a physical memory layout such as:
+ *
+ *		+-------------------+ 0x100000 (1MB)
+ *		| kernel image      |
+ *		+-------------------+ <--- page aligned
+ *		| phys memory map   |
+ *		+-------------------+ <--- page aligned
+ *		| [optional] initrd |
+ *		+-------------------+
+ *
+ * Multiboot has been filled by the bootloader and is sitting "somewhere"
+ * in memory. While the multiboot_info structure has a fixed size and is
+ * pointed by @mbi, other multiboot structures might vary in size. There
+ * is no guarantee that they are contiguous from @mbi.
+ *
+ * In addition, the memory detection (from bootloader) does NOT reserve any
+ * memory region that we are currently using (such as the kernel or the
+ * multiboot structures themselves). They sit in "available" memory.
+ *
+ * Note that memory below the first megabyte (low mem) is completly ignored.
+ * It can be either available, reserved, or whatever. However, it can be used
+ * later on (if available) for DMA or legacy ISA devices.
+ *
+ * The only guarantee is the kernel image is completly loaded at the first
+ * megabyte.
+ *
+ * Available memory past the "initrd" can (and must) be used by the page
+ * frame allocator.
+ *
+ * Finally, once the phys mem map initialization is complete, the @mbi as well
+ * as other multiboot structures are trashed and shouldn't be dereferenced
+ * anymore.
+ *
+ * If, for some reasons, some multiboot structures landed after the kernel
+ * image, the "phys mem map" as well as "initrd" can be placed in temporary
+ * locations. Once the process is complete, the whole memory layout is
+ * "repacked", overwriting (now trash) multiboot structures in the process.
  *
  * Documentation:
  * - https://wiki.osdev.org/Memory_Map_(x86)
+ * - https://www.gnu.org/software/grub/manual/multiboot/multiboot.html
+ * - https://wiki.osdev.org/Multiboot
  */
 
 #include <mem/memory.h>
