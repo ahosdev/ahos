@@ -25,7 +25,7 @@ typedef unsigned char page_state_t;
 
 // ----------------------------------------------------------------------------
 
-struct pfa_info {
+struct pfa_region {
 	uint32_t first_page; // first allocatable page
 	size_t nb_pages;
 	page_state_t pagemap[0];
@@ -36,8 +36,8 @@ struct pfa_info {
 
 static uint32_t physmem_region_addr = 0;
 static uint32_t physmem_region_len = 0;
-static uint32_t pfa_info_reserved_pages = 0;
-static struct pfa_info *pfa = NULL; // allocated at the very first pages
+static uint32_t pfa_region_reserved_pages = 0;
+static struct pfa_region *pfa = NULL; // allocated at the very first pages
 
 // ============================================================================
 // ----------------------------------------------------------------------------
@@ -144,9 +144,9 @@ found:
 void pfa_map_metadata(void)
 {
 	info("mapping %d PFA metadata pages at 0x%p",
-		pfa_info_reserved_pages, pfa);
+		pfa_region_reserved_pages, pfa);
 
-	for (size_t i = 0; i < pfa_info_reserved_pages; ++i) {
+	for (size_t i = 0; i < pfa_region_reserved_pages; ++i) {
 		uint32_t addr = (uint32_t)pfa + i*PAGE_SIZE;
 		if (map_page(addr, addr, PTE_RW_KERNEL_NOCACHE) == false) {
 			// unrecoverable error
@@ -165,6 +165,8 @@ void pfa_map_metadata(void)
  *
  * Returns true on success, false otherwise.
  */
+
+// FIXME: PFA must be able to handle multiple 'available' regions.
 
 bool pfa_init(void)
 {
@@ -195,7 +197,7 @@ bool pfa_init(void)
 	 * allocator's metadata at the very first pages.
 	 */
 
-	pfa_metadata_size = sizeof(struct pfa_info) +
+	pfa_metadata_size = sizeof(struct pfa_region) +
 		(physmem_region_len / PAGE_SIZE) * sizeof(page_state_t);
 	dbg("page frame allocator needs %u bytes", pfa_metadata_size);
 
@@ -203,14 +205,14 @@ bool pfa_init(void)
 	dbg("reserved pages = %u", reserved_pages);
 
 	// store the PFA metadata at the first provided pages
-	pfa = (struct pfa_info*) physmem_region_addr;
+	pfa = (struct pfa_region*) physmem_region_addr;
 	pfa->first_page = physmem_region_addr + reserved_pages * PAGE_SIZE;
 	pfa->nb_pages = (physmem_region_len / PAGE_SIZE) - reserved_pages;
 	dbg("PFA first page is: 0x%x", pfa->first_page);
 	dbg("PFA has %u available pages", pfa->nb_pages);
 
 	// keep the number of reserved pages for bootstrapping (paging)
-	pfa_info_reserved_pages = reserved_pages;
+	pfa_region_reserved_pages = reserved_pages;
 
 	// mark all pages as free
 	for (size_t page = 0; page < pfa->nb_pages; ++page) {
