@@ -40,6 +40,7 @@ kernel/timeout.o \
 kernel/log.o \
 kernel/scheduler.o \
 kernel/init.o \
+kernel/symbol.o
 
 OBJS=\
 $(ARCHDIR)/crti.o \
