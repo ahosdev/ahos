@@ -19,6 +19,7 @@
 
 typedef unsigned char page_state_t;
 
+// XXX: we don't use enum here on purpose (keep page_state_t on 1 byte)
 #define PAGE_FREE ((page_state_t) 0)
 #define PAGE_USED ((page_state_t) 1) // single page frame
 #define PAGE_USED_HEAD ((page_state_t) 2) // head of page frame block
@@ -45,7 +46,6 @@ struct pfa_meta {
 // ----------------------------------------------------------------------------
 
 static uint32_t pfa_meta_reserved_pages = 0;
-static struct pfa_region *pfa = NULL; // FIXME: remove me
 static struct pfa_meta *pfa_meta = NULL;
 
 // ============================================================================
@@ -270,14 +270,14 @@ static void reserve_regions(struct phys_mmap *pmm, size_t pfa_size,
  * Returns the physical address of the allocated page frame, or NULL on error.
  */
 
-static pgframe_t pfa_alloc_single(void)
+static pgframe_t pfa_alloc_single(struct pfa_region *region)
 {
 	dbg("allocating a single page frame");
 
-	for (size_t page = 0; page < pfa->nb_pages; ++page) {
-		if (pfa->pagemap[page] == PAGE_FREE) {
-			pfa->pagemap[page] = PAGE_USED;
-			return (pfa->first_page + page * PAGE_SIZE);
+	for (size_t page = 0; page < region->nb_pages; ++page) {
+		if (region->pagemap[page] == PAGE_FREE) {
+			region->pagemap[page] = PAGE_USED;
+			return (region->first_page + page * PAGE_SIZE);
 		}
 	}
 
@@ -293,30 +293,30 @@ static pgframe_t pfa_alloc_single(void)
  * Returns the physical address of the first page frame, or NULL on error.
  */
 
-pgframe_t pfa_alloc_multiple(size_t nb_pages)
+pgframe_t pfa_alloc_multiple(struct pfa_region *region, size_t nb_pages)
 {
 	size_t start_page = 0;
 
 	dbg("allocating %u page frames", nb_pages);
 
-	if (nb_pages > pfa->nb_pages) {
+	if (nb_pages > region->nb_pages) {
 		error("total page available is lesser than %u", nb_pages);
 		return BAD_PAGE;
 	}
 
-	dbg("pfa->nb_pages = %u", pfa->nb_pages);
+	dbg("pfa->nb_pages = %u", region->nb_pages);
 
 	/*
 	 * This is a greedy algorithm. We start from a free page and see how many
 	 * free pages we can get until we fulfill the request (aka "first fit").
 	 */
 
-	while (start_page <= (pfa->nb_pages - nb_pages)) {
-		if (pfa->pagemap[start_page] == PAGE_FREE) {
+	while (start_page <= (region->nb_pages - nb_pages)) {
+		if (region->pagemap[start_page] == PAGE_FREE) {
 			size_t block_size = 0; // number of free pages so far
 			size_t page = start_page;
 
-			while ((block_size < nb_pages) && (pfa->pagemap[page] == PAGE_FREE)) {
+			while ((block_size < nb_pages) && (region->pagemap[page] == PAGE_FREE)) {
 				block_size++;
 				page++;
 				//dbg("page = %u", page);
@@ -341,15 +341,15 @@ found:
 
 	for (size_t page = start_page; page < (start_page + nb_pages); ++page) {
 		if (page == start_page) {
-			pfa->pagemap[page] = PAGE_USED_HEAD;
+			region->pagemap[page] = PAGE_USED_HEAD;
 		} else if (page == (start_page + nb_pages - 1)) {
-			pfa->pagemap[page] = PAGE_USED_TAIL;
+			region->pagemap[page] = PAGE_USED_TAIL;
 		} else {
-			pfa->pagemap[page] = PAGE_USED_PART;
+			region->pagemap[page] = PAGE_USED_PART;
 		}
 	}
 
-	return (pfa->first_page + start_page * PAGE_SIZE);
+	return (region->first_page + start_page * PAGE_SIZE);
 }
 
 // ============================================================================
@@ -413,8 +413,6 @@ bool pfa_init(void)
 	// keep the number of reserved pages for bootstrapping (paging)
 	pfa_meta_reserved_pages = pfa_size / PAGE_SIZE;
 
-	pfa = pfa_meta->region_ptrs[0]; // FIXME: remove me
-
 	dump_pfa_meta(pfa_meta);
 
 	success("page frame allocator initialization succeed");
@@ -434,15 +432,17 @@ bool pfa_init(void)
 
 pgframe_t pfa_alloc(size_t nb_pages)
 {
+	struct pfa_region *region = pfa_meta->region_ptrs[0];
+
 	if (nb_pages == 0) {
 		error("invalid argument");
 		return BAD_PAGE;
 	}
 
 	if (nb_pages == 1) {
-		return pfa_alloc_single();
+		return pfa_alloc_single(region);
 	} else {
-		return pfa_alloc_multiple(nb_pages);
+		return pfa_alloc_multiple(region, nb_pages);
 	}
 }
 
@@ -460,12 +460,13 @@ pgframe_t pfa_alloc(size_t nb_pages)
 
 void pfa_free(pgframe_t pgf)
 {
-	const uint32_t max_pgf = pfa->first_page + pfa->nb_pages*PAGE_SIZE;
+	struct pfa_region *region = pfa_meta->region_ptrs[0];
+	const uint32_t max_pgf = region->first_page + region->nb_pages*PAGE_SIZE;
 	size_t index = 0;
 
 	dbg("freeing 0x%p", pgf);
 
-	if (pgf < pfa->first_page || pgf >= max_pgf) {
+	if (pgf < region->first_page || pgf >= max_pgf) {
 		error("invalid page (out-of-bound)");
 		abort();
 	}
@@ -475,36 +476,36 @@ void pfa_free(pgframe_t pgf)
 		abort();
 	}
 
-	index = (pgf - pfa->first_page) / PAGE_SIZE;
+	index = (pgf - region->first_page) / PAGE_SIZE;
 
-	if (pfa->pagemap[index] == PAGE_FREE) {
+	if (region->pagemap[index] == PAGE_FREE) {
 		error("double-free detected!");
 		abort();
-	} else if (pfa->pagemap[index] == PAGE_USED) {
+	} else if (region->pagemap[index] == PAGE_USED) {
 		// freeing a single page frame
-		pfa->pagemap[index] = PAGE_FREE;
-	} else if (pfa->pagemap[index] != PAGE_USED_HEAD) {
+		region->pagemap[index] = PAGE_FREE;
+	} else if (region->pagemap[index] != PAGE_USED_HEAD) {
 		error("freeing a non head page frame block");
 		abort();
 	} else {
 		// this is the head of a page frame block (i.e. contiguous pages)
-		while (pfa->pagemap[index] != PAGE_USED_TAIL) {
+		while (region->pagemap[index] != PAGE_USED_TAIL) {
 			// sanity (debug) checks
-			if (index >= pfa->nb_pages) {
+			if (index >= region->nb_pages) {
 				error("index out-of-bound");
 				abort();
-			} else if ((pfa->pagemap[index] != PAGE_USED_HEAD) &&
-					   (pfa->pagemap[index] != PAGE_USED_PART)) {
+			} else if ((region->pagemap[index] != PAGE_USED_HEAD) &&
+					   (region->pagemap[index] != PAGE_USED_PART)) {
 				error("unexpected page state");
 				abort();
 			} else {
-				pfa->pagemap[index] = PAGE_FREE;
+				region->pagemap[index] = PAGE_FREE;
 			}
 			index++;
 		}
 
 		// release the tail page
-		pfa->pagemap[index] = PAGE_FREE;
+		region->pagemap[index] = PAGE_FREE;
 	}
 }
 
