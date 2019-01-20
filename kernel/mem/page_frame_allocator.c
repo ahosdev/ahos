@@ -35,6 +35,13 @@ struct pfa_region {
 	// pagemap goes here
 };
 
+/*
+ * Do not re-order this structure nor deref the 'regions' field by index since
+ * regions[0] and region_ptrs[0] point to the same offset. Instead, use the
+ * 'region_ptrs' field. This is how variable sized structures are handled
+ * without a memory allocator...
+ */
+
 struct pfa_meta {
 	size_t nb_regions;
 	struct pfa_region* region_ptrs[0];
@@ -260,6 +267,27 @@ static void reserve_regions(struct phys_mmap *pmm, size_t pfa_size,
 	}
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Returns a pointer to the pfa_region where @pgf belong, or NULL on error.
+ */
+
+static struct pfa_region* find_region(pgframe_t pgf)
+{
+	for (size_t i = 0; i < pfa_meta->nb_regions; ++i) {
+		struct pfa_region *region = pfa_meta->region_ptrs[i];
+		const uint32_t max_pgf =
+			region->first_page + region->nb_pages*PAGE_SIZE;
+
+		if ((pgf >= region->first_page) && (pgf < max_pgf)) {
+			return region;
+		}
+	}
+
+	return NULL;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -281,7 +309,6 @@ static pgframe_t pfa_alloc_single(struct pfa_region *region)
 		}
 	}
 
-	warn("not enough memory");
 	return BAD_PAGE;
 }
 
@@ -293,7 +320,7 @@ static pgframe_t pfa_alloc_single(struct pfa_region *region)
  * Returns the physical address of the first page frame, or NULL on error.
  */
 
-pgframe_t pfa_alloc_multiple(struct pfa_region *region, size_t nb_pages)
+static pgframe_t pfa_alloc_multiple(struct pfa_region *region, size_t nb_pages)
 {
 	size_t start_page = 0;
 
@@ -334,7 +361,6 @@ pgframe_t pfa_alloc_multiple(struct pfa_region *region, size_t nb_pages)
 	}
 
 	// cannot find @nb_pages contiguous free page frames
-	error("not enough memory");
 	return BAD_PAGE;
 
 found:
@@ -432,18 +458,31 @@ bool pfa_init(void)
 
 pgframe_t pfa_alloc(size_t nb_pages)
 {
-	struct pfa_region *region = pfa_meta->region_ptrs[0];
-
 	if (nb_pages == 0) {
 		error("invalid argument");
 		return BAD_PAGE;
 	}
 
-	if (nb_pages == 1) {
-		return pfa_alloc_single(region);
-	} else {
-		return pfa_alloc_multiple(region, nb_pages);
+	for (size_t i = 0; i < pfa_meta->nb_regions; ++i) {
+		struct pfa_region *region = pfa_meta->region_ptrs[i];
+		pgframe_t page_frame = BAD_PAGE;
+
+		if (nb_pages == 1) {
+			page_frame = pfa_alloc_single(region);
+		} else {
+			page_frame = pfa_alloc_multiple(region, nb_pages);
+		}
+
+		if (page_frame != BAD_PAGE) {
+			dbg("allocated %u pages from region #%u", nb_pages, i);
+			return page_frame;
+		}
 	}
+
+	// TODO: memory reclaim
+
+	error("not enough memory");
+	return BAD_PAGE;
 }
 
 // ----------------------------------------------------------------------------
@@ -460,14 +499,13 @@ pgframe_t pfa_alloc(size_t nb_pages)
 
 void pfa_free(pgframe_t pgf)
 {
-	struct pfa_region *region = pfa_meta->region_ptrs[0];
-	const uint32_t max_pgf = region->first_page + region->nb_pages*PAGE_SIZE;
 	size_t index = 0;
+	struct pfa_region *region = find_region(pgf);
 
 	dbg("freeing 0x%p", pgf);
 
-	if (pgf < region->first_page || pgf >= max_pgf) {
-		error("invalid page (out-of-bound)");
+	if (region == NULL) {
+		error("page frame does not belong to any region");
 		abort();
 	}
 
