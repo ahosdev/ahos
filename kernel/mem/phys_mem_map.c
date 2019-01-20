@@ -702,6 +702,39 @@ out:
 	return ret;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Maps the multiboot module (if any).
+ *
+ * Returns true on success, false otherwise.
+ */
+
+bool phys_mem_map_map_module(void)
+{
+	if (module_len == 0) {
+		warn("no module loaded");
+		return false;
+	}
+
+	info("mapping module at 0x%p", module_addr);
+
+	for (size_t addr = (uint32_t)module_addr & PAGE_MASK;
+		 addr < ((uint32_t)module_addr + module_len);
+		 addr += PAGE_SIZE)
+	{
+		if (map_page(addr, addr, PTE_RW_KERNEL_NOCACHE) == false) {
+			// unrecoverable error
+			error("failed to map page 0x%p", addr);
+			abort();
+		}
+	}
+
+	success("mapping module succeed");
+
+	return true;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================

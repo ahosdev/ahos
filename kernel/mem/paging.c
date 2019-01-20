@@ -17,6 +17,7 @@
  */
 
 #include <mem/memory.h>
+#include <mem/pmm.h>
 
 #include <kernel/log.h>
 
@@ -134,8 +135,8 @@ static void bootstrap_mapping(void)
 		}
 	}
 
-	// TODO: PFA should regiser to a bootstrap_range
 	pfa_map_metadata();
+	phys_mem_map_map_module();
 
 	dbg("bootstrap mapping succeed");
 }
