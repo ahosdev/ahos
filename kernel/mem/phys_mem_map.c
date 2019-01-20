@@ -128,22 +128,6 @@ static size_t module_len = 0;
 	*a = *b; \
 	*b = swap;
 
-// ----------------------------------------------------------------------------
-
-/*
- * alloca()-like macros. Take care when manipulating pointers from those and
- * never transfer ownership to a calling function.
- */
-
-#define stack_alloc(size, ptr) \
-	asm volatile("sub %1, %%esp\n" \
-				 "mov %%esp, %0" \
-				 : "=r"(ptr) : "r"(size) : "%esp")
-
-#define stack_free(size) \
-	asm volatile("add %0, %%esp" \
-				 : : "r"(size) : "%esp")
-
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================

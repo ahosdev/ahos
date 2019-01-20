@@ -129,4 +129,23 @@ void page_fault_handler(int error);
 // ----------------------------------------------------------------------------
 // ============================================================================
 
+/*
+ * alloca()-like macros. Take care when manipulating pointers from those and
+ * never transfer ownership to a calling function. This must only be used
+ * during startup since the page frame allocator is not ready yet.
+ */
+
+#define stack_alloc(size, ptr) \
+	asm volatile("sub %1, %%esp\n" \
+				 "mov %%esp, %0" \
+				 : "=r"(ptr) : "r"(size) : "%esp")
+
+#define stack_free(size) \
+	asm volatile("add %0, %%esp" \
+				 : : "r"(size) : "%esp")
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
 #endif /* !KERNEL_MEMORY_H_ */
