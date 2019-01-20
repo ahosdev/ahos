@@ -7,6 +7,7 @@
 #include <kernel/types.h>
 
 #include <mem/memory.h>
+#include <mem/pmm.h>
 
 #define LOG_MODULE "pfa"
 

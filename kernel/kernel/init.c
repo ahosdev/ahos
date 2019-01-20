@@ -15,6 +15,7 @@
 #include <drivers/keyboard.h>
 
 #include <mem/memory.h>
+#include <mem/pmm.h>
 
 #include <arch/gdt.h>
 

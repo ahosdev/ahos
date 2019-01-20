@@ -47,6 +47,7 @@
  * - https://wiki.osdev.org/Multiboot
  */
 
+#include <mem/pmm.h>
 #include <mem/memory.h>
 
 #include <string.h>
@@ -59,41 +60,13 @@
 
 #define MAX_RESERVED 3 // kernel + pmm + module
 
-// ----------------------------------------------------------------------------
-
-enum phys_mmap_type {
-	// follows the multiboot specification (do not re-order)
-	MMAP_TYPE_AVAILABLE = 1,
-	MMAP_TYPE_RESERVED,
-	MMAP_TYPE_ACPI,
-	MMAP_TYPE_NVS,
-	MMAP_TYPE_BADRAM,
-};
-
-// ----------------------------------------------------------------------------
-
-// describe a memory region
-struct phys_mmap_entry {
-	uint32_t addr; // starting address (physical)
-	size_t len; // len in bytes
-	enum phys_mmap_type type;
-};
-
-// ----------------------------------------------------------------------------
-
-struct phys_mmap {
-	size_t len; // number of entries
-	struct phys_mmap_entry entries[0];
-	// data will be appended here
-};
-
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-static struct phys_mmap *phys_mem_map = NULL;
-static void *module_addr = NULL;
-static size_t module_len = 0;
+struct phys_mmap *phys_mem_map = NULL;
+void *module_addr = NULL;
+size_t module_len = 0;
 
 // ============================================================================
 // ----------------------------------------------------------------------------
