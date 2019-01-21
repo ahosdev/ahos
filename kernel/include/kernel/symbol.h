@@ -17,12 +17,13 @@
 
 struct symbol {
 	void *addr;
-	size_t len;
-	char name[SYMBOL_MAX_LEN];
+	size_t len; // (optionnal) might be zero
+	char name[SYMBOL_MAX_LEN]; // a null terminated string
 };
 
 // ----------------------------------------------------------------------------
 
+bool symbol_init(char *symbol_map_start, size_t symbol_map_len);
 bool symbol_find(void *addr, struct symbol *sym);
 
 // ============================================================================

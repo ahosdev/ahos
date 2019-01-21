@@ -7,6 +7,7 @@
 #include <kernel/init.h>
 #include <kernel/interrupt.h>
 #include <kernel/log.h>
+#include <kernel/symbol.h>
 
 #include <drivers/serial.h>
 #include <drivers/clock.h>
@@ -118,6 +119,11 @@ void kernel_init(multiboot_info_t *mbi)
 	info("enabling interrupts now");
 	enable_nmi();
 	enable_interrupts();
+
+	if (symbol_init((char*)module_addr, module_len) == false) {
+		// this is not critical
+		warn("failed to load symbol from module");
+	}
 
 	ps2_init();
 
