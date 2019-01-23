@@ -7,6 +7,7 @@
 #include <kernel/init.h>
 #include <kernel/interrupt.h>
 #include <kernel/log.h>
+#include <kernel/symbol.h>
 
 #include <drivers/serial.h>
 #include <drivers/clock.h>
@@ -15,6 +16,7 @@
 #include <drivers/keyboard.h>
 
 #include <mem/memory.h>
+#include <mem/pmm.h>
 
 #include <arch/gdt.h>
 
@@ -55,7 +57,7 @@ static void mem_init(multiboot_info_t *mbi)
 	info("initializing memory...");
 
 	if (mbi->flags & MULTIBOOT_INFO_MEM_MAP) {
-		if (phys_mem_map_init(mbi->mmap_addr, mbi->mmap_length) == false)
+		if (phys_mem_map_init(mbi) == false)
 		{
 			error("failed to initialize memory map");
 			abort();
@@ -117,6 +119,11 @@ void kernel_init(multiboot_info_t *mbi)
 	info("enabling interrupts now");
 	enable_nmi();
 	enable_interrupts();
+
+	if (symbol_init((char*)module_addr, module_len) == false) {
+		// this is not critical
+		warn("failed to load symbol from module");
+	}
 
 	ps2_init();
 

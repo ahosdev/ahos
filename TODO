@@ -40,7 +40,6 @@
 	- display register state
 	- pretty print the stack
 	- unwind the stack
-		- build a symbol map ('ahos.symbol') file
 
 - handle INTEL exceptions
 
@@ -65,7 +64,6 @@
 	- FAT12 / FAT16 drivers [read-only]
 
 - libc:
-	- strncpy()
 
 - compilation
 	- userland toolchain (hosted)

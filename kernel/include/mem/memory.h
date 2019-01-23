@@ -7,8 +7,6 @@
 
 #include <kernel/types.h>
 
-#include <multiboot.h>
-
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
@@ -26,11 +24,6 @@ typedef uint32_t pgframe_t; // represent a 32-bit physical address of a page
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
-
-bool phys_mem_map_init(multiboot_uint32_t mmap_addr, multiboot_uint32_t mmap_length);
-bool phys_mem_map_reserve(uint32_t from_addr, uint32_t *addr, size_t *len);
-
-// ----------------------------------------------------------------------------
 
 bool pfa_init(void);
 void pfa_map_metadata(void);
@@ -124,6 +117,25 @@ bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags);
 bool unmap_page(uint32_t virt_addr);
 
 void page_fault_handler(int error);
+
+// ============================================================================
+// ----------------------------------------------------------------------------
+// ============================================================================
+
+/*
+ * alloca()-like macros. Take care when manipulating pointers from those and
+ * never transfer ownership to a calling function. This must only be used
+ * during startup since the page frame allocator is not ready yet.
+ */
+
+#define stack_alloc(size, ptr) \
+	asm volatile("sub %1, %%esp\n" \
+				 "mov %%esp, %0" \
+				 : "=r"(ptr) : "r"(size) : "%esp")
+
+#define stack_free(size) \
+	asm volatile("add %0, %%esp" \
+				 : : "r"(size) : "%esp")
 
 // ============================================================================
 // ----------------------------------------------------------------------------

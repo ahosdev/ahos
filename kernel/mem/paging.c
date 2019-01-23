@@ -17,6 +17,7 @@
  */
 
 #include <mem/memory.h>
+#include <mem/pmm.h>
 
 #include <kernel/log.h>
 
@@ -100,8 +101,8 @@ static void bootstrap_mapping(void)
 	struct bootstrap_range maps[] = {
 		{
 			.name	= "kernel",
-			.start	= (uint32_t) &kernel_start,
-			.end	= (uint32_t) &kernel_end,
+			.start	= kernel_start,
+			.end	= kernel_end,
 		},
 		{
 			.name	= "vram",
@@ -134,8 +135,8 @@ static void bootstrap_mapping(void)
 		}
 	}
 
-	// TODO: PFA should regiser to a bootstrap_range
 	pfa_map_metadata();
+	phys_mem_map_map_module();
 
 	dbg("bootstrap mapping succeed");
 }
