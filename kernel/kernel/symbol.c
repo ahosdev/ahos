@@ -54,7 +54,6 @@ static bool parse_line(char *line, struct symbol *sym)
 {
 	char *sep = NULL;
 	size_t name_len = 0;
-	size_t addr_len = 0;
 
 	if (line == NULL || *line == '\0' || sym == NULL) {
 		error("invalid argument");
