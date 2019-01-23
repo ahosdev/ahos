@@ -12,19 +12,27 @@
 	- multiboot magic value and header address pass to kernel_main()
 - build:
 	- add start/end symbols (kernel_rodata, kernel_data, kernel_bss)
+	- iso image include 'symbols.map' file as a multiboot module
 	- qemu does not reboot on crash
 - init:
 	- initialization code splitted
 - libc:
 	- string: strchr() implementation
+	- string: strncpy() implementation
+	- stdlib: atoh() implementation
+- symbol:
+	- load 'symbols.map' from multiboot module and initialize symbol map
+	- symbol searching by address from symbol map (if loaded)
 - mem:
 	- extract physical memory map from multiboot
-	- reserve physical pages for kernel, phys_mem_map and PFA
+	- reserve physical pages for kernel, phys_mem_map, PFA and module (optional)
 	- page frame allocator implementation (single and multiple page frames)
+	- page frame allocator: handle scattered memory region
 	- kmalloc/kfree: first version of the Ah!allocator (aha)
 	- paging: setup, identity mapping + PDE self-mapping
 	- paging: support map_page() and unmap_page()
 	- paging: add tlb flush primitives
+	- alloca: stack_alloc() / stack_free functions
 - event:
 	- page fault handler display more information
 - type:
