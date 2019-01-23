@@ -260,6 +260,8 @@ fail:
 
 bool symbol_find(void *addr, struct symbol *sym)
 {
+	struct symbol *last_sym = NULL;
+
 	dbg("searching symbol at 0x%p", addr);
 
 	if (addr == NULL || sym == NULL) {
@@ -267,12 +269,36 @@ bool symbol_find(void *addr, struct symbol *sym)
 		return false;
 	}
 
-	if (module_len == 0) {
-		error("cannot find symbol if module isn't loaded");
+	if (sym_map.nb_syms == 0) {
+		warn("no symbols loaded");
 		return false;
 	}
 
-	// TODO
+	// TODO: implement a binary tree instead of linear searching in O(n)
+	for (size_t i = 0; i < sym_map.nb_syms; ++i) {
+		struct symbol *sym = &sym_map.symbols[i];
+
+		if (sym->addr > addr) {
+			break;
+		}
+
+		last_sym = sym;
+	}
+
+	if (last_sym != NULL) {
+		if (last_sym->len > 0) {
+			if 	((addr < last_sym->addr) ||
+				(addr >= (last_sym->addr + last_sym->len)))
+			{
+				return false;
+			}
+		} else if (addr != last_sym->addr) {
+			return false;
+		}
+
+		*sym = *last_sym;
+		return true;
+	}
 
 	return false;
 }
