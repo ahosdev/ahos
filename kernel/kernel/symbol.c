@@ -201,7 +201,7 @@ bool symbol_init(char* symbol_map_start, size_t symbol_map_len)
 	info("initializing symbol list");
 
 	if (symbol_map_start == NULL || symbol_map_len == 0) {
-		error("invalid argument");
+		error("'symbols.map' file not loaded");
 		return false;
 	}
 
