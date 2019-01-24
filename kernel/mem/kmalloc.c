@@ -258,8 +258,7 @@ static void big_free(struct aha_big_meta *meta)
 		uint32_t addr = meta->ptr + i*PAGE_SIZE;
 		if (unmap_page(addr) == false) {
 			// this must not failed
-			error("failed to unmap 0x%p", addr);
-			panic("");
+			panic("failed to unmap 0x%p", addr);
 		}
 	}
 
@@ -388,8 +387,7 @@ void kfree(void *ptr)
 		}
 	}
 
-	error("ptr (0x%p) does not belong to any block or big alloc", ptr);
-	panic("");
+	panic("ptr (0x%p) does not belong to any block or big alloc", ptr);
 
 found:
 	// find the chunk
@@ -408,8 +406,7 @@ found:
 		}
 	}
 
-	error("ptr (0x%p) hasn't matching chunk in block 0x%p", ptr, block);
-	panic("");
+	panic("ptr (0x%p) hasn't matching chunk in block 0x%p", ptr, block);
 }
 
 // ============================================================================

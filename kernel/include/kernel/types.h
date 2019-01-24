@@ -43,8 +43,7 @@ extern uint32_t kernel_bss_end_ldsym;
 // we declare it here since it is imported almost everywhere
 #define NOT_IMPLEMENTED()\
 {\
-	error("NOT IMPLEMENTED [%s:%d]", __FILE__, __LINE__); \
-	panic(""); \
+	panic("NOT IMPLEMENTED [%s:%d]", __FILE__, __LINE__); \
 }
 
 #define UNTESTED_CODE()\
@@ -60,7 +59,7 @@ extern uint32_t kernel_bss_end_ldsym;
  * Arch-specific handlers.
  */
 
-extern void panic(char *msg);
+extern void panic(char *msg, ...);
 
 // ============================================================================
 // ----------------------------------------------------------------------------

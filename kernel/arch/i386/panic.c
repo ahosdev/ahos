@@ -23,8 +23,11 @@
  */
 
 __attribute__((__noreturn__))
-void panic(char *msg)
+void panic(char *msg, ...)
 {
+	char error_buf[256];
+	va_list args;
+
 	// disable interrupts as soon as possible
 	disable_interrupts();
 
@@ -42,7 +45,12 @@ void panic(char *msg)
 	printf("=== PANIC ===\n");
 	printf("=============\n\n");
 
-	printf("error: %s\n\n", msg);
+	va_start(args, msg);
+	// FIXME: use vsnprintf() to avoid buffer overflow
+	vsprintf(error_buf, msg, args);
+	va_end(args);
+	error_buf[sizeof(error_buf) - 1] = '\0';
+	printf("error: %s\n\n", error_buf);
 
 	// dump stack trace
 	printf("Call trace:\n");

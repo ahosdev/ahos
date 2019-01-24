@@ -128,8 +128,7 @@ static void bootstrap_mapping(void)
 		for (size_t addr = range->start; addr < end; addr += PAGE_SIZE) {
 			if (map_page(addr, addr, PTE_RW_KERNEL_NOCACHE) == false) {
 				// unrecoverable
-				error("failed to map 0x%p", addr);
-				panic("");
+				panic("failed to map 0x%p", addr);
 			}
 		}
 	}

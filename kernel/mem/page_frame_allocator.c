@@ -396,8 +396,7 @@ void pfa_map_metadata(void)
 		uint32_t addr = (uint32_t)pfa_meta + i*PAGE_SIZE;
 		if (map_page(addr, addr, PTE_RW_KERNEL_NOCACHE) == false) {
 			// unrecoverable error
-			error("failed to map page 0x%p", addr);
-			panic("");
+			panic("failed to map page 0x%p", addr);
 		}
 	}
 
