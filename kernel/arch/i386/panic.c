@@ -6,6 +6,7 @@
 
 #include <kernel/types.h>
 #include <kernel/symbol.h>
+#include <kernel/interrupt.h>
 
 #include <stdio.h>
 
@@ -24,6 +25,9 @@
 __attribute__((__noreturn__))
 void panic(char *msg)
 {
+	// disable interrupts as soon as possible
+	disable_interrupts();
+
 	/*
 	 * The stack layout is (low addresses first):
 	 * - second arg
