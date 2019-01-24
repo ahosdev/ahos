@@ -109,8 +109,7 @@ struct idt_entry
 
 void unhandled_exception(void)
 {
-	error("unhandled exception!");
-	abort();
+	panic("unhandled exception!");
 	/* no return */
 }
 
@@ -118,8 +117,7 @@ void unhandled_exception(void)
 
 void unhandled_interrupt(void)
 {
-	error("unhandled interrupt!");
-	abort();
+	panic("unhandled interrupt!");
 	/* no return */
 }
 

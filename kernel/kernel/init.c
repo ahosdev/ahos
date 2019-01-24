@@ -59,18 +59,15 @@ static void mem_init(multiboot_info_t *mbi)
 	if (mbi->flags & MULTIBOOT_INFO_MEM_MAP) {
 		if (phys_mem_map_init(mbi) == false)
 		{
-			error("failed to initialize memory map");
-			abort();
+			panic("failed to initialize memory map");
 		}
 	} else {
-		error("no memory map from multiboot info, cannot initialize memory");
-		abort();
+		panic("no memory map from multiboot info, cannot initialize memory");
 	}
 	// we cannot use 'mbi' past this point (it is sitting in available memory)
 
 	if (pfa_init() == false) {
-		error("failed to init the page frame allocator");
-		abort();
+		panic("failed to init the page frame allocator");
 	}
 
 	// the page frame allocator is ready, we can now setup paging

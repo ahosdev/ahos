@@ -221,8 +221,7 @@ static void reserve_regions(struct phys_mmap *pmm, size_t pfa_size,
 	struct pfa_region *new_region = NULL;
 
 	if (PAGE_OFFSET(pfa_size) || (pfa_region >= pmm->len)) {
-		error("invalid argument");
-		abort();
+		panic("invalid argument");
 	}
 
 	pfa->nb_regions = 0;
@@ -398,7 +397,7 @@ void pfa_map_metadata(void)
 		if (map_page(addr, addr, PTE_RW_KERNEL_NOCACHE) == false) {
 			// unrecoverable error
 			error("failed to map page 0x%p", addr);
-			abort();
+			panic("");
 		}
 	}
 
@@ -505,37 +504,31 @@ void pfa_free(pgframe_t pgf)
 	dbg("freeing 0x%p", pgf);
 
 	if (region == NULL) {
-		error("page frame does not belong to any region");
-		abort();
+		panic("page frame does not belong to any region");
 	}
 
 	if (PAGE_OFFSET(pgf)) {
-		error("pgf is not aligned on a page boundary");
-		abort();
+		panic("pgf is not aligned on a page boundary");
 	}
 
 	index = (pgf - region->first_page) / PAGE_SIZE;
 
 	if (region->pagemap[index] == PAGE_FREE) {
-		error("double-free detected!");
-		abort();
+		panic("double-free detected!");
 	} else if (region->pagemap[index] == PAGE_USED) {
 		// freeing a single page frame
 		region->pagemap[index] = PAGE_FREE;
 	} else if (region->pagemap[index] != PAGE_USED_HEAD) {
-		error("freeing a non head page frame block");
-		abort();
+		panic("freeing a non head page frame block");
 	} else {
 		// this is the head of a page frame block (i.e. contiguous pages)
 		while (region->pagemap[index] != PAGE_USED_TAIL) {
 			// sanity (debug) checks
 			if (index >= region->nb_pages) {
-				error("index out-of-bound");
-				abort();
+				panic("index out-of-bound");
 			} else if ((region->pagemap[index] != PAGE_USED_HEAD) &&
 					   (region->pagemap[index] != PAGE_USED_PART)) {
-				error("unexpected page state");
-				abort();
+				panic("unexpected page state");
 			} else {
 				region->pagemap[index] = PAGE_FREE;
 			}

@@ -118,8 +118,7 @@ void clock_sleep(int32_t msec)
 
 	target_tick = clock_gettick() + (msec / (1000 / CLOCK_FREQ));
 	if (target_tick < 0) {
-		error("tick INT overflow detected!!!");
-		abort();
+		panic("tick INT overflow detected!!!");
 	}
 
 	// active sleep
@@ -138,8 +137,7 @@ void clock_irq_handler(void)
 	atomic_inc(&clock_tick);
 
 	if (atomic_read(&clock_tick) < 0) {
-		error("clock tick overflow detected!!!");
-		abort();
+		panic("clock tick overflow detected!!!");
 	}
 
 	irq_send_eoi(IRQ0_CLOCK);

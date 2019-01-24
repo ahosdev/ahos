@@ -27,8 +27,7 @@
 void timeout_init(struct timeout *timeo, int32_t length)
 {
 	if (timeo == NULL) {
-		error("invalid argument");
-		abort();
+		panic("invalid argument");
 	}
 
 	if (length < 0) {
@@ -48,8 +47,7 @@ void timeout_init(struct timeout *timeo, int32_t length)
 void timeout_start(struct timeout *timeo)
 {
 	if (timeo == NULL) {
-		error("invalid argument");
-		abort();
+		panic("invalid argument");
 	}
 
 	timeo->target = clock_gettick() + timeo->length;
@@ -64,8 +62,7 @@ void timeout_start(struct timeout *timeo)
 bool timeout_expired(struct timeout *timeo)
 {
 	if (timeo == NULL) {
-		error("invalid argument");
-		abort();
+		panic("invalid argument");
 	}
 
 	return (clock_gettick() >= timeo->target);

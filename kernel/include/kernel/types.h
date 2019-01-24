@@ -45,7 +45,7 @@ extern uint32_t kernel_bss_end_ldsym;
 #define NOT_IMPLEMENTED()\
 {\
 	error("NOT IMPLEMENTED [%s:%d]", __FILE__, __LINE__); \
-	abort(); \
+	panic(""); \
 }
 
 #define UNTESTED_CODE()\
