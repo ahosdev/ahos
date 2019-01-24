@@ -44,18 +44,17 @@
 isr_common_stub:
 	pushal
 
-	# Retrieve isr number and error code from stack and repush them.
-	# TODO: remove this when we will catch all the stack in isr_handler()
-	# 	arguments.
-	mov 0x20(%esp), %eax # isr num
-	mov 0x24(%esp), %ebx # error code
-	push %ebx
+	# WARNING: any change in stack layout must be reflected in panic()
+
+	# retrieve isr and error code on the stack and push them as a structure
+	lea 0x20(%esp), %eax
 	push %eax
 
 	cld /* C code following the sysV ABI requires DF to be clear on function entry */
 	call isr_handler
 
-	add $8, %esp
+	add $4, %esp
+
 	popal
 	add $8, %esp # clean the pushed error code push isr number
 	iret
