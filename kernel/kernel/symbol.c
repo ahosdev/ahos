@@ -299,8 +299,6 @@ bool symbol_find(void *addr, struct symbol *sym)
 			{
 				return false;
 			}
-		} else if (addr != last_sym->addr) {
-			return false;
 		}
 
 		*sym = *last_sym;
