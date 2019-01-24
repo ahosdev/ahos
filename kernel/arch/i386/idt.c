@@ -24,8 +24,6 @@
 
 #include <mem/memory.h>
 
-#include <stdlib.h> // uses abort
-
 #define LOG_MODULE "idt"
 
 // ============================================================================

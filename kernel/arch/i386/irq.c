@@ -8,9 +8,6 @@
 #include <kernel/interrupt.h>
 #include <kernel/log.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "io.h"
 
 #define LOG_MODULE "irq"

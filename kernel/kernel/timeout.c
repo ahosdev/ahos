@@ -11,9 +11,6 @@
 
 #include <drivers/clock.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #define LOG_MODULE "timeout"
 
 // ============================================================================

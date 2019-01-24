@@ -39,7 +39,6 @@ extern uint32_t kernel_bss_end_ldsym;
 // ============================================================================
 
 #include <kernel/log.h>
-#include <stdlib.h>
 
 // we declare it here since it is imported almost everywhere
 #define NOT_IMPLEMENTED()\

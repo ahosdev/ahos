@@ -19,8 +19,6 @@
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
 
-#include <stdlib.h>
-
 #define LOG_MODULE "serial"
 
 // ============================================================================

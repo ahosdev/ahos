@@ -17,8 +17,6 @@
 #include <arch/atomic.h>
 #include <arch/io.h>
 
-#include <stdlib.h>
-
 #define LOG_MODULE "clock"
 
 // ============================================================================
