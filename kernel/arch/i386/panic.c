@@ -9,6 +9,7 @@
 #include <kernel/interrupt.h>
 
 #include <stdio.h>
+#include <string.h>
 
 #include "registers.h"
 
@@ -25,6 +26,7 @@
 __attribute__((__noreturn__))
 void panic(char *msg, ...)
 {
+	struct symbol isr_handler_sym;
 	char error_buf[256];
 	va_list args;
 
@@ -40,6 +42,12 @@ void panic(char *msg, ...)
 	 */
 
 	reg_t *ebp = (reg_t*)&msg - 2; // use pointer arithmetic
+
+	memset(&isr_handler_sym, 0, sizeof(isr_handler_sym));
+	if (symbol_lookup("isr_common_stub", &isr_handler_sym) == false) {
+		warn("failed to retrieve isr_handler address");
+		// we continue anyway
+	}
 
 	printf("\n=============\n");
 	printf("=== PANIC ===\n");
@@ -68,6 +76,23 @@ void panic(char *msg, ...)
 				(eip.val - (uint32_t)sym.addr), sym.len);
 		} else {
 			printf("- (ebp=0x%.8x) ????? / 0x%x\n", ebp[0].val, eip.val);
+		}
+
+		// special treatment for panic in ISR / context switch
+		if (((void*)eip.val >= isr_handler_sym.addr) &&
+			(eip.val < ((size_t)isr_handler_sym.addr + isr_handler_sym.len )))
+		{
+			// TODO: handle the privilege change / context switch case
+
+			// any change in isr_common_stub stack layout must be reflected here
+			eip = ebp[13];
+
+			if (symbol_find((void*)eip.val, &sym)) {
+				printf("- (ebp=0x%.8x) %s() + 0x%x/0x%x\n", ebp[0].val, sym.name,
+					(eip.val - (uint32_t)sym.addr), sym.len);
+			} else {
+				printf("- (ebp=0x%.8x) ????? / 0x%x\n", ebp[0].val, eip.val);
+			}
 		}
 
 		ebp = (reg_t*) ebp[0].val;
