@@ -139,6 +139,7 @@ fail:
 static bool parse_symbol_map(char *symbol_map_start, char *symbol_map_end,
 							 struct symbol_map *sm)
 {
+	struct symbol *last = NULL;
 	char *ptr = symbol_map_start;
 	char *eol = NULL;
 	size_t sym_index = 0;
@@ -169,8 +170,14 @@ static bool parse_symbol_map(char *symbol_map_start, char *symbol_map_end,
 			return false;
 		}
 
+		// update the previous symbol len
+		if (last != NULL) {
+			last->len = (size_t)sym->addr - (size_t)last->addr;
+		}
+
 		ptr = eol + 1;
 		sym_index++;
+		last = sym;
 	} while (ptr < symbol_map_end);
 
 	if (sym_index != sm->nb_syms) {
