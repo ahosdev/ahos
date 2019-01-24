@@ -270,7 +270,7 @@ bool symbol_find(void *addr, struct symbol *sym)
 	}
 
 	if (sym_map.nb_syms == 0) {
-		warn("no symbols loaded");
+		dbg("no symbols loaded");
 		return false;
 	}
 
