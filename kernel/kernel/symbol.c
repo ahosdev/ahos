@@ -308,6 +308,41 @@ bool symbol_find(void *addr, struct symbol *sym)
 	return false;
 }
 
+// ----------------------------------------------------------------------------
+
+/*
+ * Retrieves a symbol info from its @name and store it in @sym.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+bool symbol_lookup(char *name, struct symbol *sym)
+{
+	if ((name == NULL) || (*name == '\0') || (sym == NULL)) {
+		error("invalid argument");
+		return false;
+	}
+
+	if (sym_map.nb_syms == 0) {
+		dbg("no symbols loaded");
+		return false;
+	}
+
+	dbg("searching symbol '%s'", name);
+
+	// TODO: implement hash table for a faster lookup
+	for (size_t i = 0; i < sym_map.nb_syms; ++i) {
+		struct symbol *cur_sym = &sym_map.symbols[i];
+
+		if (strcmp(name, cur_sym->name) == 0) {
+			*sym = *cur_sym;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 // ============================================================================
 // ----------------------------------------------------------------------------
 // ============================================================================
