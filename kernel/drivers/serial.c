@@ -19,8 +19,6 @@
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
 
-#include <stdlib.h>
-
 #define LOG_MODULE "serial"
 
 // ============================================================================
@@ -178,7 +176,7 @@ static void serial_set_baud_rate(uint32_t rate)
 
 	// prevent division-by-zero and zero divisor latch bytes
 	if ((rate == 0) || (rate > 115200))
-		abort();
+		panic("invalid argument");
 
 	// enable dlab
 	lcr = inb(COM1 + LCR);

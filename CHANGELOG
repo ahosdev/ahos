@@ -4,9 +4,52 @@
 # -----------------------------------------------------------------------------
 # =============================================================================
 
+@@ v0.2 :
+~~~~~~~~~
+- arch:
+	- helpers to read/write control registers
+- boot:
+	- multiboot magic value and header address pass to kernel_main()
+- build:
+	- add start/end symbols (kernel_rodata, kernel_data, kernel_bss)
+	- iso image include 'symbols.map' file as a multiboot module
+	- qemu does not reboot on crash
+- init:
+	- initialization code splitted
+- libc:
+	- string: strchr() implementation
+	- string: strncpy() implementation
+	- stdlib: atoh() implementation
+- symbol:
+	- load 'symbols.map' from multiboot module and initialize symbol map
+	- symbol searching by address from symbol map (if loaded)
+	- symbol lookup by name from symbol map (if loaded)
+- panic:
+	- basic panic() handler displaying a calltrace
+- mem:
+	- extract physical memory map from multiboot
+	- reserve physical pages for kernel, phys_mem_map, PFA and module (optional)
+	- page frame allocator implementation (single and multiple page frames)
+	- page frame allocator: handle scattered memory region
+	- kmalloc/kfree: first version of the Ah!allocator (aha)
+	- paging: setup, identity mapping + PDE self-mapping
+	- paging: support map_page() and unmap_page()
+	- paging: add tlb flush primitives
+	- alloca: stack_alloc() / stack_free functions
+- event:
+	- page fault handler display more information
+- type:
+	- doubly linked circular list implementation
+- fixe:
+	- atomic: lock prefixe wasn't used as a prefix
+
+# =============================================================================
+# -----------------------------------------------------------------------------
+# =============================================================================
+
 @@ v0.1 :
 ~~~~~~~~~
-- build system system
+- build system
 - libc:
 	- stdio: printf, putchar, puts
 	- string: memcpy, memmove, strcpy, strnlen, memset, strcmp, memcmp, strlen

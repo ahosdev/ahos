@@ -63,7 +63,7 @@ struct aha_block {
 
 struct aha_big_meta {
 	size_t size; // a power-of-two size
-	uint32_t ptr; // point to the data
+	uint32_t ptr; // point to data (virt) and head page (phys)
 	struct list list; // pointer in 'aha_big_list'
 };
 
@@ -79,7 +79,8 @@ LIST_DECLARE(aha_big_list); // list of big allocation metadata
 // ============================================================================
 
 /*
- * This is the "big alloc" case.
+ * This is the "big alloc" case. Param @size is expected to be a page-aligned
+ * power-of-two.
  *
  * Big allocation doesn't use block. Instead, the data area is provided
  * by the page frame allocator (one or more page frames). The metadata
@@ -112,12 +113,22 @@ static void* big_alloc(size_t size)
 		pfa_free(head_page); // release the just allocated page frames
 		return NULL;
 	}
+	dbg("meta = %p", meta);
 
 	// fills the metadata
 	meta->size = size;
 	meta->ptr = (uint32_t) head_page;
 
 	list_add(&meta->list, &aha_big_list);
+
+	// identity map the pages (no lazy loading)
+	dbg("mapping pages");
+	for (size_t i = 0; i < nb_pages; ++i) {
+		uint32_t addr = head_page + i*PAGE_SIZE;
+		if (map_page(addr, addr, PTE_RW_KERNEL_NOCACHE) == false) {
+			NOT_IMPLEMENTED(); // FIXME: handle it and rollback
+		}
+	}
 
 	return (void*)head_page;
 }
@@ -140,16 +151,22 @@ static struct aha_block* new_block(size_t elt_size)
 
 	if (nb_elts == 0) {
 		// should never happen
-		error("block cannot even hold a single element");
-		abort();
+		panic("block cannot even hold a single element");
 	}
+
+	dbg("new_block: elt_size = %u (nb_elts=%u)", elt_size, nb_elts);
 
 	if ((block = (struct aha_block*) pfa_alloc(1)) == NULL) {
 		error("not enough memory");
 		return NULL;
 	}
 
-	dbg("new_block: elt_size = %u (nb_elts=%u)", elt_size, nb_elts);
+	// identity map the page (no lazy loading)
+	if (map_page((uint32_t)block, (uint32_t)block,
+				 PTE_RW_KERNEL_NOCACHE) == false)
+	{
+		NOT_IMPLEMENTED(); // FIXME: handle it and rollback
+	}
 
 	block->elt_size = elt_size;
 	block->tot_elts = nb_elts;
@@ -213,6 +230,44 @@ static size_t next_highest_power_of_two(size_t size)
 	size++;
 
 	return size;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Frees a big allocation.
+ *
+ * Allocated pages are unmapped and given back to the PFA. The @meta structure
+ * is removed from the meta list and freed.
+ */
+
+static void big_free(struct aha_big_meta *meta)
+{
+	dbg("freeing big allocation (meta = 0x%p)", meta);
+
+	if (meta == NULL) {
+		panic("invalid argument");
+	}
+
+	if (meta->size % PAGE_SIZE) {
+		warn("meta->size is not a PAGE_SIZE multiple");
+	}
+
+	// unmap all pages
+	for (size_t i = 0; i < (meta->size / PAGE_SIZE); ++i) {
+		uint32_t addr = meta->ptr + i*PAGE_SIZE;
+		if (unmap_page(addr) == false) {
+			// this must not failed
+			panic("failed to unmap 0x%p", addr);
+		}
+	}
+
+	// free the 'head' page frame (ptr=virt=phys because of identity mapping)
+	pfa_free(meta->ptr);
+
+	list_del(&meta->list);
+
+	kfree(meta);
 }
 
 // ============================================================================
@@ -285,8 +340,7 @@ void* kmalloc(size_t size)
 		}
 	}
 
-	error("found block does not have any free chunk!");
-	abort();
+	panic("found block does not have any free chunk!");
 
 	return NULL;
 }
@@ -306,8 +360,7 @@ void kfree(void *ptr)
 	dbg("freeing 0x%p", ptr);
 
 	if (ptr == NULL) {
-		error("freeing NULL pointer");
-		abort();
+		panic("freeing NULL pointer");
 	}
 
 	// search which block this @ptr might belong to
@@ -327,16 +380,14 @@ void kfree(void *ptr)
 		struct aha_big_meta *meta = NULL;
 		list_for_each_entry(meta, &aha_big_list, list) {
 			if (meta->ptr == (uint32_t)ptr) {
-				dbg("big alloc found");
-				pfa_free(meta->ptr);
-				list_del(&meta->list);
+				dbg("big alloc found (meta = 0x%p)", meta);
+				big_free(meta);
 				return;
 			}
 		}
 	}
 
-	error("ptr (0x%p) does not belong to any block or big alloc", ptr);
-	abort();
+	panic("ptr (0x%p) does not belong to any block or big alloc", ptr);
 
 found:
 	// find the chunk
@@ -344,8 +395,7 @@ found:
 		uint32_t chunk_ptr = block->first_ptr + chunk * block->elt_size;
 		if (chunk_ptr == (uint32_t)ptr) {
 			if (block->chunkmap[chunk] == CHUNK_FREE) {
-				error("double-free detected!");
-				abort();
+				panic("double-free detected!");
 			}
 			// we got it
 			dbg("chunk found: %d", chunk);
@@ -356,8 +406,7 @@ found:
 		}
 	}
 
-	error("ptr (0x%p) hasn't matching chunk in block 0x%p", ptr, block);
-	abort();
+	panic("ptr (0x%p) hasn't matching chunk in block 0x%p", ptr, block);
 }
 
 // ============================================================================

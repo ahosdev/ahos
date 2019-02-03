@@ -1,0 +1,79 @@
+# roadmap
+
+# =============================================================================
+# -----------------------------------------------------------------------------
+# =============================================================================
+
+@@ v0.2 "memory" (end of january):
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- physical memory organization
+- page frame allocator
+- fine-grained allocator (kmalloc)
+- paging
+- panic handler with stacktrace (+symbols)
+- split 'init' sections (.text.init., .bss.init) + dummy earlyboot allocator?
+- move into higher-half kernel + unmapped init sections
+
+# -----------------------------------------------------------------------------
+
+@@ v0.3 "multi-task" (TBD):
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- task
+- multi-(kernel)tasks
+- locking primitives
+- preemptive scheduler
+- review and protect existing code
+
+# -----------------------------------------------------------------------------
+
+@@ v0.4 "hdd and fs" (TBD):
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- hdd driver
+- design a simple (read-only) file system
+- implement a 'mkfs' for it and a FS driver
+- finish the bootloader (multiboot compliant)
+
+# -----------------------------------------------------------------------------
+
+@@ v0.5 "userland" (TBD):
+~~~~~~~~~~~~~~~~~~~~~~~~~
+- userland binary loader
+- userland toolchain (build)
+- basic syscalls
+
+# -----------------------------------------------------------------------------
+
+@@ v0.6 "ah!" (TBD):
+~~~~~~~~~~~~~~~~~~~~
+- soundblaster 16 driver
+- sound player
+- simple shell (busybox ?)
+- musle-libc integration?
+
+# -----------------------------------------------------------------------------
+
+@@ v0.7 "oh!" (TBD):
+~~~~~~~~~~~~~~~~~~~~
+- vga driver
+- font rendering
+- terminal rendering
+
+# -----------------------------------------------------------------------------
+
+@@ v0.8 "GUI" (TBD):
+~~~~~~~~~~~~~~~~~~~~
+- mouse driver
+- basic windows
+- multiple windows rendering
+
+# -----------------------------------------------------------------------------
+
+@@ v0.9 "network" (TBD):
+~~~~~~~~~~~~~~~~~~~~~~~~
+- network card driver
+- ethernet driver
+- simple IP stack
+
+# =============================================================================
+# -----------------------------------------------------------------------------
+# =============================================================================

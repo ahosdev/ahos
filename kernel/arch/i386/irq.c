@@ -8,9 +8,6 @@
 #include <kernel/interrupt.h>
 #include <kernel/log.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "io.h"
 
 #define LOG_MODULE "irq"
@@ -96,7 +93,7 @@ void irq_init(uint8_t master_offset, uint8_t slave_offset)
 	if (master_offset < 32 || slave_offset < 32)
 	{
 		// interrupts reserved by intel
-		abort();
+		panic("invalid master/slave offset");
 	}
 
 	// ICW1: start the initialization sequence (both master and slave)

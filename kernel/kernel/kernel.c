@@ -16,6 +16,9 @@
 
 #define LOG_MODULE "main"
 
+#define AHOS_VERSION_MAJOR 0
+#define AHOS_VERSION_MINOR 2
+
 #if defined(__linux__)
 #error "You are not using a cross-compiler"
 #endif
@@ -27,11 +30,12 @@
 static void print_banner(void)
 {
 	printf("\n\n");
-	printf("\t+====================+\n");
-	printf("\t|                    |\n");
-	printf("\t| Welcome to Ah!OS ! |\n");
-	printf("\t|                    |\n");
-	printf("\t+====================+\n");
+	printf("\t+===========================+\n");
+	printf("\t|                           |\n");
+	printf("\t| Welcome to Ah!OS (v%d.%.2d)! |\n", AHOS_VERSION_MAJOR,
+												   AHOS_VERSION_MINOR);
+	printf("\t|                           |\n");
+	printf("\t+===========================+\n");
 	printf("\n\n");
 }
 

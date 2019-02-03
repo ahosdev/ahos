@@ -30,7 +30,6 @@
 #include <drivers/ps2ctrl.h>
 #include <kernel/log.h>
 
-#include <stdlib.h>
 #include <string.h>
 
 #define LOG_MODULE "keyboard"
@@ -621,7 +620,7 @@ static void keyboard_state_reset(void)
 
 static bool keyboard_set_led(uint8_t led_state)
 {
-	info("starting SET LED STATE sequence...");
+	dbg("starting SET LED STATE sequence...");
 
 	if (led_state > (KBD_LED_SCROLL|KBD_LED_NUMBER|KBD_LED_CAPSLOCK)) {
 		error("invalid argument");
@@ -642,7 +641,7 @@ static bool keyboard_set_led(uint8_t led_state)
 
 	keyboard_led_state = led_state; // save the current state
 
-	success("SET LED STATE sequence complete");
+	dbg("SET LED STATE sequence complete");
 	return true;
 }
 
@@ -665,7 +664,7 @@ static bool keyboard_echo(void)
 	uint8_t response = 0;
 	size_t max_try = 3;
 
-	info("starting ECHO sequence...");
+	dbg("starting ECHO sequence...");
 
 retry:
 	if (max_try-- == 0) {
@@ -686,7 +685,7 @@ retry:
 		return false; // could indicate a severe error
 	}
 
-	success("ECHO sequence complete");
+	dbg("ECHO sequence complete");
 	return true;
 }
 
@@ -705,7 +704,7 @@ static bool keyboard_get_scan_code_set(enum keyboard_scs *scs)
 	struct ps2driver *driver = &keyboard_driver;
 	uint8_t scs_status = 0;
 
-	info("starting GET SCAN CODE SET sequence...");
+	dbg("starting GET SCAN CODE SET sequence...");
 
 	if (keyboard_send(KBD_CMD_SCAN_CODE_SET) == false) {
 		error("failed to send SCAN CODE SET command");
@@ -734,7 +733,7 @@ static bool keyboard_get_scan_code_set(enum keyboard_scs *scs)
 
 	*scs = (enum keyboard_scs) scs_status;
 
-	success("GET SCAN CODE SET sequence complete (set = %u)", scs_status);
+	dbg("GET SCAN CODE SET sequence complete (set = %u)", scs_status);
 	return true;
 }
 
@@ -748,7 +747,7 @@ static bool keyboard_get_scan_code_set(enum keyboard_scs *scs)
 
 static bool keyboard_set_scan_code_set(enum keyboard_scs scs)
 {
-	info("starting SET SCAN CODE SET (set = %d) sequence...", scs);
+	dbg("starting SET SCAN CODE SET (set = %d) sequence...", scs);
 
 	if (scs == KBD_SCS_UNKNOWN) {
 		error("invalid argument");
@@ -771,7 +770,7 @@ static bool keyboard_set_scan_code_set(enum keyboard_scs scs)
 		return false;
 	}
 
-	success("SET SCAN CODE SET sequence complete (set = %d)", scs);
+	dbg("SET SCAN CODE SET sequence complete (set = %d)", scs);
 	return true;
 }
 
@@ -805,7 +804,7 @@ static bool keyboard_set_typematic(enum keyboard_typematic_repeat repeat,
 {
 	uint8_t typematic = 0;
 
-	info("starting SET TYPEMATIC sequence...");
+	dbg("starting SET TYPEMATIC sequence...");
 
 	// XXX: it's pretty hard to test typematic "visually". Let's check later
 	// once we have a TUI/GUI. This is not handle by QEMU nor BOCH anyway...
@@ -824,7 +823,7 @@ static bool keyboard_set_typematic(enum keyboard_typematic_repeat repeat,
 		return false;
 	}
 
-	success("SET TYPEMATIC sequence complete");
+	dbg("SET TYPEMATIC sequence complete");
 
 	return true;
 }
@@ -839,14 +838,14 @@ static bool keyboard_set_typematic(enum keyboard_typematic_repeat repeat,
 
 static bool keyboard_enable_scanning(void)
 {
-	info("starting ENABLE SCANNING sequence...");
+	dbg("starting ENABLE SCANNING sequence...");
 
 	if (keyboard_send(KBD_CMD_ENABLE_SCANNING) == false) {
 		error("failed to send ENABLE SCANNING command");
 		return false;
 	}
 
-	success("ENABLE SCANNING sequence complete");
+	dbg("ENABLE SCANNING sequence complete");
 
 	return true;
 }
@@ -864,14 +863,14 @@ static bool keyboard_enable_scanning(void)
 __attribute__((unused))
 static bool keyboard_disable_scanning(void)
 {
-	info("starting DISABLE SCANNING sequence...");
+	dbg("starting DISABLE SCANNING sequence...");
 
 	if (keyboard_send(KBD_CMD_DISABLE_SCANNING) == false) {
 		error("failed to send DISABLE SCANNING command");
 		return false;
 	}
 
-	success("DISABLE SCANNING sequence complete");
+	dbg("DISABLE SCANNING sequence complete");
 
 	return true;
 }
@@ -889,7 +888,7 @@ static bool keyboard_disable_scanning(void)
 __attribute__((unused))
 static bool keyboard_set_default_parameter(void)
 {
-	info("starting SET DEFAULT PARAMETER sequence...");
+	dbg("starting SET DEFAULT PARAMETER sequence...");
 
 	UNTESTED_CODE();
 
@@ -898,7 +897,7 @@ static bool keyboard_set_default_parameter(void)
 		return false;
 	}
 
-	success("SET DEFAULT PARAMETER sequence complete");
+	dbg("SET DEFAULT PARAMETER sequence complete");
 
 	return true;
 }
@@ -923,7 +922,7 @@ static bool keyboard_resend_last_byte(uint8_t *last_byte)
 {
 	uint8_t result = 0;
 
-	info("starting RESEND LAST BYTE sequence...");
+	dbg("starting RESEND LAST BYTE sequence...");
 
 	UNTESTED_CODE();
 
@@ -939,7 +938,7 @@ static bool keyboard_resend_last_byte(uint8_t *last_byte)
 
 	*last_byte = result;
 
-	success("RESEND LAST BYTE sequence complete (0x%x)", result);
+	dbg("RESEND LAST BYTE sequence complete (0x%x)", result);
 
 	return true;
 }
@@ -959,7 +958,7 @@ static bool keyboard_reset_and_self_test(void)
 {
 	uint8_t result = 0;
 
-	info("starting RESET AND SELF-TEST sequence...");
+	dbg("starting RESET AND SELF-TEST sequence...");
 
 	if (keyboard_send(KBD_CMD_RESET_AND_SELF_TEST) == false) {
 		error("failed to send RESET AND SELF-TEST command");
@@ -982,7 +981,7 @@ static bool keyboard_reset_and_self_test(void)
 		return false;
 	}
 
-	success("RESET AND SELF-TEST sequence complete");
+	dbg("RESET AND SELF-TEST sequence complete");
 
 	return true;
 }

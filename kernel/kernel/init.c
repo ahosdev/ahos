@@ -7,6 +7,7 @@
 #include <kernel/init.h>
 #include <kernel/interrupt.h>
 #include <kernel/log.h>
+#include <kernel/symbol.h>
 
 #include <drivers/serial.h>
 #include <drivers/clock.h>
@@ -15,6 +16,7 @@
 #include <drivers/keyboard.h>
 
 #include <mem/memory.h>
+#include <mem/pmm.h>
 
 #include <arch/gdt.h>
 
@@ -31,19 +33,19 @@ static void ps2_init(void)
 	ps2ctrl_init();
 	keyboard_init();
 
-	info("starting PS/2 device identification...");
+	dbg("starting PS/2 device identification...");
 	if (ps2ctrl_identify_devices() == false) {
 		error("failed to identify PS/2 devices");
 		return;
 	}
-	success("PS/2 devices identification succeed");
+	dbg("PS/2 devices identification succeed");
 
-	info("starting PS/2 drivers...");
+	dbg("starting PS/2 drivers...");
 	if (ps2ctrl_start_drivers() == false) {
 		error("failed to start PS/2 device drivers");
 		return;
 	}
-	success("PS/2 device drivers started");
+	dbg("PS/2 device drivers started");
 
 	success("PS/2 subsystem initialization complete");
 }
@@ -55,21 +57,21 @@ static void mem_init(multiboot_info_t *mbi)
 	info("initializing memory...");
 
 	if (mbi->flags & MULTIBOOT_INFO_MEM_MAP) {
-		if (phys_mem_map_init(mbi->mmap_addr, mbi->mmap_length) == false)
+		if (phys_mem_map_init(mbi) == false)
 		{
-			error("failed to initialize memory map");
-			abort();
+			panic("failed to initialize memory map");
 		}
 	} else {
-		error("no memory map from multiboot info, cannot initialize memory");
-		abort();
+		panic("no memory map from multiboot info, cannot initialize memory");
 	}
 	// we cannot use 'mbi' past this point (it is sitting in available memory)
 
 	if (pfa_init() == false) {
-		error("failed to init the page frame allocator");
-		abort();
+		panic("failed to init the page frame allocator");
 	}
+
+	// the page frame allocator is ready, we can now setup paging
+	paging_setup();
 
 	success("memory initialization complete");
 }
@@ -114,6 +116,11 @@ void kernel_init(multiboot_info_t *mbi)
 	info("enabling interrupts now");
 	enable_nmi();
 	enable_interrupts();
+
+	if (symbol_init((char*)module_addr, module_len) == false) {
+		// this is not critical
+		warn("failed to load symbol from module");
+	}
 
 	ps2_init();
 

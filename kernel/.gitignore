@@ -2,3 +2,4 @@
 *.kernel
 *.o
 *.swo
+symbols.map
