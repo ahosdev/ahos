@@ -1,5 +1,5 @@
 /*
- * kernel.c
+ * main.c
  *
  * Kernel Entry Point.
  */

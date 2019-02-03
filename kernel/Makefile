@@ -35,7 +35,7 @@ KERNEL_OBJS=\
 $(KERNEL_ARCH_OBJS) \
 $(KERNEL_DRIVERS_OBJS) \
 $(KERNEL_MEM_OBJS) \
-kernel/kernel.o \
+kernel/main.o \
 kernel/timeout.o \
 kernel/log.o \
 kernel/scheduler.o \
