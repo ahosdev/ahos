@@ -17,7 +17,7 @@
 #define LOG_MODULE "main"
 
 #define AHOS_VERSION_MAJOR 0
-#define AHOS_VERSION_MINOR 2
+#define AHOS_VERSION_MINOR 3
 
 #if defined(__linux__)
 #error "You are not using a cross-compiler"
