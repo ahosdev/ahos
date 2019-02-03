@@ -30,7 +30,6 @@
 #include <drivers/ps2ctrl.h>
 #include <kernel/log.h>
 
-#include <stdlib.h>
 #include <string.h>
 
 #define LOG_MODULE "keyboard"

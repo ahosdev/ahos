@@ -9,8 +9,6 @@
 #include <kernel/types.h>
 #include <kernel/interrupt.h>
 
-#include <stdio.h>
-
 #define LOG_MODULE "gdt"
 
 // ============================================================================

@@ -725,8 +725,7 @@ bool phys_mem_map_map_module(void)
 	{
 		if (map_page(addr, addr, PTE_RW_KERNEL_NOCACHE) == false) {
 			// unrecoverable error
-			error("failed to map page 0x%p", addr);
-			abort();
+			panic("failed to map page 0x%p", addr);
 		}
 	}
 

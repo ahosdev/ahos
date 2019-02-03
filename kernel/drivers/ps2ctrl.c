@@ -34,7 +34,6 @@
 #include <kernel/timeout.h>
 #include <kernel/log.h>
 
-#include <stdlib.h>
 #include <string.h>
 
 #define LOG_MODULE "ps2ctrl"
@@ -706,8 +705,7 @@ next_device:
 static enum ps2_device_type device_type_from_id_bytes(uint8_t *bytes, uint8_t nbytes)
 {
 	if ((bytes == NULL) || (nbytes > 2)) {
-		error("invalid argument");
-		abort();
+		panic("invalid argument");
 	}
 
 	if (nbytes == 0) {
@@ -1130,8 +1128,7 @@ void ps2ctrl_irq1_handler(void)
 	uint8_t data = 0;
 
 	if (!ps2ctrl_initialized) {
-		error("PS/2 controller not initialized!");
-		abort();
+		panic("PS/2 controller not initialized!");
 	}
 
 	// no need to check 'output' status in Status Register (we come from IRQ)
@@ -1154,15 +1151,13 @@ void ps2ctrl_irq12_handler(void)
 	uint8_t data = 0;
 
 	if (!ps2ctrl_initialized) {
-		error("PS/2 controller not initialized!");
-		abort();
+		panic("PS/2 controller not initialized!");
 	}
 
 	if (!ps2ctrl_single_channel) {
 		// XXX: this should never happend since the IRQ is cleared during
 		// driver start up.
-		error("PS/2 controller has a single channel!");
-		abort();
+		panic("PS/2 controller has a single channel!");
 	}
 
 	// no need to check 'output' status in Status Register (we come from IRQ)

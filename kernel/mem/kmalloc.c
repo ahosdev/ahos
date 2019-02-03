@@ -151,8 +151,7 @@ static struct aha_block* new_block(size_t elt_size)
 
 	if (nb_elts == 0) {
 		// should never happen
-		error("block cannot even hold a single element");
-		abort();
+		panic("block cannot even hold a single element");
 	}
 
 	dbg("new_block: elt_size = %u (nb_elts=%u)", elt_size, nb_elts);
@@ -247,8 +246,7 @@ static void big_free(struct aha_big_meta *meta)
 	dbg("freeing big allocation (meta = 0x%p)", meta);
 
 	if (meta == NULL) {
-		error("invalid argument");
-		abort();
+		panic("invalid argument");
 	}
 
 	if (meta->size % PAGE_SIZE) {
@@ -260,8 +258,7 @@ static void big_free(struct aha_big_meta *meta)
 		uint32_t addr = meta->ptr + i*PAGE_SIZE;
 		if (unmap_page(addr) == false) {
 			// this must not failed
-			error("failed to unmap 0x%p", addr);
-			abort();
+			panic("failed to unmap 0x%p", addr);
 		}
 	}
 
@@ -343,8 +340,7 @@ void* kmalloc(size_t size)
 		}
 	}
 
-	error("found block does not have any free chunk!");
-	abort();
+	panic("found block does not have any free chunk!");
 
 	return NULL;
 }
@@ -364,8 +360,7 @@ void kfree(void *ptr)
 	dbg("freeing 0x%p", ptr);
 
 	if (ptr == NULL) {
-		error("freeing NULL pointer");
-		abort();
+		panic("freeing NULL pointer");
 	}
 
 	// search which block this @ptr might belong to
@@ -392,8 +387,7 @@ void kfree(void *ptr)
 		}
 	}
 
-	error("ptr (0x%p) does not belong to any block or big alloc", ptr);
-	abort();
+	panic("ptr (0x%p) does not belong to any block or big alloc", ptr);
 
 found:
 	// find the chunk
@@ -401,8 +395,7 @@ found:
 		uint32_t chunk_ptr = block->first_ptr + chunk * block->elt_size;
 		if (chunk_ptr == (uint32_t)ptr) {
 			if (block->chunkmap[chunk] == CHUNK_FREE) {
-				error("double-free detected!");
-				abort();
+				panic("double-free detected!");
 			}
 			// we got it
 			dbg("chunk found: %d", chunk);
@@ -413,8 +406,7 @@ found:
 		}
 	}
 
-	error("ptr (0x%p) hasn't matching chunk in block 0x%p", ptr, block);
-	abort();
+	panic("ptr (0x%p) hasn't matching chunk in block 0x%p", ptr, block);
 }
 
 // ============================================================================

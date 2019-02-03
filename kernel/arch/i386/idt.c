@@ -24,8 +24,6 @@
 
 #include <mem/memory.h>
 
-#include <stdlib.h> // uses abort
-
 #define LOG_MODULE "idt"
 
 // ============================================================================
@@ -109,8 +107,7 @@ struct idt_entry
 
 void unhandled_exception(void)
 {
-	error("unhandled exception!");
-	abort();
+	panic("unhandled exception!");
 	/* no return */
 }
 
@@ -118,8 +115,7 @@ void unhandled_exception(void)
 
 void unhandled_interrupt(void)
 {
-	error("unhandled interrupt!");
-	abort();
+	panic("unhandled interrupt!");
 	/* no return */
 }
 
@@ -172,15 +168,21 @@ static void user_defined_interrupt_handler(void)
 // ----------------------------------------------------------------------------
 // ============================================================================
 
-void isr_handler(int isr_num, int error_code)
+struct interrupt_stack
 {
-	switch (isr_num)
+	int isr_num;
+	int error_code;
+};
+
+void isr_handler(struct interrupt_stack *stack)
+{
+	switch (stack->isr_num)
 	{
 		case 0: divide_error_handler(); break;
 		case 6: invalid_opcode_handler(); break;
 		case 8: double_fault_handler(); break;
 		case 13: general_protection_fault_handler(); break;
-		case 14: page_fault_handler(error_code); break;
+		case 14: page_fault_handler(stack->error_code); break;
 		case 32: clock_irq_handler(); break;
 		case 33: ps2ctrl_irq1_handler(); break;
 		case 34: user_defined_interrupt_handler(); break;

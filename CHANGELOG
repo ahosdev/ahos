@@ -23,6 +23,9 @@
 - symbol:
 	- load 'symbols.map' from multiboot module and initialize symbol map
 	- symbol searching by address from symbol map (if loaded)
+	- symbol lookup by name from symbol map (if loaded)
+- panic:
+	- basic panic() handler displaying a calltrace
 - mem:
 	- extract physical memory map from multiboot
 	- reserve physical pages for kernel, phys_mem_map, PFA and module (optional)

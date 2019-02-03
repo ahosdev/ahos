@@ -8,8 +8,7 @@
 extern "C" {
 #endif
 
-__attribute__((__noreturn__))
-void abort(void);
+__attribute__((__noreturn__)) void abort(void);
 size_t atoh(const char *nptr);
 
 #ifdef __cplusplus

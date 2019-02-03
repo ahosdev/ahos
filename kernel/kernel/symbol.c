@@ -139,6 +139,7 @@ fail:
 static bool parse_symbol_map(char *symbol_map_start, char *symbol_map_end,
 							 struct symbol_map *sm)
 {
+	struct symbol *last = NULL;
 	char *ptr = symbol_map_start;
 	char *eol = NULL;
 	size_t sym_index = 0;
@@ -169,8 +170,14 @@ static bool parse_symbol_map(char *symbol_map_start, char *symbol_map_end,
 			return false;
 		}
 
+		// update the previous symbol len
+		if (last != NULL) {
+			last->len = (size_t)sym->addr - (size_t)last->addr;
+		}
+
 		ptr = eol + 1;
 		sym_index++;
+		last = sym;
 	} while (ptr < symbol_map_end);
 
 	if (sym_index != sm->nb_syms) {
@@ -270,7 +277,7 @@ bool symbol_find(void *addr, struct symbol *sym)
 	}
 
 	if (sym_map.nb_syms == 0) {
-		warn("no symbols loaded");
+		dbg("no symbols loaded");
 		return false;
 	}
 
@@ -292,12 +299,45 @@ bool symbol_find(void *addr, struct symbol *sym)
 			{
 				return false;
 			}
-		} else if (addr != last_sym->addr) {
-			return false;
 		}
 
 		*sym = *last_sym;
 		return true;
+	}
+
+	return false;
+}
+
+// ----------------------------------------------------------------------------
+
+/*
+ * Retrieves a symbol info from its @name and store it in @sym.
+ *
+ * Returns true on success, false otherwise.
+ */
+
+bool symbol_lookup(char *name, struct symbol *sym)
+{
+	if ((name == NULL) || (*name == '\0') || (sym == NULL)) {
+		error("invalid argument");
+		return false;
+	}
+
+	if (sym_map.nb_syms == 0) {
+		dbg("no symbols loaded");
+		return false;
+	}
+
+	dbg("searching symbol '%s'", name);
+
+	// TODO: implement hash table for a faster lookup
+	for (size_t i = 0; i < sym_map.nb_syms; ++i) {
+		struct symbol *cur_sym = &sym_map.symbols[i];
+
+		if (strcmp(name, cur_sym->name) == 0) {
+			*sym = *cur_sym;
+			return true;
+		}
 	}
 
 	return false;

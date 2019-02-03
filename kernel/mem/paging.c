@@ -118,8 +118,7 @@ static void bootstrap_mapping(void)
 		uint32_t end = 0;
 
 		if (PAGE_OFFSET(range->start)) {
-			error("starting range is not page-aligned");
-			abort();
+			panic("starting range is not page-aligned");
 		}
 
 		end = page_align(range->end + 1); // XXX: is this correct?
@@ -129,8 +128,7 @@ static void bootstrap_mapping(void)
 		for (size_t addr = range->start; addr < end; addr += PAGE_SIZE) {
 			if (map_page(addr, addr, PTE_RW_KERNEL_NOCACHE) == false) {
 				// unrecoverable
-				error("failed to map 0x%p", addr);
-				abort();
+				panic("failed to map 0x%p", addr);
 			}
 		}
 	}
@@ -384,8 +382,7 @@ void page_fault_handler(int error)
 	// TODO: print EIP and (eventually) EFLAGS
 
 	if (PDE_PRESENT(pd_index) == false) {
-		error("page directory entry NOT PRESENT");
-		abort();
+		panic("page directory entry NOT PRESENT");
 	}
 	dump_pde(page_directory[pd_index]);
 	dbg("");
@@ -401,8 +398,7 @@ void page_fault_handler(int error)
 	info("");
 
 	if ((page_table[pt_index] & PTE_MASK_PRESENT) == 0) {
-		error("page table entry NOT PRESENT");
-		abort();
+		panic("page table entry NOT PRESENT");
 	}
 	dump_pte(page_table[pt_index]);
 	dbg("");
@@ -457,8 +453,7 @@ bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags)
 	if ((page_directory[pd_index] & PDE_MASK_PRESENT) == 0) {
 		// nope, we need to allocate a new page table and initialize it first
 		if ((page_table = new_page_table(pd_index, flags)) == NULL) {
-			error("failed to create new page table");
-			abort();
+			panic("failed to create new page table");
 		}
 	} else {
 		// check for consistency between @flags and PDE's flags
@@ -477,8 +472,7 @@ bool map_page(uint32_t phys_addr, uint32_t virt_addr, uint32_t flags)
 
 		// is there already a mapping present?
 		if (page_table[pt_index] & PTE_MASK_PRESENT) {
-			error("overwriting an already present mapping!");
-			abort();
+			panic("overwriting an already present mapping!");
 		}
 	}
 
@@ -520,8 +514,7 @@ bool unmap_page(uint32_t virt_addr)
 
 	if (pd_index == 1023) {
 		// this is a serious issue
-		error("cannot unmap page table/directory");
-		abort();
+		panic("cannot unmap page table/directory");
 	}
 
 	if (PDE_PRESENT(pd_index) == false) {
@@ -571,8 +564,7 @@ void paging_setup(void)
 	info("paging setup...");
 
 	if ((pgd_phys_addr = pfa_alloc(1)) == 0) {
-		error("cannot allocate page_directory");
-		abort();
+		panic("cannot allocate page_directory");
 	}
 	dbg("pgd_phys_addr = 0x%p", pgd_phys_addr);
 
@@ -618,8 +610,7 @@ void paging_setup(void)
 
 	// loads the physical address of page-directory into CR3
 	if (load_page_directory(pgd_phys_addr) == false) {
-		error("failed to load the new page directory");
-		abort();
+		panic("failed to load the new page directory");
 	}
 
 	// finally, update page_directory to its correct virtual address

@@ -25,6 +25,7 @@ struct symbol {
 
 bool symbol_init(char *symbol_map_start, size_t symbol_map_len);
 bool symbol_find(void *addr, struct symbol *sym);
+bool symbol_lookup(char *name, struct symbol *sym);
 
 // ============================================================================
 // ----------------------------------------------------------------------------
