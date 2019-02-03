@@ -36,10 +36,7 @@
 	- handle special (shift / ctrl / etc...)
 
 - panic:
-	- basic handler which reset halt the cpu
 	- display register state
-	- pretty print the stack
-	- unwind the stack
 
 - handle INTEL exceptions
 
